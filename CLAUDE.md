@@ -77,3 +77,7 @@ Don’t do force unwrapping of optionals.
 ## Things to Know
 
 Just because unit tests pass doesn’t mean a given bug is fixed. It may not have a test. It may not even be testable — it may require manual testing.
+
+## NetNewsList Fork
+
+This repository is a fork that is being turned into NetNewsList, a personal, iCloud-only reading list. The roadmap, architecture decisions and the traps to avoid are in `Technotes/NetNewsList/Plan.md`; the file-by-file keep/adapt/delete inventory is in `Technotes/NetNewsList/CodebaseInventory.md`. Read the plan before changing sync, retention, or account code.
