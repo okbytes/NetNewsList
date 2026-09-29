@@ -71,11 +71,6 @@ import Images
 			Self.logger.info("Is first run.")
 		}
 
-		if isFirstRun && !AccountManager.shared.anyAccountHasAtLeastOneFeed() {
-			let localAccount = AccountManager.shared.defaultAccount
-			DefaultFeedsImporter.importDefaultFeeds(account: localAccount)
-		}
-
 		registerBackgroundTasks()
 		CacheCleaner.purgeIfNecessary()
 		initializeDownloaders()
@@ -93,7 +88,6 @@ import Images
 		UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { _, _ in }
 
 		UNUserNotificationCenter.current().delegate = self
-		UserNotificationManager.shared.start()
 
 		ArticleThemesManager.shared.start()
 		NetworkMonitor.shared.start()
@@ -221,21 +215,11 @@ import Images
     }
 
 	private func handle(notificationResponse response: UNNotificationResponse) {
-
-		let userInfo = response.notification.request.content.userInfo
-
-		switch response.actionIdentifier {
-		case UserNotificationManager.ActionIdentifier.markAsRead:
-			handleMarkAsRead(userInfo: userInfo)
-		case UserNotificationManager.ActionIdentifier.markAsStarred:
-			handleMarkAsStarred(userInfo: userInfo)
-		default:
-			if let sceneDelegate = response.targetScene?.delegate as? SceneDelegate {
-				sceneDelegate.handle(response)
-				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
-					sceneDelegate.coordinator.dismissIfLaunchingFromExternalAction()
-				})
-			}
+		if let sceneDelegate = response.targetScene?.delegate as? SceneDelegate {
+			sceneDelegate.handle(response)
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+				sceneDelegate.coordinator.dismissIfLaunchingFromExternalAction()
+			})
 		}
 	}
 }
@@ -473,41 +457,6 @@ private extension AppDelegate {
 			Task { @MainActor in
 				self.suspendApplication()
 			}
-		}
-	}
-}
-
-// MARK: - Handle Notification Actions
-
-private extension AppDelegate {
-	func handleMarkAsRead(userInfo: [AnyHashable: Any]) {
-		handleStatusNotification(userInfo: userInfo, statusKey: .read)
-	}
-
-	func handleMarkAsStarred(userInfo: [AnyHashable: Any]) {
-		handleStatusNotification(userInfo: userInfo, statusKey: .starred)
-	}
-
-	private func handleStatusNotification(userInfo: [AnyHashable: Any], statusKey: ArticleStatus.Key) {
-		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any],
-			let accountID = articlePathUserInfo[ArticlePathKey.accountID] as? String,
-			let articleID = articlePathUserInfo[ArticlePathKey.articleID] as? String else {
-				return
-		}
-
-		resumeIfNecessary()
-
-		guard let account = AccountManager.shared.existingAccount(accountID: accountID) else {
-			assertionFailure("Expected account with \(accountID)")
-			Self.logger.error("No account with accountID \(accountID) found from status notification")
-			return
-		}
-
-		Task { @MainActor in
-			try? await account.markArticles(articleIDs: [articleID], statusKey: statusKey, flag: true)
-			_ = try? await account.syncArticleStatus()
-			prepareAccountsForBackground()
-			suspendApplication()
 		}
 	}
 }

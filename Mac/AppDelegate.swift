@@ -82,14 +82,11 @@ let appName = "NetNewsWire"
 	private var aboutWindowController: AboutWindowController?
 	private var addFeedController: AddFeedController?
 	private var addFolderWindowController: AddFolderWindowController?
-	private var importOPMLController: ImportOPMLWindowController?
-	private var exportOPMLController: ExportOPMLWindowController?
 	private var keyboardShortcutsWindowController: WebViewWindowController?
 	private var inspectorWindowController: InspectorWindowController?
 	private var activityWindowController: CurrentActivityWindowController?
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
-	private var dinosaurWindowController: DinosaursWindowController?
 	private var cloudKitStatsWindowController: CloudKitStatsWindowController?
 	private var accountStatsWindowController: AccountStatsWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
@@ -163,12 +160,6 @@ let appName = "NetNewsWire"
 		if isFirstRun {
 			Self.logger.debug("Is first run.")
 		}
-		let localAccount = AccountManager.shared.defaultAccount
-		if isFirstRun && !AccountManager.shared.anyAccountHasAtLeastOneFeed() {
-			// Import default feeds.
-			DefaultFeedsImporter.importDefaultFeeds(account: localAccount)
-		}
-
 		updateColumnLayoutMenuItem()
 
 		if mainWindowController == nil {
@@ -207,9 +198,6 @@ let appName = "NetNewsWire"
 			if AccountStatsWindowController.shouldOpenAtStartup {
 				showAccountStats(self)
 			}
-			if DinosaursWindowController.shouldOpenAtStartup {
-				showDinosaursWindow(self)
-			}
 		}
 
 		ArticleThemesManager.shared.start()
@@ -228,7 +216,6 @@ let appName = "NetNewsWire"
 		NSApplication.shared.registerForRemoteNotifications()
 
 		UNUserNotificationCenter.current().delegate = self
-		UserNotificationManager.shared.start()
 
 		#if DEBUG
 		refreshTimer!.update()
@@ -438,14 +425,6 @@ let appName = "NetNewsWire"
 			return !AccountManager.shared.refreshInProgress && !AccountManager.shared.activeAccounts.isEmpty
 		}
 
-		if item.action == #selector(importOPMLFromFile(_:)) {
-			return AccountManager.shared.activeAccounts.contains(where: { !$0.behaviors.contains(where: { $0 == .disallowOPMLImports }) })
-		}
-
-		if item.action == #selector(addAppNews(_:)) {
-			return !isDisplayingSheet && !AccountManager.shared.anyAccountHasNetNewsWireNewsSubscription() && !AccountManager.shared.activeAccounts.isEmpty
-		}
-
 		if item.action == #selector(showAddFeedWindow(_:)) || item.action == #selector(showAddFolderWindow(_:)) {
 			return !isDisplayingSheet && !AccountManager.shared.activeAccounts.isEmpty
 		}
@@ -478,17 +457,7 @@ let appName = "NetNewsWire"
 		let wrappedCompletionHandler = UnsafeSendable(value: completionHandler)
 
 		Task { @MainActor in
-			let response = wrappedResponse.value
-			let userInfo = response.notification.request.content.userInfo
-
-			switch response.actionIdentifier {
-			case UserNotificationManager.ActionIdentifier.markAsRead:
-				handleMarkAsRead(userInfo: userInfo)
-			case UserNotificationManager.ActionIdentifier.markAsStarred:
-				handleMarkAsStarred(userInfo: userInfo)
-			default:
-				mainWindowController?.handle(response)
-			}
+			mainWindowController?.handle(wrappedResponse.value)
 			wrappedCompletionHandler.value()
 		}
     }
@@ -540,13 +509,6 @@ let appName = "NetNewsWire"
 			errorLogWindowController = ErrorLogWindowController()
 		}
 		errorLogWindowController!.showWindow(self)
-	}
-
-	@IBAction func showDinosaursWindow(_ sender: Any?) {
-		if dinosaurWindowController == nil {
-			dinosaurWindowController = DinosaursWindowController()
-		}
-		dinosaurWindowController!.showWindow(self)
 	}
 
 	@objc func selectFeedInSidebar(_ sender: Any?) {
@@ -618,41 +580,6 @@ let appName = "NetNewsWire"
 			inspectorWindowController!.objects = objectsForInspector()
 			inspectorWindowController!.showWindow(self)
 		}
-	}
-
-	@IBAction func importOPMLFromFile(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		if windowController.isDisplayingSheet {
-			return
-		}
-
-		importOPMLController = ImportOPMLWindowController()
-		importOPMLController?.runSheetOnWindow(windowController.window!)
-	}
-
-	@IBAction func importNNW3FromFile(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		if windowController.isDisplayingSheet {
-			return
-		}
-		NNW3ImportController.askUserToImportNNW3Subscriptions(window: windowController.window!)
-	}
-
-	@IBAction func exportOPML(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		if windowController.isDisplayingSheet {
-			return
-		}
-
-		exportOPMLController = ExportOPMLWindowController()
-		exportOPMLController?.runSheetOnWindow(windowController.window!)
-	}
-
-	@IBAction func addAppNews(_ sender: Any?) {
-		if AccountManager.shared.anyAccountHasNetNewsWireNewsSubscription() {
-			return
-		}
-		addFeed(AccountManager.netNewsWireNewsURL, name: "NetNewsWire News")
 	}
 
 	@IBAction func openWebsite(_ sender: Any?) {
@@ -815,7 +742,6 @@ extension AppDelegate {
 		activityLogWindowController?.saveState()
 		errorLogWindowController?.saveState()
 		accountStatsWindowController?.saveState()
-		dinosaurWindowController?.saveState()
 	}
 
 	@MainActor func updateColumnLayoutMenuItem() {
@@ -960,38 +886,5 @@ extension AppDelegate: NSWindowRestoration {
 			mainWindow = appDelegate.createAndShowMainWindow().window
 		}
 		completionHandler(mainWindow, nil)
-	}
-}
-
-// Handle Notification Actions
-
-private extension AppDelegate {
-
-	func handleMarkAsRead(userInfo: [AnyHashable: Any]) {
-		handleStatusNotification(userInfo: userInfo, statusKey: .read)
-	}
-
-	func handleMarkAsStarred(userInfo: [AnyHashable: Any]) {
-		handleStatusNotification(userInfo: userInfo, statusKey: .starred)
-	}
-
-	private func handleStatusNotification(userInfo: [AnyHashable: Any], statusKey: ArticleStatus.Key) {
-		Task { @MainActor in
-			guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any],
-				  let accountID = articlePathUserInfo[ArticlePathKey.accountID] as? String,
-				  let articleID = articlePathUserInfo[ArticlePathKey.articleID] as? String else {
-				assertionFailure("Expected valid articlePathUserInfo from userInfo \(userInfo)")
-				Self.logger.error("No valid articlePathUserInfo from userInfo \(userInfo) in status notification")
-				return
-			}
-
-			guard let account = AccountManager.shared.existingAccount(accountID: accountID) else {
-				assertionFailure("Expected account with \(accountID)")
-				Self.logger.error("No account with accountID \(accountID) found from status notification")
-				return
-			}
-
-			try? await account.markArticles(articleIDs: [articleID], statusKey: statusKey, flag: true)
-		}
 	}
 }

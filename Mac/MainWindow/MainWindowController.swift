@@ -586,12 +586,9 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		let sortedArticles = selectedArticles.sortedByDate(.orderedAscending)
 		let items = sortedArticles.map { ArticlePasteboardWriter(article: $0) }
 
-		detailViewController?.fetchSelectedHTML { selectedHTML in
-			self.sharingServicePickerDelegate?.selectedHTML = selectedHTML
-			let sharingServicePicker = NSSharingServicePicker(items: items)
-			sharingServicePicker.delegate = self.sharingServicePickerDelegate
-			sharingServicePicker.show(relativeTo: anchorRect, of: anchorView, preferredEdge: .minY)
-		}
+		let sharingServicePicker = NSSharingServicePicker(items: items)
+		sharingServicePicker.delegate = sharingServicePickerDelegate
+		sharingServicePicker.show(relativeTo: anchorRect, of: anchorView, preferredEdge: .minY)
 	}
 
 	@IBAction func moveFocusToSearchField(_ sender: Any?) {

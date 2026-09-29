@@ -88,10 +88,6 @@ final class DetailViewController: NSViewController, WKUIDelegate {
 		currentWebViewController.stopMediaPlayback()
 	}
 
-	func fetchSelectedHTML(_ completion: @escaping (String?) -> Void) {
-		currentWebViewController.fetchSelectedHTML(completion)
-	}
-
 	func canScrollDown() async -> Bool {
 		await currentWebViewController.canScrollDown()
 	}

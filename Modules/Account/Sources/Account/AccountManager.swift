@@ -19,9 +19,6 @@ import ActivityLog
 
 	public static var shared = AccountManager()
 
-	public static let netNewsWireNewsURL = "https://netnewswire.blog/feed.xml"
-    private static let jsonNetNewsWireNewsURL = "https://netnewswire.blog/feed.json"
-
 	public let defaultAccount: Account
 	public let errorLogDatabase: ErrorLogDatabase
 
@@ -390,29 +387,6 @@ import ActivityLog
 		for account in accounts {
 			account.saveIfNeeded()
 		}
-	}
-
-	public func anyAccountHasAtLeastOneFeed() -> Bool {
-		for account in activeAccounts {
-			if account.hasAtLeastOneFeed() {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	public func anyAccountHasNetNewsWireNewsSubscription() -> Bool {
-		anyAccountHasFeedWithURL(Self.netNewsWireNewsURL) || anyAccountHasFeedWithURL(Self.jsonNetNewsWireNewsURL)
-	}
-
-	public func anyAccountHasFeedWithURL(_ urlString: String) -> Bool {
-		for account in activeAccounts {
-			if account.existingFeed(withURL: urlString) != nil {
-				return true
-			}
-		}
-		return false
 	}
 
 	// MARK: - Fetching Articles

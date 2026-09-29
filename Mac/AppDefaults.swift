@@ -38,8 +38,6 @@ final class AppDefaults: Sendable {
 		static let addFeedAccountID = "addFeedAccountID"
 		static let addFeedFolderName = "addFeedFolderName"
 		static let addFolderAccountID = "addFolderAccountID"
-		static let importOPMLAccountID = "importOPMLAccountID"
-		static let exportOPMLAccountID = "exportOPMLAccountID"
 		static let defaultBrowserID = "defaultBrowserID"
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
@@ -162,24 +160,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setString(for: Key.addFolderAccountID, newValue)
-		}
-	}
-
-	var importOPMLAccountID: String? {
-		get {
-			return AppDefaults.string(for: Key.importOPMLAccountID)
-		}
-		set {
-			AppDefaults.setString(for: Key.importOPMLAccountID, newValue)
-		}
-	}
-
-	var exportOPMLAccountID: String? {
-		get {
-			return AppDefaults.string(for: Key.exportOPMLAccountID)
-		}
-		set {
-			AppDefaults.setString(for: Key.exportOPMLAccountID, newValue)
 		}
 	}
 

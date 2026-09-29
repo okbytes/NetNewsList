@@ -577,24 +577,6 @@
         }
       }
     },
-    "cmP-uH-mS8.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Add NetNewsWire News Feed\"; ObjectID = \"cmP-uH-mS8\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Add NetNewsWire News Feed"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir fuente de noticias de NetNewsWire"
-          }
-        }
-      }
-    },
     "cwL-P1-jid.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Smart Links\"; ObjectID = \"cwL-P1-jid\";",
       "extractionState" : "extracted_with_value",
@@ -627,24 +609,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Convertir en minúsculas"
-          }
-        }
-      }
-    },
-    "din-0s-aUR.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Dinosaurs\"; ObjectID = \"din-0s-aUR\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Dinosaurs"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dinosaurios"
           }
         }
       }
@@ -1095,24 +1059,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Servicios"
-          }
-        }
-      }
-    },
-    "i8e-24-dto.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Import NNW 3 Subscriptions…\"; ObjectID = \"i8e-24-dto\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Import NNW 3 Subscriptions…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar suscripciones de NNW 3…"
           }
         }
       }
@@ -1765,24 +1711,6 @@
         }
       }
     },
-    "rSl-F4-qo7.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Import Subscriptions…\"; ObjectID = \"rSl-F4-qo7\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Import Subscriptions…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar suscripciones…"
-          }
-        }
-      }
-    },
     "Ruw-6m-B2m.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Select All\"; ObjectID = \"Ruw-6m-B2m\";",
       "extractionState" : "extracted_with_value",
@@ -2289,24 +2217,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voz"
-          }
-        }
-      }
-    },
-    "Xy2-v8-Lj8.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Export Subscriptions…\"; ObjectID = \"Xy2-v8-Lj8\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Export Subscriptions…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportar suscripciones…"
           }
         }
       }
