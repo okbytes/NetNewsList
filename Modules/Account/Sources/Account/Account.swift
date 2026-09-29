@@ -41,16 +41,9 @@ nonisolated public enum AccountType: Int, Codable, Sendable {
 	// Raw values should not change since they’re stored on disk.
 	case onMyMac = 1
 	case cloudKit = 2
-	case feedly = 16
-	case feedbin = 17
-	case newsBlur = 19
-	case freshRSS = 20
-	case inoreader = 21
-	case bazQux = 22
-	case theOldReader = 23
 
 	public var isDeveloperRestricted: Bool {
-		return self == .cloudKit || self == .feedbin || self == .feedly || self == .inoreader
+		return self == .cloudKit
 	}
 
 	public var displayName: String {
@@ -60,20 +53,6 @@ nonisolated public enum AccountType: Int, Codable, Sendable {
 		// These proper names don’t have a translation.
 		case .cloudKit:
 			return "iCloud"
-		case .feedly:
-			return "Feedly"
-		case .feedbin:
-			return "Feedbin"
-		case .newsBlur:
-			return "NewsBlur"
-		case .freshRSS:
-			return "FreshRSS"
-		case .inoreader:
-			return NSLocalizedString("Inoreader", comment: "Account name")
-		case .bazQux:
-			return NSLocalizedString("BazQux", comment: "Account name")
-		case .theOldReader:
-			return NSLocalizedString("The Old Reader", comment: "Account name")
 		}
 	}
 }
@@ -299,20 +278,6 @@ public enum FetchType {
 			self.delegate = LocalAccountDelegate()
 		case .cloudKit:
 			self.delegate = CloudKitAccountDelegate(dataFolder: dataFolder)
-		case .feedbin:
-			self.delegate = FeedbinAccountDelegate(dataFolder: dataFolder)
-		case .feedly:
-			self.delegate = FeedlyAccountDelegate(dataFolder: dataFolder, api: FeedlyAccountDelegate.environment)
-		case .newsBlur:
-			self.delegate = NewsBlurAccountDelegate(dataFolder: dataFolder)
-		case .freshRSS:
-			self.delegate = ReaderAPIAccountDelegate(dataFolder: dataFolder, variant: .freshRSS)
-		case .inoreader:
-			self.delegate = ReaderAPIAccountDelegate(dataFolder: dataFolder, variant: .inoreader)
-		case .bazQux:
-			self.delegate = ReaderAPIAccountDelegate(dataFolder: dataFolder, variant: .bazQux)
-		case .theOldReader:
-			self.delegate = ReaderAPIAccountDelegate(dataFolder: dataFolder, variant: .theOldReader)
 		}
 
 		self.accountID = accountID
@@ -320,8 +285,7 @@ public enum FetchType {
 		self.dataFolder = dataFolder
 
 		let databaseFilePath = (dataFolder as NSString).appendingPathComponent("DB.sqlite3")
-		let retentionStyle: ArticlesDatabase.RetentionStyle = (type == .onMyMac || type == .cloudKit) ? .feedBased : .syncSystem
-		self.database = ArticlesDatabase(databaseFilePath: databaseFilePath, accountID: accountID, retentionStyle: retentionStyle)
+		self.database = ArticlesDatabase(databaseFilePath: databaseFilePath, accountID: accountID)
 
 		defaultName = type.displayName
 
@@ -400,57 +364,6 @@ public enum FetchType {
 			postSyncError(error, operation: "Removing credentials")
 			throw error
 		}
-	}
-
-	public static func validateCredentials(type: AccountType, credentials: Credentials, endpoint: URL? = nil) async throws -> Credentials? {
-		try await ActivityLog.shared.logActivity(owner: .app, kind: .validateCredentials, detail: type.displayName, successMessage: { $0 == nil ? "Invalid credentials" : "Credentials valid" }, {
-			switch type {
-			case .feedbin:
-				return try await FeedbinAccountDelegate.validateCredentials(credentials: credentials, endpoint: endpoint)
-			case .newsBlur:
-				return try await NewsBlurAccountDelegate.validateCredentials(credentials: credentials, endpoint: endpoint)
-			case .freshRSS, .inoreader, .bazQux, .theOldReader:
-				return try await ReaderAPIAccountDelegate.validateCredentials(credentials: credentials, endpoint: endpoint)
-			default:
-				return nil
-			}
-		})
-	}
-
-	nonisolated internal static func oauthAuthorizationClient(for type: AccountType) -> OAuthAuthorizationClient {
-		switch type {
-		case .feedly:
-			return FeedlyAccountDelegate.environment.oauthAuthorizationClient
-		default:
-			fatalError("\(type) is not a client for OAuth authorization code granting.")
-		}
-	}
-
-	public static func oauthAuthorizationCodeGrantRequest(for type: AccountType, state: String) -> URLRequest {
-		let grantingType: OAuthAuthorizationGranting.Type
-		switch type {
-		case .feedly:
-			grantingType = FeedlyAccountDelegate.self
-		default:
-			fatalError("\(type) does not support OAuth authorization code granting.")
-		}
-
-		return grantingType.oauthAuthorizationCodeGrantRequest(state: state)
-	}
-
-	public static func requestOAuthAccessToken(with response: OAuthAuthorizationResponse,
-	                                           client: OAuthAuthorizationClient,
-	                                           accountType: AccountType) async throws -> OAuthAuthorizationGrant {
-		let grantingType: OAuthAuthorizationGranting.Type
-
-		switch accountType {
-		case .feedly:
-			grantingType = FeedlyAccountDelegate.self
-		default:
-			fatalError("\(accountType) does not support OAuth authorization code granting.")
-		}
-
-		return try await grantingType.requestOAuthAccessToken(with: response)
 	}
 
 	public func receiveRemoteNotification(userInfo: [AnyHashable: Any]) async {
@@ -892,11 +805,6 @@ public enum FetchType {
 		await database.fetchStarredArticleIDsAsync()
 	}
 
-	/// Fetch articleIDs for articles that we should have, but don’t. These articles are either (starred) or (newer than the article cutoff date).
-	public func fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDateAsync() async -> Set<String> {
-		await database.fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDateAsync()
-	}
-
 	// MARK: - Unread Counts
 	public func unreadCount(for feed: Feed) -> Int {
 		unreadCounts[feed.feedID] ?? 0
@@ -938,20 +846,6 @@ public enum FetchType {
 		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID, deleteOlder: deleteOlder)
 		sendNotificationAbout(articleChanges)
 		return articleChanges
-	}
-
-	@discardableResult
-	func updateAsync(feedIDsAndItems: [String: Set<ParsedItem>], defaultRead: Bool) async -> ArticleChanges {
-		// Used only by syncing systems.
-		precondition(Thread.isMainThread)
-		precondition(type != .onMyMac && type != .cloudKit)
-		guard !feedIDsAndItems.isEmpty else {
-			return ArticleChanges()
-		}
-
-		let newAndUpdatedArticles = await database.updateAsync(feedIDsAndItems: feedIDsAndItems, defaultRead: defaultRead)
-		sendNotificationAbout(newAndUpdatedArticles)
-		return newAndUpdatedArticles
 	}
 
 	/// Mark statuses for articleIDs. Returns the articleIDs whose status actually changed.

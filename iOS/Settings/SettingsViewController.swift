@@ -228,7 +228,7 @@ final class SettingsViewController: UITableViewController {
 		case .accounts:
 			let sortedAccounts = AccountManager.shared.sortedAccounts
 			if indexPath.row == sortedAccounts.count {
-				let addAccountView = AddAccountView(presentationAnchor: view.window) { [weak self] in
+				let addAccountView = AddAccountView { [weak self] in
 					self?.navigationController?.popViewController(animated: false)
 				}
 				self.navigationController?.pushViewController(UIHostingController(rootView: addAccountView), animated: true)

@@ -45,29 +45,22 @@ public struct ArticleCounts: Sendable {
 }
 
 @MainActor public final class ArticlesDatabase {
-	public enum RetentionStyle: Sendable {
-		case feedBased // Local and iCloud: article retention is defined by contents of feed
-		case syncSystem // Feedbin, Feedly, etc.: article retention is defined by external system
-	}
-
 	public nonisolated let databasePath: String
 
 	private let articlesTable: ArticlesTable
 	private let queue: DatabaseQueue
 	private let operationQueue = MainThreadOperationQueue()
-	private let retentionStyle: RetentionStyle
 	private let accountID: String
 
 	nonisolated private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ArticlesDatabase")
 
-	public init(databaseFilePath: String, accountID: String, retentionStyle: RetentionStyle) {
+	public init(databaseFilePath: String, accountID: String) {
 		Self.logger.debug("Articles Database init \(accountID, privacy: .public)")
 
 		self.databasePath = databaseFilePath
 		let queue = DatabaseQueue(databasePath: databaseFilePath)
 		self.queue = queue
-		self.articlesTable = ArticlesTable(name: DatabaseTableName.articles, accountID: accountID, queue: queue, retentionStyle: retentionStyle)
-		self.retentionStyle = retentionStyle
+		self.articlesTable = ArticlesTable(name: DatabaseTableName.articles, accountID: accountID, queue: queue)
 		self.accountID = accountID
 
 		queue.runCreateStatements(ArticlesDatabase.tableCreationStatements)
@@ -326,15 +319,6 @@ public struct ArticleCounts: Sendable {
 		}
 	}
 
-	/// Update articles and save new ones — for sync systems (Feedbin, Feedly, etc.).
-	public func updateAsync(feedIDsAndItems: [String: Set<ParsedItem>], defaultRead: Bool) async -> ArticleChanges {
-		await withCheckedContinuation { continuation in
-			_update(feedIDsAndItems: feedIDsAndItems, defaultRead: defaultRead) { articleChanges in
-				continuation.resume(returning: articleChanges)
-			}
-		}
-	}
-
 	/// Delete articles
 	public func deleteAsync(articleIDs: Set<String>) async {
 		await withCheckedContinuation { continuation in
@@ -358,15 +342,6 @@ public struct ArticleCounts: Sendable {
 	public func fetchStarredArticleIDsAsync() async -> Set<String> {
 		await withCheckedContinuation { continuation in
 			_fetchStarredArticleIDsAsync { articleIDs in
-				continuation.resume(returning: articleIDs)
-			}
-		}
-	}
-
-	/// Fetch articleIDs for articles that we should have, but don’t. These articles are either starred or newer than the article cutoff date.
-	public func fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDateAsync() async -> Set<String> {
-		await withCheckedContinuation { continuation in
-			_fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDate { articleIDs in
 				continuation.resume(returning: articleIDs)
 			}
 		}
@@ -419,9 +394,6 @@ public struct ArticleCounts: Sendable {
 	/// 2) the app would become very slow.
 	public func cleanupDatabaseAtStartup(subscribedToFeedIDs: Set<String>) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		if retentionStyle == .syncSystem {
-			articlesTable.deleteOldArticles()
-		}
 		articlesTable.deleteArticlesNotInSubscribedToFeedIDs(subscribedToFeedIDs)
 		articlesTable.deleteOldStatuses()
 	}
@@ -558,14 +530,7 @@ private extension ArticlesDatabase {
 
 	func _update(parsedItems: Set<ParsedItem>, feedID: String, deleteOlder: Bool, completion: @escaping UpdateArticlesCompletionBlock) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		precondition(retentionStyle == .feedBased)
 		articlesTable.update(parsedItems, feedID, deleteOlder, completion)
-	}
-
-	func _update(feedIDsAndItems: [String: Set<ParsedItem>], defaultRead: Bool, completion: @escaping UpdateArticlesCompletionBlock) {
-		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		precondition(retentionStyle == .syncSystem)
-		articlesTable.update(feedIDsAndItems, defaultRead, completion)
 	}
 
 	func _delete(articleIDs: Set<String>, completion: DatabaseCompletionBlock?) {
@@ -581,10 +546,5 @@ private extension ArticlesDatabase {
 	func _fetchStarredArticleIDsAsync(completion: @escaping ArticleIDsCompletionBlock) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
 		articlesTable.fetchStarredArticleIDsAsync(completion)
-	}
-
-	func _fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDate(_ completion: @escaping ArticleIDsCompletionBlock) {
-		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		articlesTable.fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDate(completion)
 	}
 }

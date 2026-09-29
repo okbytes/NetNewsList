@@ -216,20 +216,6 @@ import RSCore
 			osType = "Locl"
 		case .cloudKit:
 			osType = "Clkt"
-		case .feedly:
-			osType = "Fdly"
-		case .feedbin:
-			osType = "Fdbn"
-		case .newsBlur:
-			osType = "NBlr"
-		case .freshRSS:
-			osType = "Frsh"
-		case .inoreader:
-			osType = "Inrd"
-		case .bazQux:
-			osType = "Bzqx"
-		case .theOldReader:
-			osType = "Tord"
 		}
 		return osType.fourCharCode
 	}

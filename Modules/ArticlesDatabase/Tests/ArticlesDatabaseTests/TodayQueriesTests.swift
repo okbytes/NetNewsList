@@ -25,7 +25,7 @@ import ArticlesDatabase
 	private static let twentyFiveHoursAgo = Date(timeIntervalSinceNow: -(60 * 60 * 25))
 
 	init() {
-		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test", retentionStyle: .feedBased)
+		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test")
 	}
 
 	@Test func todayUnreadCountAcrossFeeds() async {

@@ -159,22 +159,6 @@ final class StatusesTable: DatabaseTable, Sendable {
 		}
 	}
 
-	func fetchArticleIDsForStatusesWithoutArticlesNewerThan(_ cutoffDate: Date, _ completion: @escaping ArticleIDsCompletionBlock) {
-		queue.runInDatabase { database in
-			let sql = "select articleID from statuses s where (starred=1 or dateArrived>?) and not exists (select 1 from articles a where a.articleID = s.articleID);"
-			let articleIDs: Set<String>
-			if let resultSet = database.executeQuery(sql, withArgumentsIn: [cutoffDate]) {
-				articleIDs = resultSet.mapToSet(self.articleIDWithRow)
-			} else {
-				articleIDs = Set<String>()
-			}
-
-			DispatchQueue.main.async {
-				completion(articleIDs)
-			}
-		}
-	}
-
 	func fetchArticleIDs(_ sql: String) -> Set<String> {
 		nonisolated(unsafe) var articleIDs = Set<String>()
 		queue.runInDatabaseSync { database in

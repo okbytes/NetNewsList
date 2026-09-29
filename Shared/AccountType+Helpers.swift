@@ -26,20 +26,6 @@ extension AccountType {
 			return .onMyMacLogColor
 		case .cloudKit:
 			return .systemPurple
-		case .feedly:
-			return .systemGreen
-		case .feedbin:
-			return .systemBlue
-		case .newsBlur:
-			return .systemOrange
-		case .freshRSS:
-			return .systemTeal
-		case .inoreader:
-			return .systemBrown
-		case .bazQux:
-			return .systemIndigo
-		case .theOldReader:
-			return .systemPink
 		}
 	}
 	#else
@@ -49,20 +35,6 @@ extension AccountType {
 			return .secondary
 		case .cloudKit:
 			return .purple
-		case .feedly:
-			return .green
-		case .feedbin:
-			return .blue
-		case .newsBlur:
-			return .orange
-		case .freshRSS:
-			return .teal
-		case .inoreader:
-			return .brown
-		case .bazQux:
-			return .indigo
-		case .theOldReader:
-			return .pink
 		}
 	}
 	#endif
@@ -81,22 +53,8 @@ extension AccountType {
 				return Image("accountLocalPhone")
 			}
 			#endif
-		case .bazQux:
-			return Image("accountBazQux")
 		case .cloudKit:
 			return Image("accountCloudKit")
-		case .feedbin:
-			return Image("accountFeedbin")
-		case .feedly:
-			return Image("accountFeedly")
-		case .freshRSS:
-			return Image("accountFreshRSS")
-		case .inoreader:
-			return Image("accountInoreader")
-		case .newsBlur:
-			return Image("accountNewsBlur")
-		case .theOldReader:
-			return Image("accountTheOldReader")
 		}
 	}
 

@@ -13,7 +13,6 @@ import Account
 final class AccountsDetailViewController: NSViewController {
 
 	let account: Account
-	private var accountsWindowController: NSWindowController?
 
 	init(account: Account) {
 		self.account = account
@@ -25,40 +24,8 @@ final class AccountsDetailViewController: NSViewController {
 	}
 
 	override func loadView() {
-		let detailView = AccountsDetailView(account: account) { [weak self] in
-			self?.showCredentials()
-		}
+		let detailView = AccountsDetailView(account: account)
 		let hostingView = NSHostingView(rootView: detailView)
 		self.view = hostingView
-	}
-
-	private func showCredentials() {
-		guard let window = view.window else {
-			return
-		}
-
-		switch account.type {
-		case .feedbin:
-			let accountsFeedbinWindowController = AccountsFeedbinWindowController()
-			accountsWindowController = accountsFeedbinWindowController
-			accountsFeedbinWindowController.account = account
-			accountsFeedbinWindowController.runSheetOnWindow(window)
-
-		case .inoreader, .bazQux, .theOldReader, .freshRSS:
-			let accountsReaderAPIWindowController = AccountsReaderAPIWindowController()
-			accountsWindowController = accountsReaderAPIWindowController
-			accountsReaderAPIWindowController.accountType = account.type
-			accountsReaderAPIWindowController.account = account
-			accountsReaderAPIWindowController.runSheetOnWindow(window)
-
-		case .newsBlur:
-			let accountsNewsBlurWindowController = AccountsNewsBlurWindowController()
-			accountsWindowController = accountsNewsBlurWindowController
-			accountsNewsBlurWindowController.account = account
-			accountsNewsBlurWindowController.runSheetOnWindow(window)
-
-		default:
-			break
-		}
 	}
 }

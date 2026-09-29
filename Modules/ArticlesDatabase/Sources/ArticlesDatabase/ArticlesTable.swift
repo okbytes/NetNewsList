@@ -21,24 +21,19 @@ final class ArticlesTable: DatabaseTable, Sendable {
 	private let queue: DatabaseQueue
 	private let statusesTable: StatusesTable
 	private let searchTable: SearchTable
-	private let retentionStyle: ArticlesDatabase.RetentionStyle
 	private let articlesCache = OSAllocatedUnfairLock(initialState: [String: Article]())
 
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ArticlesTable")
 	private static let signposter = OSSignposter(subsystem: Logger.nnwSubsystem, category: .pointsOfInterest)
 
-	// TODO: update articleCutoffDate as time passes and based on user preferences.
-	let articleCutoffDate = Date().bySubtracting(days: 90)
-
 	private typealias ArticlesFetchMethod = @Sendable (FMDatabase) -> Set<Article>
 	private typealias ArticlesCountFetchMethod = @Sendable (FMDatabase) -> Int
 
-	init(name: String, accountID: String, queue: DatabaseQueue, retentionStyle: ArticlesDatabase.RetentionStyle) {
+	init(name: String, accountID: String, queue: DatabaseQueue) {
 		self.name = name
 		self.accountID = accountID
 		self.queue = queue
 		self.statusesTable = StatusesTable(queue: queue)
-		self.retentionStyle = retentionStyle
 
 		self.searchTable = SearchTable(queue: queue)
 		self.searchTable.articlesTable = self
@@ -207,7 +202,6 @@ final class ArticlesTable: DatabaseTable, Sendable {
 	// MARK: - Updating and Deleting
 
 	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, _ deleteOlder: Bool, _ completion: @escaping UpdateArticlesCompletionBlock) {
-		precondition(retentionStyle == .feedBased)
 		if parsedItems.isEmpty {
 			callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
 			return
@@ -273,66 +267,6 @@ final class ArticlesTable: DatabaseTable, Sendable {
 			}
 
 			// 9. Update search index.
-			if let newArticles = newArticles {
-				self.searchTable.indexNewArticles(newArticles, database)
-			}
-			if let updatedArticles = updatedArticles {
-				self.searchTable.indexUpdatedArticles(updatedArticles, database)
-			}
-		}
-	}
-
-	func update(_ feedIDsAndItems: [String: Set<ParsedItem>], _ read: Bool, _ completion: @escaping UpdateArticlesCompletionBlock) {
-		precondition(retentionStyle == .syncSystem)
-		if feedIDsAndItems.isEmpty {
-			callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
-			return
-		}
-
-		// 1. Ensure statuses for all the incoming articles.
-		// 2. Create incoming articles with parsedItems.
-		// 3. Ignore incoming articles that are (!starred and read and really old)
-		// 4. Fetch all articles for the feed.
-		// 5. Create array of Articles not in database and save them.
-		// 6. Create array of updated Articles and save what’s changed.
-		// 7. Call back with new and updated Articles.
-		// 8. Update search index.
-
-		self.queue.runInTransaction { database in
-
-			var articleIDs = Set<String>()
-			for (_, parsedItems) in feedIDsAndItems {
-				articleIDs.formUnion(parsedItems.articleIDs())
-			}
-
-			let (statusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(articleIDs, read, database) // 1
-			assert(statusesDictionary.count == articleIDs.count)
-
-			let allIncomingArticles = Article.articlesWithFeedIDsAndItems(feedIDsAndItems, self.accountID, statusesDictionary) // 2
-			if allIncomingArticles.isEmpty {
-				self.callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
-				return
-			}
-
-			let incomingArticles = self.filterIncomingArticles(allIncomingArticles) // 3
-			if incomingArticles.isEmpty {
-				self.callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
-				return
-			}
-
-			let incomingArticleIDs = incomingArticles.articleIDs()
-			let fetchedArticles = self.fetchArticles(articleIDs: incomingArticleIDs, database) // 4
-			let fetchedArticlesDictionary = fetchedArticles.dictionary()
-
-			let newArticles = self.findAndSaveNewArticles(incomingArticles, fetchedArticlesDictionary, database) //
-			let updatedArticles = self.findAndSaveUpdatedArticles(incomingArticles, fetchedArticlesDictionary, database) // 6
-
-			self.callUpdateArticlesCompletionBlock(newArticles, updatedArticles, nil, completion) // 7
-
-			self.addArticlesToCache(newArticles)
-			self.addArticlesToCache(updatedArticles)
-
-			// 8. Update search index.
 			if let newArticles = newArticles {
 				self.searchTable.indexNewArticles(newArticles, database)
 			}
@@ -479,10 +413,6 @@ final class ArticlesTable: DatabaseTable, Sendable {
 		statusesTable.fetchStarredArticleIDs()
 	}
 
-	func fetchArticleIDsForStatusesWithoutArticlesNewerThanCutoffDate(_ completion: @escaping ArticleIDsCompletionBlock) {
-		statusesTable.fetchArticleIDsForStatusesWithoutArticlesNewerThan(articleCutoffDate, completion)
-	}
-
 	func mark(_ articleIDs: Set<String>, _ statusKey: ArticleStatus.Key, _ flag: Bool, _ completion: @escaping ArticleIDsCompletionBlock) {
 		queue.runInTransaction { database in
 			let changedArticleIDs = self.statusesTable.mark(articleIDs, statusKey, flag, database)
@@ -549,57 +479,11 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 	// MARK: - Cleanup
 
-	/// Delete articles that we won’t show in the UI any longer
-	/// — their arrival date is before our 90-day recency window;
-	/// they are read; they are not starred.
-	///
-	/// Because deleting articles might block the database for too long,
-	/// we do this in a careful way: delete articles older than a year,
-	/// check to see how much time has passed, then decide whether or not to continue.
-	/// Repeat for successively more-recent dates.
-	///
-	/// Returns `true` if it deleted old articles all the way up to the 90 day cutoff date.
-	func deleteOldArticles() {
-		precondition(retentionStyle == .syncSystem)
-
-		queue.runInTransaction { database in
-			func deleteOldArticles(cutoffDate: Date) {
-				let sql = "delete from articles where articleID in (select articleID from articles natural join statuses where dateArrived<? and read=1 and starred=0);"
-				let parameters = [cutoffDate] as [Any]
-				database.executeUpdate(sql, withArgumentsIn: parameters)
-			}
-
-			let startTime = Date()
-			func tooMuchTimeHasPassed() -> Bool {
-				let timeElapsed = Date().timeIntervalSince(startTime)
-				return timeElapsed > 2.0
-			}
-
-			let dayIntervals = [365, 300, 225, 150]
-			for dayInterval in dayIntervals {
-				deleteOldArticles(cutoffDate: startTime.bySubtracting(days: dayInterval))
-				if tooMuchTimeHasPassed() {
-					return
-				}
-			}
-			deleteOldArticles(cutoffDate: self.articleCutoffDate)
-		}
-	}
-
 	/// Delete old statuses.
 	func deleteOldStatuses() {
 		queue.runInTransaction { database in
-			let sql: String
-			let cutoffDate: Date
-
-			switch self.retentionStyle {
-			case .syncSystem:
-				sql = "delete from statuses where dateArrived<? and read=1 and starred=0 and articleID not in (select articleID from articles);"
-				cutoffDate = Date().bySubtracting(days: 180)
-			case .feedBased:
-				sql = "delete from statuses where dateArrived<? and starred=0 and articleID not in (select articleID from articles);"
-				cutoffDate = Date().bySubtracting(days: 30)
-			}
+			let sql = "delete from statuses where dateArrived<? and starred=0 and articleID not in (select articleID from articles);"
+			let cutoffDate = Date().bySubtracting(days: 30)
 
 			let parameters = [cutoffDate] as [Any]
 			database.executeUpdate(sql, withArgumentsIn: parameters)
@@ -1020,19 +904,6 @@ nonisolated private extension ArticlesTable {
 				articlesCache[articleID] = nil
 			}
 		}
-	}
-
-	func articleIsIgnorable(_ article: Article) -> Bool {
-		if article.status.starred || !article.status.read {
-			return false
-		}
-		return article.status.dateArrived < articleCutoffDate
-	}
-
-	func filterIncomingArticles(_ articles: Set<Article>) -> Set<Article> {
-		// Drop Articles that we can ignore.
-		precondition(retentionStyle == .syncSystem)
-		return Set(articles.filter { !articleIsIgnorable($0) })
 	}
 
 	func removeArticles(_ articleIDs: Set<String>, _ database: FMDatabase) {

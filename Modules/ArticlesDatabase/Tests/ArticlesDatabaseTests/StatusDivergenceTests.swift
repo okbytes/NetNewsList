@@ -20,7 +20,7 @@ import ArticlesDatabase
 	private let feedID = "feed1"
 
 	init() {
-		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test", retentionStyle: .feedBased)
+		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test")
 	}
 
 	@Test func statusRepairFixesStaleReadStatusRows() async {

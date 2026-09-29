@@ -137,10 +137,6 @@ extension AccountsPreferencesViewController: NSTableViewDelegate {
 			cell.textField?.stringValue = account.nameForDisplay
 			cell.imageView?.image = account.smallIcon?.image
 
-			if account.type == .feedbin {
-				cell.isImageTemplateCapable = false
-			}
-
 			return cell
 		}
 		return nil
@@ -177,56 +173,6 @@ extension AccountsPreferencesViewController: AccountsPreferencesAddAccountDelega
 				// No reload needed on OK — createAccount posts UserDidAddAccount, which reloads the table.
 				_ = await accountsAddCloudKitWindowController.runSheetOnWindow(window)
 			}
-
-		case .feedbin:
-			let accountsFeedbinWindowController = AccountsFeedbinWindowController()
-			addAccountWindowController = accountsFeedbinWindowController
-			accountsFeedbinWindowController.runSheetOnWindow(window)
-
-		case .freshRSS, .inoreader, .bazQux, .theOldReader:
-			let accountsReaderAPIWindowController = AccountsReaderAPIWindowController()
-			addAccountWindowController = accountsReaderAPIWindowController
-			accountsReaderAPIWindowController.accountType = accountType
-			accountsReaderAPIWindowController.runSheetOnWindow(window)
-
-		case .feedly:
-			let addAccount = OAuthAccountAuthorizationOperation(accountType: .feedly)
-			addAccount.delegate = self
-			addAccount.presentationAnchor = window
-			runAwaitingFeedlyLoginAlertModal(forLifetimeOf: addAccount)
-			MainThreadOperationQueue.shared.add(addAccount)
-
-		case .newsBlur:
-			let accountsNewsBlurWindowController = AccountsNewsBlurWindowController()
-			addAccountWindowController = accountsNewsBlurWindowController
-			accountsNewsBlurWindowController.runSheetOnWindow(window)
-		}
-	}
-
-	private func runAwaitingFeedlyLoginAlertModal(forLifetimeOf operation: OAuthAccountAuthorizationOperation) {
-		let alert = NSAlert()
-		alert.alertStyle = .informational
-		alert.messageText = NSLocalizedString("Waiting for access to Feedly",
-											  comment: "Alert title when adding a Feedly account and waiting for authorization from the user.")
-
-		alert.informativeText = NSLocalizedString("A web browser will open the Feedly login for you to authorize access.",
-												  comment: "Alert informative text when adding a Feedly account and waiting for authorization from the user.")
-
-		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-
-		let attachedWindow = self.view.window!
-
-		alert.beginSheetModal(for: attachedWindow) { response in
-			if response == .alertFirstButtonReturn {
-				operation.cancel()
-			}
-		}
-
-		operation.completionBlock = { _ in
-			guard alert.window.isVisible else {
-				return
-			}
-			attachedWindow.endSheet(alert.window)
 		}
 	}
 }
@@ -325,25 +271,4 @@ private extension AccountsPreferencesViewController {
 		}
 	}
 
-}
-
-extension AccountsPreferencesViewController: OAuthAccountAuthorizationOperationDelegate {
-
-	func oauthAccountAuthorizationOperation(_ operation: OAuthAccountAuthorizationOperation, didCreate account: Account) {
-		// `OAuthAccountAuthorizationOperation` is using `ASWebAuthenticationSession` which bounces the user
-		// to their browser on macOS for authorizing NetNewsWire to access the user's Feedly account.
-		// When this authorization is granted, the browser remains the foreground app which is unfortunate
-		// because the user probably wants to see the result of authorizing NetNewsWire to act on their behalf.
-		NSApp.activate(ignoringOtherApps: true)
-
-		account.triggerRefreshAll()
-	}
-
-	func oauthAccountAuthorizationOperation(_ operation: OAuthAccountAuthorizationOperation, didFailWith error: Error) {
-		// `OAuthAccountAuthorizationOperation` is using `ASWebAuthenticationSession` which bounces the user
-		// to their browser on macOS for authorizing NetNewsWire to access the user's Feedly account.
-		NSApp.activate(ignoringOtherApps: true)
-
-		view.window?.presentError(error)
-	}
 }

@@ -132,19 +132,6 @@ extension Article {
 		return Date().addingTimeInterval(60 * 60 * 24) // Allow dates up to about 24 hours ahead of now
 	}
 
-	static func articlesWithFeedIDsAndItems(_ feedIDsAndItems: [String: Set<ParsedItem>], _ accountID: String, _ statusesDictionary: [String: ArticleStatus]) -> Set<Article> {
-		let maximumDateAllowed = _maximumDateAllowed()
-		var feedArticles = Set<Article>()
-		for (feedID, parsedItems) in feedIDsAndItems {
-			for parsedItem in parsedItems {
-				let status = statusesDictionary[parsedItem.articleID]!
-				let article = Article(parsedItem: parsedItem, maximumDateAllowed: maximumDateAllowed, accountID: accountID, feedID: feedID, status: status)
-				feedArticles.insert(article)
-			}
-		}
-		return feedArticles
-	}
-
 	static func articlesWithParsedItems(_ parsedItems: Set<ParsedItem>, _ feedID: String, _ accountID: String, _ statusesDictionary: [String: ArticleStatus]) -> Set<Article> {
 		let maximumDateAllowed = _maximumDateAllowed()
 		return Set(parsedItems.map { Article(parsedItem: $0, maximumDateAllowed: maximumDateAllowed, accountID: accountID, feedID: feedID, status: statusesDictionary[$0.articleID]!) })

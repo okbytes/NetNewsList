@@ -32,22 +32,6 @@ private extension UIViewController {
 		let title = NSLocalizedString("Account Error", comment: "Account Error")
 		let alertController = UIAlertController(title: title, message: error.localizedDescription, preferredStyle: .alert)
 
-		let account = AccountError.account(from: error)
-		if account?.type == .feedbin {
-
-			let credentialsTitle = NSLocalizedString("Update Credentials", comment: "Update Credentials")
-			let credentialsAction = UIAlertAction(title: credentialsTitle, style: .default) { [weak self] _ in
-				dismiss?()
-
-				let hostingController = UIHostingController(rootView: CredentialsAccountView(accountType: .feedbin, account: account, didAddAccount: nil))
-				hostingController.modalPresentationStyle = .formSheet
-				self?.present(hostingController, animated: true)
-			}
-
-			alertController.addAction(credentialsAction)
-			alertController.preferredAction = credentialsAction
-
-		}
 
 		let dismissTitle = NSLocalizedString("OK", comment: "OK button")
 		let dismissAction = UIAlertAction(title: dismissTitle, style: .default) { _ in

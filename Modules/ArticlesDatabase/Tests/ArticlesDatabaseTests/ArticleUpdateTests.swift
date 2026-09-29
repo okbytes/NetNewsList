@@ -24,7 +24,7 @@ import ArticlesDatabase
 	private let uniqueID = "1"
 
 	init() {
-		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test", retentionStyle: .feedBased)
+		self.database = ArticlesDatabase(databaseFilePath: ":memory:", accountID: "test")
 	}
 
 	@Test func identicalUpdateReportsNoChanges() async {

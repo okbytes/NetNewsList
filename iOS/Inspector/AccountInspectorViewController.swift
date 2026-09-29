@@ -68,31 +68,16 @@ final class AccountInspectorViewController: UITableViewController {
 	}
 
 	@IBAction func credentials(_ sender: Any) {
-		guard let account = account else { return }
-		switch account.type {
-		case .feedbin, .newsBlur, .inoreader, .bazQux, .theOldReader, .freshRSS:
-			let hostingController = UIHostingController(rootView: CredentialsAccountView(accountType: account.type, account: account, didAddAccount: nil))
-			hostingController.modalPresentationStyle = .currentContext
-			present(hostingController, animated: true)
-		default:
-			break
-		}
+		// The credentials section is never shown: no remaining account type uses credentials.
 	}
 
 	@IBAction func deleteAccount(_ sender: Any) {
-		guard let account = account else {
+		guard account != nil else {
 			return
 		}
 
 		let title = NSLocalizedString("Remove Account", comment: "Remove Account")
-		let message: String = {
-			switch account.type {
-			case .feedly:
-				return NSLocalizedString("Are you sure you want to remove this account? NetNewsWire will no longer be able to access articles and feeds unless the account is added again.", comment: "Log Out and Remove Account")
-			default:
-				return NSLocalizedString("Are you sure you want to remove this account? This cannot be undone.", comment: "Remove Account")
-			}
-		}()
+		let message = NSLocalizedString("Are you sure you want to remove this account? This cannot be undone.", comment: "Remove Account")
 		let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
 		let cancelTitle = NSLocalizedString("Cancel", comment: "Cancel button")
 		let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel)
@@ -139,24 +124,11 @@ extension AccountInspectorViewController {
 		account?.type == .cloudKit
 	}
 
-	var hidesCredentialsSection: Bool {
-		guard let account else {
-			return true
-		}
-		switch account.type {
-		case .onMyMac, .cloudKit, .feedly:
-			return true
-		default:
-			return false
-		}
-	}
-
 	/// The storyboard sections to display, in order, for the current account type.
 	///
 	/// - Default account: name/active only
 	/// - cloudKit: name/active, sync content, delete
-	/// - Other hidden-credentials: name/active, delete
-	/// - All others: name/active, credentials, delete
+	/// - All others: name/active, delete
 	var displayedSections: [StoryboardSection] {
 		guard let account else {
 			return []
@@ -167,10 +139,7 @@ extension AccountInspectorViewController {
 		if isCloudKitAccount {
 			return [.nameAndActive, .syncContent, .deleteAccount]
 		}
-		if hidesCredentialsSection {
-			return [.nameAndActive, .deleteAccount]
-		}
-		return [.nameAndActive, .credentials, .deleteAccount]
+		return [.nameAndActive, .deleteAccount]
 	}
 
 	override func numberOfSections(in tableView: UITableView) -> Int {

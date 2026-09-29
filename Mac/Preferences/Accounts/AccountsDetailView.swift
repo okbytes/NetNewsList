@@ -11,27 +11,16 @@ import Account
 struct AccountsDetailView: View {
 
 	let account: Account
-	var onCredentials: (() -> Void)?
 
 	@State private var accountName: String
 	@State private var isActive: Bool
 	@State private var syncUnreadContent: Bool
 
-	init(account: Account, onCredentials: (() -> Void)? = nil) {
+	init(account: Account) {
 		self.account = account
-		self.onCredentials = onCredentials
 		_accountName = State(initialValue: account.name ?? "")
 		_isActive = State(initialValue: account.isActive)
 		_syncUnreadContent = State(initialValue: AccountManager.shared.syncArticleContentForUnreadArticles)
-	}
-
-	private var showCredentialsButton: Bool {
-		switch account.type {
-		case .onMyMac, .cloudKit, .feedly:
-			return false
-		default:
-			return true
-		}
 	}
 
 	var body: some View {
@@ -75,16 +64,6 @@ struct AccountsDetailView: View {
 						.padding(.top, 1)
 				}
 
-				if showCredentialsButton {
-					GridRow {
-						Color.clear
-							.gridCellUnsizedAxes([.horizontal, .vertical])
-						Button("Credentials") {
-							onCredentials?()
-						}
-						.padding(.top, 12)
-					}
-				}
 			}
 
 			if account.type == .cloudKit {
