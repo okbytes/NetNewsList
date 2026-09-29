@@ -33,7 +33,6 @@ final class AppDefaults: Sendable {
 		static let useColumnLayout = "useColumnLayout"
 		static let detailFontSize = "detailFontSize"
 		static let openInBrowserInBackground = "openInBrowserInBackground"
-		static let subscribeToFeedsInDefaultBrowser = "subscribeToFeedsInDefaultBrowser"
 		static let articleTextSize = "articleTextSize"
 		static let refreshInterval = "refreshInterval"
 		static let addFeedAccountID = "addFeedAccountID"
@@ -109,26 +108,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setBool(for: Key.openInBrowserInBackground, newValue)
-		}
-	}
-
-	// Special case for this default: store/retrieve it from the shared app group
-	// defaults, so that it can be resolved by the Safari App Extension.
-	var subscribeToFeedDefaults: UserDefaults {
-		if let appGroupID = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as? String,
-		   let appGroupDefaults = UserDefaults(suiteName: appGroupID) {
-			return appGroupDefaults
-		} else {
-			return UserDefaults.standard
-		}
-	}
-
-	var subscribeToFeedsInDefaultBrowser: Bool {
-		get {
-			return subscribeToFeedDefaults.bool(forKey: Key.subscribeToFeedsInDefaultBrowser)
-		}
-		set {
-			subscribeToFeedDefaults.set(newValue, forKey: Key.subscribeToFeedsInDefaultBrowser)
 		}
 	}
 

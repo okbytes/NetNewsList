@@ -145,24 +145,6 @@
         }
       }
     },
-    "Eth-o0-pWM.title" : {
-      "comment" : "Class = \"NSTextFieldCell\"; title = \"Safari Extension:\"; ObjectID = \"Eth-o0-pWM\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Safari Extension:"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Extensión de Safari:"
-          }
-        }
-      }
-    },
     "F7c-lm-g97.title" : {
       "comment" : "Class = \"NSTextFieldCell\"; title = \"Refresh Feeds:\"; ObjectID = \"F7c-lm-g97\";",
       "extractionState" : "extracted_with_value",
@@ -367,24 +349,6 @@
         }
       }
     },
-    "SkZ-tE-blK.title" : {
-      "comment" : "Class = \"NSButtonCell\"; title = \"Open feeds in default news reader\"; ObjectID = \"SkZ-tE-blK\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open feeds in default news reader"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir fuentes en el lector de noticias predeterminado"
-          }
-        }
-      }
-    },
     "t0a-LN-rCv.title" : {
       "comment" : "Class = \"NSButtonCell\"; title = \"Open web pages in background in browser\"; ObjectID = \"t0a-LN-rCv\";",
       "extractionState" : "extracted_with_value",
@@ -399,24 +363,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir páginas web en segundo plano en el navegador"
-          }
-        }
-      }
-    },
-    "uvx-O8-HvU.title" : {
-      "comment" : "Class = \"NSButtonCell\"; title = \"Open feeds in NetNewsWire\"; ObjectID = \"uvx-O8-HvU\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open feeds in NetNewsWire"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir fuentes en NetNewsWire"
           }
         }
       }

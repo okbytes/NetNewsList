@@ -952,31 +952,6 @@ extension AppDelegate {
 
 }
 
-/*
-    the ScriptingAppDelegate protocol exposes a narrow set of accessors with
-    internal visibility which are very similar to some private vars.
-
-    These would be unnecessary if the similar accessors were marked internal rather than private,
-    but for now, we'll keep the stratification of visibility
-*/
-extension AppDelegate: ScriptingAppDelegate {
-    var scriptingMainWindowController: ScriptingMainWindowController? {
-        mainWindowController
-    }
-
-    var scriptingCurrentArticle: Article? {
-        scriptingMainWindowController?.scriptingCurrentArticle
-    }
-
-    var scriptingSelectedArticles: [Article] {
-        scriptingMainWindowController?.scriptingSelectedArticles ?? []
-    }
-
-    var scriptingSelectedFeeds: [Feed] {
-        scriptingMainWindowController?.scriptingSelectedFeeds ?? []
-    }
-}
-
 extension AppDelegate: NSWindowRestoration {
 
 	@objc static func restoreWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier, state: NSCoder, completionHandler: @escaping (NSWindow?, Error?) -> Void) {

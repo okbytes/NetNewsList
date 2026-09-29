@@ -826,30 +826,6 @@ extension MainWindowController: ArticleExtractorDelegate {
 
 }
 
-// MARK: - Scripting Access
-
-/*
-    the ScriptingMainWindowController protocol exposes a narrow set of accessors with
-    internal visibility which are very similar to some private vars.
-
-    These would be unnecessary if the similar accessors were marked internal rather than private,
-    but for now, we'll keep the stratification of visibility
-*/
-
-extension MainWindowController: ScriptingMainWindowController {
-    var scriptingCurrentArticle: Article? {
-        oneSelectedArticle
-    }
-
-    var scriptingSelectedArticles: [Article] {
-        selectedArticles ?? []
-    }
-
-    var scriptingSelectedFeeds: [Feed] {
-        selectedObjectsInSidebar()?.compactMap { $0 as? Feed } ?? []
-    }
-}
-
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {

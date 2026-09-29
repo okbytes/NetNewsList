@@ -218,13 +218,4 @@ private extension GeneralPreferencesViewController {
 			NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
 		}
 	}
-
-	@objc var openFeedsInDefaultNewsReader: Bool {
-		get {
-			return AppDefaults.shared.subscribeToFeedsInDefaultBrowser
-		}
-		set {
-			AppDefaults.shared.subscribeToFeedsInDefaultBrowser = newValue
-		}
-	}
 }

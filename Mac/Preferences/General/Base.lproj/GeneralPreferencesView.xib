@@ -186,38 +186,6 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yrg-M3-Dbz">
-                            <rect key="frame" x="-2" y="91" width="106" height="16"/>
-                            <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="right" title="Safari Extension:" id="Eth-o0-pWM">
-                                <font key="font" metaFont="system"/>
-                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                            </textFieldCell>
-                        </textField>
-                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wtY-Zd-Ps9">
-                            <rect key="frame" x="110" y="91" width="283" height="16"/>
-                            <buttonCell key="cell" type="radio" title="Open feeds in NetNewsWire" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="uvx-O8-HvU">
-                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                <font key="font" metaFont="system"/>
-                            </buttonCell>
-                            <connections>
-                                <binding destination="-2" name="value" keyPath="openFeedsInDefaultNewsReader" id="l1B-rk-qfE">
-                                    <dictionary key="options">
-                                        <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                    </dictionary>
-                                </binding>
-                            </connections>
-                        </button>
-                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yrc-6Q-kx8">
-                            <rect key="frame" x="110" y="69" width="283" height="16"/>
-                            <buttonCell key="cell" type="radio" title="Open feeds in default news reader" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="SkZ-tE-blK">
-                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                <font key="font" metaFont="system"/>
-                            </buttonCell>
-                            <connections>
-                                <binding destination="-2" name="value" keyPath="openFeedsInDefaultNewsReader" id="QZ4-W8-rPi"/>
-                            </connections>
-                        </button>
                         <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="hQy-ng-ijd">
                             <rect key="frame" x="0.0" y="46" width="392" height="5"/>
                         </box>
@@ -272,14 +240,11 @@
                         <constraint firstItem="0W5-tO-S63" firstAttribute="top" secondItem="UI6-sq-M15" secondAttribute="bottom" constant="8" id="5mw-aE-uy4"/>
                         <constraint firstItem="Z6O-Zt-V1g" firstAttribute="top" secondItem="Ut3-yd-q6G" secondAttribute="top" constant="4" id="6nC-a3-QOy"/>
                         <constraint firstItem="Z6O-Zt-V1g" firstAttribute="firstBaseline" secondItem="pR2-Bf-7Fd" secondAttribute="firstBaseline" id="72z-7d-9Qn"/>
-                        <constraint firstItem="hQy-ng-ijd" firstAttribute="top" secondItem="Yrc-6Q-kx8" secondAttribute="bottom" constant="20" id="7iQ-QN-Ubh"/>
-                        <constraint firstItem="Yrc-6Q-kx8" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="AQY-vT-qR7"/>
-                        <constraint firstItem="yrg-M3-Dbz" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="Bmt-Mn-CCl"/>
+                        <constraint firstItem="hQy-ng-ijd" firstAttribute="top" secondItem="j0t-Wa-UTL" secondAttribute="bottom" constant="20" id="7iQ-QN-Ubh"/>
                         <constraint firstItem="UI6-sq-M15" firstAttribute="top" secondItem="1w0-nA-DEO" secondAttribute="bottom" constant="12" id="DMk-OP-dpa"/>
                         <constraint firstItem="Ubm-Pk-l7x" firstAttribute="top" secondItem="Ci4-fW-KjU" secondAttribute="bottom" constant="12" id="E3r-xf-7aZ"/>
                         <constraint firstAttribute="bottom" secondItem="SFF-mL-yc8" secondAttribute="bottom" constant="4" id="FAd-wh-IFu"/>
                         <constraint firstItem="pR2-Bf-7Fd" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="G0C-1M-LW1"/>
-                        <constraint firstItem="yrg-M3-Dbz" firstAttribute="trailing" secondItem="pR2-Bf-7Fd" secondAttribute="trailing" id="JbY-CP-pK8"/>
                         <constraint firstAttribute="trailing" secondItem="Ubm-Pk-l7x" secondAttribute="trailing" id="KIg-w5-ceG"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="KT2-cC-duX"/>
                         <constraint firstItem="ISO-Wu-R60" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="M2S-SQ-vXb"/>
@@ -296,30 +261,24 @@
                         <constraint firstAttribute="trailing" secondItem="0W5-tO-S63" secondAttribute="trailing" id="WMd-dg-Zmr"/>
                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="1w0-nA-DEO" secondAttribute="trailing" id="X8P-Hj-l5H"/>
                         <constraint firstItem="ucw-vG-yLt" firstAttribute="firstBaseline" secondItem="SFF-mL-yc8" secondAttribute="firstBaseline" id="XHk-Fk-1pC"/>
-                        <constraint firstAttribute="trailing" secondItem="wtY-Zd-Ps9" secondAttribute="trailing" id="YAf-to-Ruz"/>
                         <constraint firstItem="1w0-nA-DEO" firstAttribute="top" secondItem="ISO-Wu-R60" secondAttribute="bottom" constant="12" id="Yal-X7-BjE"/>
                         <constraint firstAttribute="trailing" secondItem="hQy-ng-ijd" secondAttribute="trailing" constant="1" id="aaL-6A-h6v"/>
                         <constraint firstItem="92N-8I-bOs" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="bfi-Tx-kxY"/>
                         <constraint firstItem="S2Z-bG-jYk" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="cAs-rZ-scx"/>
                         <constraint firstItem="Tdg-6Y-gvW" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="f94-CZ-Ktu"/>
-                        <constraint firstItem="wtY-Zd-Ps9" firstAttribute="top" secondItem="j0t-Wa-UTL" secondAttribute="bottom" constant="20" id="fSr-gq-qjL"/>
                         <constraint firstItem="1w0-nA-DEO" firstAttribute="leading" secondItem="ISO-Wu-R60" secondAttribute="leading" id="fUc-MK-Y69"/>
                         <constraint firstItem="UI6-sq-M15" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="ffy-ld-r5Q"/>
                         <constraint firstAttribute="trailing" secondItem="Ci4-fW-KjU" secondAttribute="trailing" constant="1" id="h0b-Nh-tJJ"/>
                         <constraint firstAttribute="trailing" secondItem="SFF-mL-yc8" secondAttribute="trailing" constant="1" id="hYk-Ff-wTy"/>
                         <constraint firstItem="SFF-mL-yc8" firstAttribute="leading" secondItem="hQy-ng-ijd" secondAttribute="trailing" constant="-282" id="hhb-8Q-KWc"/>
                         <constraint firstItem="0W5-tO-S63" firstAttribute="leading" secondItem="UI6-sq-M15" secondAttribute="leading" constant="22" id="jmc-lb-wp2"/>
-                        <constraint firstAttribute="trailing" secondItem="Yrc-6Q-kx8" secondAttribute="trailing" id="o3L-x4-mEr"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="trailing" secondItem="pR2-Bf-7Fd" secondAttribute="trailing" id="obL-84-81H"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="firstBaseline" secondItem="Ci4-fW-KjU" secondAttribute="firstBaseline" id="pCJ-eR-07V"/>
-                        <constraint firstItem="Yrc-6Q-kx8" firstAttribute="top" secondItem="wtY-Zd-Ps9" secondAttribute="bottom" constant="6" symbolic="YES" id="pbM-DF-ATO"/>
                         <constraint firstItem="hQy-ng-ijd" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="qE2-WJ-0I9"/>
                         <constraint firstAttribute="trailing" secondItem="j0t-Wa-UTL" secondAttribute="trailing" id="qc4-hF-DW3"/>
                         <constraint firstItem="j0t-Wa-UTL" firstAttribute="top" secondItem="Ubm-Pk-l7x" secondAttribute="bottom" constant="8" id="qeX-7L-XAA"/>
                         <constraint firstAttribute="trailing" secondItem="UI6-sq-M15" secondAttribute="trailing" id="rxC-vu-aW1"/>
-                        <constraint firstItem="yrg-M3-Dbz" firstAttribute="firstBaseline" secondItem="wtY-Zd-Ps9" secondAttribute="firstBaseline" id="sgV-rt-nFb"/>
                         <constraint firstItem="SFF-mL-yc8" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="shx-wm-ygD"/>
-                        <constraint firstItem="wtY-Zd-Ps9" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="vaG-fM-WwJ"/>
                         <constraint firstItem="j0t-Wa-UTL" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" constant="22" id="xSA-4l-R2v"/>
                         <constraint firstAttribute="trailing" secondItem="ISO-Wu-R60" secondAttribute="trailing" constant="1" id="xaY-qS-LSN"/>
                         <constraint firstItem="ucw-vG-yLt" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="xmq-Ob-wCJ"/>
