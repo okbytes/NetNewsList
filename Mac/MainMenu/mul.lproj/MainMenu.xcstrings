@@ -19,24 +19,6 @@
         }
       }
     },
-    "1nF-7O-aKU.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Check for Updates…\"; ObjectID = \"1nF-7O-aKU\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Check for Updates…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones…"
-          }
-        }
-      }
-    },
     "1UK-8n-QPP.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Customize Toolbar…\"; ObjectID = \"1UK-8n-QPP\";",
       "extractionState" : "extracted_with_value",
@@ -951,24 +933,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pegar"
-          }
-        }
-      }
-    },
-    "gVd-kQ-efj.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Test Crash Reporter Window\"; ObjectID = \"gVd-kQ-efj\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Test Crash Reporter Window"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probar ventana de informe de fallos"
           }
         }
       }
@@ -2307,24 +2271,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir carpeta de caché de imágenes"
-          }
-        }
-      }
-    },
-    "XJG-gO-OKi.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Test Crash Log Sender\"; ObjectID = \"XJG-gO-OKi\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Test Crash Log Sender"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probar envío de registros de fallos"
           }
         }
       }

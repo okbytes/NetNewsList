@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		17192ADA2567B3D500AAEACA /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 17192AD92567B3D500AAEACA /* Sparkle */; };
 		176814002564BB2D00D98635 /* NetNewsWire iOS Widget Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 176813F32564BB2C00D98635 /* NetNewsWire iOS Widget Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		179C39EA26F76B0500D4E741 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = 179C39E926F76B0500D4E741 /* Zip */; };
 		179D280B26F6F93D003B2E0A /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = 179D280A26F6F93D003B2E0A /* Zip */; };
@@ -36,7 +35,6 @@
 		513F32812593EF180003048F /* Account in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 516B695E24D2F33B00B5702F /* Account */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		514C16CE24D2E63F009A3AFA /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 514C16CD24D2E63F009A3AFA /* Account */; };
 		516B695F24D2F33B00B5702F /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 516B695E24D2F33B00B5702F /* Account */; };
-		519CA8E525841DB700EB079A /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 519CA8E425841DB700EB079A /* CrashReporter */; };
 		51BC2F3824D3439A00E90810 /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 51BC2F3724D3439A00E90810 /* Account */; };
 		51C4CFF624D37DD500AF9874 /* Secrets in Frameworks */ = {isa = PBXBuildFile; productRef = 51C4CFF524D37DD500AF9874 /* Secrets */; };
 		840958632201629A002C1579 /* Subscribe to Feed.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6581C73320CED60000F4AD34 /* Subscribe to Feed.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -534,7 +532,6 @@
 				8424B3182DB73D4C0053AA11 /* RSParser in Frameworks */,
 				848E84D02DB749440023F3BA /* RSCoreResources in Frameworks */,
 				513277642590FC640064F1E7 /* SyncDatabase in Frameworks */,
-				17192ADA2567B3D500AAEACA /* Sparkle in Frameworks */,
 				5132775E2590FC640064F1E7 /* Articles in Frameworks */,
 				84EE43482DB8A441009D3A8D /* RSDatabase in Frameworks */,
 				84EE3F122DB8A088009D3A8D /* RSTree in Frameworks */,
@@ -548,7 +545,6 @@
 				D1A7E100000000000000A005 /* HTMLMetadata in Frameworks */,
 				D1A7E100000000000000B005 /* ActivityLog in Frameworks */,
 				D1A7E100000000000000C005 /* Images in Frameworks */,
-				519CA8E525841DB700EB079A /* CrashReporter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -810,8 +806,6 @@
 				514C16CD24D2E63F009A3AFA /* Account */,
 				C1939AC39272487C923003B8 /* ErrorLog */,
 				51C4CFF524D37DD500AF9874 /* Secrets */,
-				17192AD92567B3D500AAEACA /* Sparkle */,
-				519CA8E425841DB700EB079A /* CrashReporter */,
 				5132775D2590FC640064F1E7 /* Articles */,
 				513277602590FC640064F1E7 /* ArticlesDatabase */,
 				513277632590FC640064F1E7 /* SyncDatabase */,
@@ -929,8 +923,6 @@
 			);
 			mainGroup = 849C64571ED37A5D003D8FC0;
 			packageReferences = (
-				17192AD82567B3D500AAEACA /* XCRemoteSwiftPackageReference "Sparkle" */,
-				519CA8E325841DB700EB079A /* XCRemoteSwiftPackageReference "plcrashreporter" */,
 				179D280926F6F93D003B2E0A /* XCRemoteSwiftPackageReference "Zip" */,
 			);
 			preferredProjectObjectVersion = 46;
@@ -1464,14 +1456,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		17192AD82567B3D500AAEACA /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.9.5;
-			};
-		};
 		179D280926F6F93D003B2E0A /* XCRemoteSwiftPackageReference "Zip" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/marmelroy/Zip.git";
@@ -1480,22 +1464,9 @@
 				revision = bca30f6d6c7d37cbc4aa8f6b0002e281dcc36195;
 			};
 		};
-		519CA8E325841DB700EB079A /* XCRemoteSwiftPackageReference "plcrashreporter" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/microsoft/plcrashreporter.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.8.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		17192AD92567B3D500AAEACA /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 17192AD82567B3D500AAEACA /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
 		179C39E926F76B0500D4E741 /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 179D280926F6F93D003B2E0A /* XCRemoteSwiftPackageReference "Zip" */;
@@ -1549,11 +1520,6 @@
 		516B695E24D2F33B00B5702F /* Account */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Account;
-		};
-		519CA8E425841DB700EB079A /* CrashReporter */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 519CA8E325841DB700EB079A /* XCRemoteSwiftPackageReference "plcrashreporter" */;
-			productName = CrashReporter;
 		};
 		51BC2F3724D3439A00E90810 /* Account */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -24,7 +24,6 @@ private struct PreferencesToolbarItemSpec {
 private struct ToolbarItemIdentifier {
 	static let General = "General"
 	static let Accounts = "Accounts"
-	static let Advanced = "Advanced"
 }
 
 final class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
@@ -39,9 +38,6 @@ final class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
 		specs += [PreferencesToolbarItemSpec(identifierRawValue: ToolbarItemIdentifier.Accounts,
 											 name: NSLocalizedString("Accounts", comment: "Preferences"),
 											 image: Assets.Images.preferencesToolbarAccounts)]
-		specs += [PreferencesToolbarItemSpec(identifierRawValue: ToolbarItemIdentifier.Advanced,
-											 name: NSLocalizedString("Advanced", comment: "Preferences"),
-											 image: Assets.Images.preferencesToolbarAdvanced)]
 		return specs
 	}()
 
@@ -162,8 +158,6 @@ private extension PreferencesWindowController {
 			viewController = GeneralPreferencesViewController()
 		case ToolbarItemIdentifier.Accounts:
 			viewController = AccountsPreferencesViewController()
-		case ToolbarItemIdentifier.Advanced:
-			viewController = AdvancedPreferencesViewController()
 		default:
 			assertionFailure("Unknown preferences view controller: \(identifier)")
 			return nil

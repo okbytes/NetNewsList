@@ -18,8 +18,6 @@ import RSCoreObjC
 import RSCoreResources
 import RSWeb
 import Secrets
-import CrashReporter
-import Sparkle
 import Images
 import HTMLMetadata
 
@@ -28,7 +26,7 @@ let appName = "NetNewsWire"
 @MainActor var appDelegate: AppDelegate!
 
 @main
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations, UNUserNotificationCenterDelegate, UnreadCountProvider, SPUStandardUserDriverDelegate, SPUUpdaterDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations, UNUserNotificationCenterDelegate, UnreadCountProvider {
 
 	static private let logger = Logger(subsystem: Logger.nnwSubsystem, category: "AppDelegate")
 
@@ -53,7 +51,6 @@ let appName = "NetNewsWire"
 
 	@IBOutlet var debugMenuItem: NSMenuItem!
 	@IBOutlet var useColumnLayoutMenuItem: NSMenuItem!
-	@IBOutlet var checkForUpdatesMenuItem: NSMenuItem!
 
 	var unreadCount = 0 {
 		didSet {
@@ -93,12 +90,9 @@ let appName = "NetNewsWire"
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
 	private var dinosaurWindowController: DinosaursWindowController?
-	private var crashReportWindowController: CrashReportWindowController? // For testing only
 	private var cloudKitStatsWindowController: CloudKitStatsWindowController?
 	private var accountStatsWindowController: AccountStatsWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
-	private var softwareUpdater: SPUUpdater?
-	private var crashReporter: PLCrashReporter?
 
 	private var themeImportPath: String?
 
@@ -109,12 +103,6 @@ let appName = "NetNewsWire"
 		super.init()
 
 		appDelegate = self
-		let crashReporterConfig = PLCrashReporterConfig.defaultConfiguration()
-		if let crashReporter = PLCrashReporter(configuration: crashReporterConfig) {
-			crashReporter.enable()
-			self.crashReporter = crashReporter
-		}
-
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: AccountManager.shared)
@@ -169,27 +157,6 @@ let appName = "NetNewsWire"
 
 		// Load now, while the app bundle is readable. A translocated app that gets moved can’t read it later.
 		_ = MainWindowKeyboardHandler.shared
-
-		// Ensure the Sparkle feed URL is one of the two supported URLs.
-		// Default to the release builds URL from Info.plist.
-		if let infoDictionary = Bundle.main.infoDictionary,
-		   let releaseBuildsURL = infoDictionary["SUFeedURL"] as? String,
-		   let testBuildsURL = infoDictionary["FeedURLForTestBuilds"] as? String,
-		   let currentFeedURL = UserDefaults.standard.string(forKey: "SUFeedURL"),
-		   currentFeedURL != releaseBuildsURL && currentFeedURL != testBuildsURL {
-			UserDefaults.standard.set(releaseBuildsURL, forKey: "SUFeedURL")
-		}
-
-		// Initialize Sparkle...
-		let hostBundle = Bundle.main
-		let updateDriver = SPUStandardUserDriver(hostBundle: hostBundle, delegate: self)
-		softwareUpdater = SPUUpdater(hostBundle: hostBundle, applicationBundle: hostBundle, userDriver: updateDriver, delegate: self)
-
-		do {
-			try softwareUpdater?.start()
-		} catch {
-			Self.logger.error("Failed to start software updater with error: \(error.localizedDescription)")
-		}
 
 		AppDefaults.shared.registerDefaults()
 		let isFirstRun = AppDefaults.shared.isFirstRun
@@ -280,12 +247,6 @@ let appName = "NetNewsWire"
 
 		if !AppDefaults.shared.showDebugMenu {
 			debugMenuItem.menu?.removeItem(debugMenuItem)
-		}
-
-		Task {
-			if let crashReporter {
-				CrashReporter.check(crashReporter: crashReporter)
-			}
 		}
 	}
 
@@ -757,10 +718,6 @@ let appName = "NetNewsWire"
 	@IBAction func toggleColumnLayout(_ sender: Any?) {
 		AppDefaults.shared.useColumnLayout.toggle()
 	}
-
-	@IBAction func checkForUpdates(_ sender: Any?) {
-		softwareUpdater?.checkForUpdates()
-	}
 }
 
 // MARK: - Debug Menu
@@ -776,18 +733,6 @@ extension AppDelegate {
 			account.debugDropConditionalGetInfo()
 		}
 #endif
-	}
-
-	@IBAction func debugTestCrashReporterWindow(_ sender: Any?) {
-		#if DEBUG
-			crashReportWindowController = CrashReportWindowController(crashLogText: "This is a test crash log.")
-			crashReportWindowController!.testing = true
-			crashReportWindowController!.showWindow(self)
-		#endif
-	}
-
-	@IBAction func debugTestCrashReportSending(_ sender: Any?) {
-		CrashReporter.sendCrashLogText("This is a test. Hi, Brent.")
 	}
 
 	@IBAction func forceCrash(_ sender: Any?) {

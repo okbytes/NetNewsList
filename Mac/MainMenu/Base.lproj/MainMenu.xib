@@ -14,7 +14,6 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="NetNewsWire" customModuleProvider="target">
             <connections>
-                <outlet property="checkForUpdatesMenuItem" destination="1nF-7O-aKU" id="JmT-jc-DJ8"/>
                 <outlet property="debugMenuItem" destination="UqE-mp-gtV" id="OnR-lr-Zlt"/>
                 <outlet property="useColumnLayoutMenuItem" destination="ucL-ay-0ut" id="ucL-ou-tl1"/>
             </connections>
@@ -35,12 +34,6 @@
                             <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW">
                                 <connections>
                                     <action selector="showPreferences:" target="-1" id="Syu-AN-6P4"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Check for Updates…" id="1nF-7O-aKU">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="checkForUpdates:" target="-1" id="htt-e3-mEy"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="wFC-TO-SCJ"/>
@@ -544,18 +537,6 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Debug" id="NOT-8E-ykF">
                         <items>
-                            <menuItem title="Test Crash Reporter Window" id="gVd-kQ-efj">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="debugTestCrashReporterWindow:" target="-1" id="v4U-8D-e5t"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Test Crash Log Sender" id="XJG-gO-OKi">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="debugTestCrashReportSending:" target="-1" id="olQ-kb-kkm"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Force Crash" id="gVt-cz-eoJ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

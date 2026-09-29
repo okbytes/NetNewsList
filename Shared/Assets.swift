@@ -79,7 +79,6 @@ struct Assets {
 		static let openInBrowser = RSImage(symbol: "safari")!
 		static let preferencesToolbarAccounts = RSImage(symbol: "at")!
 		static let preferencesToolbarGeneral = RSImage(symbol: "gearshape")!
-		static let preferencesToolbarAdvanced = RSImage(symbol: "gearshape.2")!
 		static let readClosed = RSImage(symbol: "largecircle.fill.circle")!
 		static let readOpen = RSImage(symbol: "circle")!
 		static let refresh = RSImage(symbol: "arrow.clockwise")!
