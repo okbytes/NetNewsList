@@ -40,8 +40,10 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 	private let syncDatabase: SyncDatabase
 
 	private let container: CKContainer = {
-		let orgID = Bundle.main.object(forInfoDictionaryKey: "OrganizationIdentifier") as! String
-		return CKContainer(identifier: "iCloud.\(orgID).NetNewsWire")
+		guard let identifier = Bundle.main.object(forInfoDictionaryKey: "CloudKitContainerIdentifier") as? String else {
+			preconditionFailure("Info.plist is missing CloudKitContainerIdentifier")
+		}
+		return CKContainer(identifier: identifier)
 	}()
 
 	private let accountZone: CloudKitAccountZone

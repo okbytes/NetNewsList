@@ -100,13 +100,13 @@ struct AddAccountView: View {
 		.disabled(isDisabled(accountType))
 	}
 
-	/// Groups with at least one account type to show. Developer builds hide the restricted types, as the Mac app does.
+	/// Groups with at least one account type to show.
 	private var visibleGroups: [AccountGroup] {
 		AccountGroup.allCases.filter { !visibleAccountTypes(in: $0).isEmpty }
 	}
 
 	private func visibleAccountTypes(in group: AccountGroup) -> [AccountType] {
-		group.accountTypes.filter { !(AppDefaults.shared.isDeveloperBuild && $0.isDeveloperRestricted) }
+		group.accountTypes
 	}
 
 	private func isDisabled(_ accountType: AccountType) -> Bool {

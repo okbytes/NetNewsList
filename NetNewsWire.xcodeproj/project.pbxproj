@@ -270,7 +270,7 @@
 		513C5CE6232571C2003D4054 /* NetNewsWire iOS Share Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "NetNewsWire iOS Share Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		518B2ED22351B3DD00400001 /* NetNewsWire-iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NetNewsWire-iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		840A1F0A2E4133F400CFCCFC /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
-		840D617C2029031C009BC708 /* NetNewsWire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetNewsWire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		840D617C2029031C009BC708 /* NetNewsList.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetNewsList.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		844E47DC2E7DC72A0061A51A /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
 		845B14A51FC2299E0013CF92 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		84719F4B2EE01A1100EEF332 /* Tests/NetNewsWire-iOSTests/ActivityItemSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tests/NetNewsWire-iOSTests/ActivityItemSourceTests.swift"; sourceTree = SOURCE_ROOT; };
@@ -286,7 +286,7 @@
 		849182BB2FD32B1B005C3015 /* Sepia.nnwtheme */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sepia.nnwtheme; sourceTree = "<group>"; };
 		849182BB2FD32B1B005C3016 /* Tiqoe Dark.nnwtheme */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Tiqoe Dark.nnwtheme"; sourceTree = "<group>"; };
 		849182BB2FD32B1B005C3017 /* Verdana Revival.nnwtheme */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Verdana Revival.nnwtheme"; sourceTree = "<group>"; };
-		849C64601ED37A5D003D8FC0 /* NetNewsWire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetNewsWire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		849C64601ED37A5D003D8FC0 /* NetNewsList.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetNewsList.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		849C64711ED37A5D003D8FC0 /* NetNewsWireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NetNewsWireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		84D2200922B0BC4B0019E085 /* CONTRIBUTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -297,7 +297,6 @@
 			membershipExceptions = (
 				/Localized/ShareExtension/ShareViewController.xib,
 				Resources/Info.plist,
-				Resources/NetNewsWire.provisionprofile,
 				ShareExtension/icon.icns,
 				ShareExtension/Info.plist,
 				ShareExtension/ShareViewController.swift,
@@ -585,9 +584,9 @@
 		849C64611ED37A5D003D8FC0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				849C64601ED37A5D003D8FC0 /* NetNewsWire.app */,
+				849C64601ED37A5D003D8FC0 /* NetNewsList.app */,
 				849C64711ED37A5D003D8FC0 /* NetNewsWireTests.xctest */,
-				840D617C2029031C009BC708 /* NetNewsWire.app */,
+				840D617C2029031C009BC708 /* NetNewsList.app */,
 				513C5CE6232571C2003D4054 /* NetNewsWire iOS Share Extension.appex */,
 				518B2ED22351B3DD00400001 /* NetNewsWire-iOSTests.xctest */,
 				510C415C24E5CDE3008226FD /* NetNewsWire Share Extension.appex */,
@@ -729,7 +728,7 @@
 				84EE434A2DB8A44C009D3A8D /* RSDatabase */,
 			);
 			productName = "NetNewsWire-iOS";
-			productReference = 840D617C2029031C009BC708 /* NetNewsWire.app */;
+			productReference = 840D617C2029031C009BC708 /* NetNewsList.app */;
 			productType = "com.apple.product-type.application";
 		};
 		849C645F1ED37A5D003D8FC0 /* NetNewsWire */ = {
@@ -774,7 +773,7 @@
 				84EE43472DB8A441009D3A8D /* RSDatabase */,
 			);
 			productName = NetNewsWire;
-			productReference = 849C64601ED37A5D003D8FC0 /* NetNewsWire.app */;
+			productReference = 849C64601ED37A5D003D8FC0 /* NetNewsList.app */;
 			productType = "com.apple.product-type.application";
 		};
 		849C64701ED37A5D003D8FC0 /* NetNewsWireTests */ = {

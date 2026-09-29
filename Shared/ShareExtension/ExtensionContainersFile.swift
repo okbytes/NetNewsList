@@ -18,9 +18,12 @@ import Account
 	static private let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ExtensionContainersFile")
 
 	private static var filePath: String = {
-		let appGroup = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as! String
-		let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-		return containerURL!.appendingPathComponent("extension_containers.plist").path
+		guard let appGroup = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as? String,
+			  let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
+			logger.error("App group container is unavailable; the share extension and the app cannot exchange requests.")
+			return FileManager.default.temporaryDirectory.appendingPathComponent("extension_containers.plist").path
+		}
+		return containerURL.appendingPathComponent("extension_containers.plist").path
 	}()
 
 	private var isActive = false

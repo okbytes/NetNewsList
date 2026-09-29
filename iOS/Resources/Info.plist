@@ -10,7 +10,7 @@
 	<false/>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.ranchero.NetNewsWire.FeedRefresh</string>
+		<string>NetNewsList.BackgroundRefresh</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -32,28 +32,15 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLName</key>
-			<string>com.ranchero.NetNewsWire-Evergreen.iOS.feed</string>
+			<string>NetNewsList</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>feed</string>
-				<string>feeds</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>CFBundleURLName</key>
-			<string>com.ranchero.NetNewsWire-Evergreen.iOS</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>netnewswire</string>
+				<string>netnewslist</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>DeveloperEntitlements</key>
-	<string>$(DEVELOPER_ENTITLEMENTS)</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>mailto</string>
@@ -75,8 +62,8 @@
 		<string>Restoration</string>
 		<string>SelectFeed</string>
 	</array>
-	<key>OrganizationIdentifier</key>
-	<string>$(ORGANIZATION_IDENTIFIER)</string>
+	<key>CloudKitContainerIdentifier</key>
+	<string>iCloud.$(ORGANIZATION_IDENTIFIER).NetNewsList</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -133,49 +120,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UTExportedTypeDeclarations</key>
-	<array>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.xml</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>OPML</string>
-			<key>UTTypeIconFiles</key>
-			<array/>
-			<key>UTTypeIdentifier</key>
-			<string>org.opml.opml</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>opml</string>
-				</array>
-			</dict>
-		</dict>
-	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.xml</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>OPML</string>
-			<key>UTTypeIconFiles</key>
-			<array/>
-			<key>UTTypeIdentifier</key>
-			<string>org.opml.opml</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>opml</string>
-				</array>
-			</dict>
-		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
@@ -218,8 +164,8 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
 	<key>UserAgent</key>
-	<string>NetNewsWire (RSS Reader; https://netnewswire.com/)</string>
+	<string>NetNewsList</string>
 	<key>UserAgentExtended</key>
-	<string>NetNewsWire (RSS Reader; https://netnewswire.com/; [platform]; [version] ([build]))</string>
+	<string>NetNewsList ([platform]; [version] ([build]))</string>
 </dict>
 </plist>

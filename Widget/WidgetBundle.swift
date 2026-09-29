@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - Supported Widgets
 
 struct UnreadWidget: Widget {
-	let kind: String = "com.ranchero.NetNewsWire.UnreadWidget"
+	let kind: String = "NetNewsList.UnreadWidget"
 
 	var body: some WidgetConfiguration {
 
@@ -31,7 +31,7 @@ struct UnreadWidget: Widget {
 }
 
 struct TodayWidget: Widget {
-	let kind: String = "com.ranchero.NetNewsWire.TodayWidget"
+	let kind: String = "NetNewsList.TodayWidget"
 
 	var body: some WidgetConfiguration {
 
@@ -50,7 +50,7 @@ struct TodayWidget: Widget {
 }
 
 struct StarredWidget: Widget {
-	let kind: String = "com.ranchero.NetNewsWire.StarredWidget"
+	let kind: String = "NetNewsList.StarredWidget"
 
 	var body: some WidgetConfiguration {
 
@@ -69,7 +69,7 @@ struct StarredWidget: Widget {
 }
 
 struct LockScreenSummaryWidget: Widget {
-	let kind: String = "com.ranchero.NetNewsWire.LockScreenSummaryWidget"
+	let kind: String = "NetNewsList.LockScreenSummaryWidget"
 
 	var body: some WidgetConfiguration {
 

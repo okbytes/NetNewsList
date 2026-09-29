@@ -8,4 +8,4 @@
 import Foundation
 
 // Matches Logger.nnwSubsystem in RSCore, which RSDatabase doesn’t depend on.
-let logSubsystem = "com.ranchero.NetNewsWire"
+let logSubsystem = "eitherslice.NetNewsList"

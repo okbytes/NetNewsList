@@ -127,15 +127,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 			let urlString = context.url.absoluteString
 
-			// Handle the feed: and feeds: schemes
-			if urlString.starts(with: "feed:") || urlString.starts(with: "feeds:") {
-				let normalizedURLString = urlString.normalizedURL
-				if normalizedURLString.mayBeURL {
-					self.coordinator.showAddFeed(initialFeed: normalizedURLString, initialFeedName: nil)
-				}
-				return
-			}
-
 			// Show Unread View or Article
 			if urlString.contains(WidgetDeepLink.unread.url.absoluteString) {
 				guard let comps = URLComponents(string: urlString ) else { return  }
@@ -199,9 +190,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 				return
 			}
 
-			// Handle theme URLs: netnewswire://theme/add?url={url}
+			// Handle theme URLs: netnewslist://theme/add?url={url}
 			guard let comps = URLComponents(url: context.url, resolvingAgainstBaseURL: false),
-				  comps.scheme?.lowercased() == "netnewswire",
+				  comps.scheme?.lowercased() == "netnewslist",
 				  "theme" == comps.host,
 				 let queryItems = comps.queryItems else {
 				return
@@ -219,11 +210,11 @@ private extension SceneDelegate {
 
 	func handleShortcutItem(_ shortcutItem: UIApplicationShortcutItem) {
 		switch shortcutItem.type {
-		case "com.ranchero.NetNewsWire.FirstUnread":
+		case "NetNewsList.FirstUnread":
 			coordinator.selectFirstUnreadInAllUnread()
-		case "com.ranchero.NetNewsWire.ShowSearch":
+		case "NetNewsList.ShowSearch":
 			coordinator.showSearch()
-		case "com.ranchero.NetNewsWire.ShowAdd":
+		case "NetNewsList.ShowAdd":
 			coordinator.showAddFeed()
 		default:
 			break

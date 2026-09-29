@@ -21,7 +21,7 @@ import Secrets
 import Images
 import HTMLMetadata
 
-let appName = "NetNewsWire"
+let appName = "NetNewsList"
 
 @MainActor var appDelegate: AppDelegate!
 
@@ -204,10 +204,10 @@ let appName = "NetNewsWire"
 		NetworkMonitor.shared.start()
 		MemoryPressureMonitor.shared.start()
 
-#if !SKIP_APP_GROUP_ACCESS
-		ExtensionContainersFile.shared.start()
-		ExtensionFeedAddRequestFile.shared.start()
-#endif
+		if !Platform.isRunningUnitTests {
+			ExtensionContainersFile.shared.start()
+			ExtensionFeedAddRequestFile.shared.start()
+		}
 
 		refreshTimer = AccountRefreshTimer()
 		ArticleStatusSyncTimer.shared.start()

@@ -19,7 +19,7 @@ import Articles
 
 	private static var contentBlockingRuleList: WKContentRuleList?
 	private static var configuredContentControllers = NSHashTable<WKUserContentController>.weakObjects()
-	private static let applicationNameForUserAgent = "NetNewsWire"
+	private static let applicationNameForUserAgent = "NetNewsList"
 
 	// Keeps the web view alive while resolveBrowserUserAgent() waits for its answer.
 	private static var userAgentWebView: WKWebView?

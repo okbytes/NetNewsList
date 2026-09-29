@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>NetNewsWire Widget</string>
+	<string>NetNewsList</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,10 +25,6 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
-	<key>OrganizationIdentifier</key>
-	<string>$(ORGANIZATION_IDENTIFIER)</string>
-	<key>DeveloperEntitlements</key>
-	<string>$(DEVELOPER_ENTITLEMENTS)</string>
 	<key>AppGroup</key>
 	<string>$(APP_GROUP_ID)</string>
 	<key>AppIdentifierPrefix</key>

@@ -15,5 +15,5 @@ public extension Logger {
 	/// A constant rather than Bundle.main.bundleIdentifier so that logging works
 	/// in processes without a bundle identifier (the Swift Testing runner, for instance)
 	/// and so that one Console filter covers the apps and the extensions.
-	static let nnwSubsystem = "com.ranchero.NetNewsWire"
+	static let nnwSubsystem = "eitherslice.NetNewsList"
 }

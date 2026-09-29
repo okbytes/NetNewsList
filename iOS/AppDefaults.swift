@@ -83,13 +83,6 @@ final class AppDefaults: Sendable {
 		static let sidebarWidth = "sidebarWidth"
 	}
 
-	let isDeveloperBuild: Bool = {
-		if let dev = Bundle.main.object(forInfoDictionaryKey: "DeveloperEntitlements") as? String, dev == "-dev" {
-			return true
-		}
-		return false
-	}()
-
 	let isFirstRun: Bool = {
 		if AppDefaults.store.object(forKey: Key.firstRunDate) is Date {
 			return false

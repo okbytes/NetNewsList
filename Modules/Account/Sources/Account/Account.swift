@@ -42,10 +42,6 @@ nonisolated public enum AccountType: Int, Codable, Sendable {
 	case onMyMac = 1
 	case cloudKit = 2
 
-	public var isDeveloperRestricted: Bool {
-		return self == .cloudKit
-	}
-
 	public var displayName: String {
 		switch self {
 		case .onMyMac:

@@ -68,9 +68,7 @@ struct AddAccountsView: View {
 
 			localAccount
 
-			if !AppDefaults.shared.isDeveloperBuild {
-				icloudAccount
-			}
+			icloudAccount
 
 
 			HStack(spacing: 12) {
