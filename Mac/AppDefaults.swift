@@ -34,7 +34,6 @@ final class AppDefaults: Sendable {
 		static let detailFontSize = "detailFontSize"
 		static let openInBrowserInBackground = "openInBrowserInBackground"
 		static let articleTextSize = "articleTextSize"
-		static let refreshInterval = "refreshInterval"
 		static let addFeedAccountID = "addFeedAccountID"
 		static let addFeedFolderName = "addFeedFolderName"
 		static let addFolderAccountID = "addFolderAccountID"
@@ -252,33 +251,12 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var refreshInterval: RefreshInterval {
-		get {
-			let rawValue = UserDefaults.standard.integer(forKey: Key.refreshInterval)
-			if rawValue == 2 { // Old every-10-minutes setting — now using 30 minutes as minimum.
-				return .every30Minutes
-			}
-			return RefreshInterval(rawValue: rawValue) ?? .every2Hours
-		}
-		set {
-			UserDefaults.standard.set(newValue.rawValue, forKey: Key.refreshInterval)
-		}
-	}
-
 	var isArticleContentJavascriptEnabled: Bool {
 		get {
 			UserDefaults.standard.bool(forKey: Key.articleContentJavascriptEnabled)
 		}
 		set {
 			UserDefaults.standard.set(newValue, forKey: Key.articleContentJavascriptEnabled)
-		}
-	}
-
-	init() {
-		// Migrate every-10-minute refresh interval to 30 minutes.
-		let rawValue = UserDefaults.standard.integer(forKey: Key.refreshInterval)
-		if rawValue == 2 {
-			UserDefaults.standard.set(RefreshInterval.every30Minutes.rawValue, forKey: Key.refreshInterval)
 		}
 	}
 
@@ -297,7 +275,6 @@ final class AppDefaults: Sendable {
 			Key.timelineGroupByFeed: false,
 			Key.useColumnLayout: false,
 			"NSScrollViewShouldScrollUnderTitlebar": false,
-			Key.refreshInterval: RefreshInterval.every2Hours.rawValue,
 			Key.showDebugMenu: showDebugMenu,
 			Key.currentThemeName: Self.defaultThemeName,
 			Key.articleContentJavascriptEnabled: true

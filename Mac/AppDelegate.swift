@@ -34,14 +34,9 @@ let appName = "NetNewsList"
 		static let mainWindow = "mainWindow"
 	}
 
-	private var refreshTimer: AccountRefreshTimer?
-	private var lastRefreshInterval = AppDefaults.shared.refreshInterval
-
 	private var shuttingDown = false {
 		didSet {
 			if shuttingDown {
-				refreshTimer?.shuttingDown = shuttingDown
-				refreshTimer?.invalidate()
 				ArticleStatusSyncTimer.shared.stop()
 			}
 		}
@@ -106,7 +101,6 @@ let appName = "NetNewsList"
 		NotificationCenter.default.addObserver(self, selector: #selector(inspectableObjectsDidChange(_:)), name: .InspectableObjectsDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeImportError(_:)), name: .didFailToImportThemeWithError, object: nil)
-		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleepNotification(_:)), name: NSWorkspace.willSleepNotification, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWakeNotification(_:)), name: NSWorkspace.didWakeNotification, object: nil)
 	}
 
@@ -209,7 +203,6 @@ let appName = "NetNewsList"
 			ExtensionFeedAddRequestFile.shared.start()
 		}
 
-		refreshTimer = AccountRefreshTimer()
 		ArticleStatusSyncTimer.shared.start()
 
 		// Silent CloudKit pushes don’t need notification permission.
@@ -218,15 +211,12 @@ let appName = "NetNewsList"
 		UNUserNotificationCenter.current().delegate = self
 
 		#if DEBUG
-		refreshTimer!.update()
 		ArticleStatusSyncTimer.shared.update()
 		#else
 		if AppDefaults.shared.suppressSyncOnLaunch {
-			refreshTimer!.update()
 			ArticleStatusSyncTimer.shared.update()
 		} else {
 			DispatchQueue.main.async {
-				self.refreshTimer!.timedRefresh(nil)
 				ArticleStatusSyncTimer.shared.timedRefresh(nil)
 			}
 		}
@@ -340,25 +330,11 @@ let appName = "NetNewsList"
 	func userDefaultsDidChange() {
 		updateColumnLayoutMenuItem()
 
-		if lastRefreshInterval != AppDefaults.shared.refreshInterval {
-			refreshTimer?.update()
-			lastRefreshInterval = AppDefaults.shared.refreshInterval
-		}
-
 		updateDockBadge()
-	}
-
-	@objc func willSleepNotification(_ note: Notification) {
-		// Pause feed refreshing while the Mac is asleep. Article status syncing is
-		// left running on purpose.
-		Task { @MainActor in
-			refreshTimer?.suspend()
-		}
 	}
 
 	@objc func didWakeNotification(_ note: Notification) {
 		Task { @MainActor in
-			refreshTimer?.resume()
 			ArticleStatusSyncTimer.shared.fireOldTimer()
 		}
 	}
@@ -708,9 +684,7 @@ extension AppDelegate {
 @MainActor internal extension AppDelegate {
 
 	func fireOldTimers() {
-		// It’s possible there’s a refresh timer set to go off in the past.
-		// In that case, refresh now and update the timer.
-		refreshTimer?.fireOldTimer()
+		// It’s possible the sync timer was set to go off in the past.
 		ArticleStatusSyncTimer.shared.fireOldTimer()
 	}
 

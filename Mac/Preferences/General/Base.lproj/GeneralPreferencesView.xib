@@ -186,51 +186,6 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="hQy-ng-ijd">
-                            <rect key="frame" x="0.0" y="46" width="392" height="5"/>
-                        </box>
-                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ucw-vG-yLt">
-                            <rect key="frame" x="-2" y="8" width="106" height="16"/>
-                            <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="right" title="Refresh Feeds:" id="F7c-lm-g97">
-                                <font key="font" metaFont="system"/>
-                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                            </textFieldCell>
-                        </textField>
-                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SFF-mL-yc8">
-                            <rect key="frame" x="110" y="4" width="282" height="24"/>
-                            <popUpButtonCell key="cell" type="push" title="Manually only" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="doa-Wq-4Uq" id="Jwn-HD-eP6">
-                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                <font key="font" metaFont="message"/>
-                                <menu key="menu" id="v0m-Z7-oG3">
-                                    <items>
-                                        <menuItem title="Manually only" state="on" tag="1" id="doa-Wq-4Uq"/>
-                                        <menuItem isSeparatorItem="YES" id="OcH-tD-W9Y"/>
-                                        <menuItem title="Every 30 minutes" tag="3" id="rZU-Tg-xwo"/>
-                                        <menuItem title="Every hour" tag="4" id="Qjt-qr-WER"/>
-                                        <menuItem title="Every 2 hours" tag="5" id="o1h-xo-elW"/>
-                                        <menuItem title="Every 4 hours" tag="6" id="7e2-TV-hth"/>
-                                        <menuItem title="Every 8 hours" tag="7" id="7gV-gL-Nue"/>
-                                    </items>
-                                </menu>
-                                <connections>
-                                    <binding destination="mAF-gO-1PI" name="selectedTag" keyPath="values.refreshInterval" id="nim-aj-YfM">
-                                        <dictionary key="options">
-                                            <bool key="NSAllowsEditingMultipleValuesSelection" value="NO"/>
-                                            <bool key="NSConditionallySetsEnabled" value="NO"/>
-                                            <integer key="NSMultipleValuesPlaceholder" value="4"/>
-                                            <integer key="NSNoSelectionPlaceholder" value="4"/>
-                                            <integer key="NSNotApplicablePlaceholder" value="4"/>
-                                            <integer key="NSNullPlaceholder" value="4"/>
-                                            <bool key="NSRaisesForNotApplicableKeys" value="NO"/>
-                                        </dictionary>
-                                    </binding>
-                                </connections>
-                            </popUpButtonCell>
-                            <constraints>
-                                <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="N1a-qV-4Os"/>
-                            </constraints>
-                        </popUpButton>
                     </subviews>
                     <constraints>
                         <constraint firstItem="Ci4-fW-KjU" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="0Do-jh-Hqq"/>
@@ -240,48 +195,38 @@
                         <constraint firstItem="0W5-tO-S63" firstAttribute="top" secondItem="UI6-sq-M15" secondAttribute="bottom" constant="8" id="5mw-aE-uy4"/>
                         <constraint firstItem="Z6O-Zt-V1g" firstAttribute="top" secondItem="Ut3-yd-q6G" secondAttribute="top" constant="4" id="6nC-a3-QOy"/>
                         <constraint firstItem="Z6O-Zt-V1g" firstAttribute="firstBaseline" secondItem="pR2-Bf-7Fd" secondAttribute="firstBaseline" id="72z-7d-9Qn"/>
-                        <constraint firstItem="hQy-ng-ijd" firstAttribute="top" secondItem="j0t-Wa-UTL" secondAttribute="bottom" constant="20" id="7iQ-QN-Ubh"/>
                         <constraint firstItem="UI6-sq-M15" firstAttribute="top" secondItem="1w0-nA-DEO" secondAttribute="bottom" constant="12" id="DMk-OP-dpa"/>
                         <constraint firstItem="Ubm-Pk-l7x" firstAttribute="top" secondItem="Ci4-fW-KjU" secondAttribute="bottom" constant="12" id="E3r-xf-7aZ"/>
-                        <constraint firstAttribute="bottom" secondItem="SFF-mL-yc8" secondAttribute="bottom" constant="4" id="FAd-wh-IFu"/>
+                        <constraint firstAttribute="bottom" secondItem="j0t-Wa-UTL" secondAttribute="bottom" constant="4" id="FAd-wh-IFu"/>
                         <constraint firstItem="pR2-Bf-7Fd" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="G0C-1M-LW1"/>
                         <constraint firstAttribute="trailing" secondItem="Ubm-Pk-l7x" secondAttribute="trailing" id="KIg-w5-ceG"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="KT2-cC-duX"/>
                         <constraint firstItem="ISO-Wu-R60" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="M2S-SQ-vXb"/>
-                        <constraint firstItem="ucw-vG-yLt" firstAttribute="trailing" secondItem="pR2-Bf-7Fd" secondAttribute="trailing" id="Nnp-Vh-NEA"/>
                         <constraint firstItem="ISO-Wu-R60" firstAttribute="top" secondItem="Z6O-Zt-V1g" secondAttribute="bottom" constant="12" id="Obh-mq-3Tg"/>
                         <constraint firstItem="92N-8I-bOs" firstAttribute="firstBaseline" secondItem="UI6-sq-M15" secondAttribute="firstBaseline" id="P1b-YG-fd6"/>
                         <constraint firstItem="Ubm-Pk-l7x" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="PXc-G4-8pH"/>
                         <constraint firstItem="S2Z-bG-jYk" firstAttribute="firstBaseline" secondItem="ISO-Wu-R60" secondAttribute="firstBaseline" id="QBC-MT-MY5"/>
                         <constraint firstAttribute="trailing" secondItem="Z6O-Zt-V1g" secondAttribute="trailing" constant="1" id="Qa5-bc-lvY"/>
-                        <constraint firstItem="SFF-mL-yc8" firstAttribute="top" secondItem="hQy-ng-ijd" secondAttribute="bottom" constant="20" id="S01-ZA-i2d"/>
                         <constraint firstAttribute="trailing" secondItem="Tdg-6Y-gvW" secondAttribute="trailing" constant="1" id="SOE-le-vT8"/>
                         <constraint firstItem="Z6O-Zt-V1g" firstAttribute="leading" secondItem="pR2-Bf-7Fd" secondAttribute="trailing" constant="8" symbolic="YES" id="TWU-6a-gBr"/>
                         <constraint firstItem="Ci4-fW-KjU" firstAttribute="top" secondItem="Tdg-6Y-gvW" secondAttribute="bottom" constant="20" id="UkR-wd-4Oe"/>
                         <constraint firstAttribute="trailing" secondItem="0W5-tO-S63" secondAttribute="trailing" id="WMd-dg-Zmr"/>
                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="1w0-nA-DEO" secondAttribute="trailing" id="X8P-Hj-l5H"/>
-                        <constraint firstItem="ucw-vG-yLt" firstAttribute="firstBaseline" secondItem="SFF-mL-yc8" secondAttribute="firstBaseline" id="XHk-Fk-1pC"/>
                         <constraint firstItem="1w0-nA-DEO" firstAttribute="top" secondItem="ISO-Wu-R60" secondAttribute="bottom" constant="12" id="Yal-X7-BjE"/>
-                        <constraint firstAttribute="trailing" secondItem="hQy-ng-ijd" secondAttribute="trailing" constant="1" id="aaL-6A-h6v"/>
                         <constraint firstItem="92N-8I-bOs" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="bfi-Tx-kxY"/>
                         <constraint firstItem="S2Z-bG-jYk" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="cAs-rZ-scx"/>
                         <constraint firstItem="Tdg-6Y-gvW" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="f94-CZ-Ktu"/>
                         <constraint firstItem="1w0-nA-DEO" firstAttribute="leading" secondItem="ISO-Wu-R60" secondAttribute="leading" id="fUc-MK-Y69"/>
                         <constraint firstItem="UI6-sq-M15" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="ffy-ld-r5Q"/>
                         <constraint firstAttribute="trailing" secondItem="Ci4-fW-KjU" secondAttribute="trailing" constant="1" id="h0b-Nh-tJJ"/>
-                        <constraint firstAttribute="trailing" secondItem="SFF-mL-yc8" secondAttribute="trailing" constant="1" id="hYk-Ff-wTy"/>
-                        <constraint firstItem="SFF-mL-yc8" firstAttribute="leading" secondItem="hQy-ng-ijd" secondAttribute="trailing" constant="-282" id="hhb-8Q-KWc"/>
                         <constraint firstItem="0W5-tO-S63" firstAttribute="leading" secondItem="UI6-sq-M15" secondAttribute="leading" constant="22" id="jmc-lb-wp2"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="trailing" secondItem="pR2-Bf-7Fd" secondAttribute="trailing" id="obL-84-81H"/>
                         <constraint firstItem="Wsb-Lr-8Q7" firstAttribute="firstBaseline" secondItem="Ci4-fW-KjU" secondAttribute="firstBaseline" id="pCJ-eR-07V"/>
-                        <constraint firstItem="hQy-ng-ijd" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="qE2-WJ-0I9"/>
                         <constraint firstAttribute="trailing" secondItem="j0t-Wa-UTL" secondAttribute="trailing" id="qc4-hF-DW3"/>
                         <constraint firstItem="j0t-Wa-UTL" firstAttribute="top" secondItem="Ubm-Pk-l7x" secondAttribute="bottom" constant="8" id="qeX-7L-XAA"/>
                         <constraint firstAttribute="trailing" secondItem="UI6-sq-M15" secondAttribute="trailing" id="rxC-vu-aW1"/>
-                        <constraint firstItem="SFF-mL-yc8" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" id="shx-wm-ygD"/>
                         <constraint firstItem="j0t-Wa-UTL" firstAttribute="leading" secondItem="Z6O-Zt-V1g" secondAttribute="leading" constant="22" id="xSA-4l-R2v"/>
                         <constraint firstAttribute="trailing" secondItem="ISO-Wu-R60" secondAttribute="trailing" constant="1" id="xaY-qS-LSN"/>
-                        <constraint firstItem="ucw-vG-yLt" firstAttribute="leading" secondItem="Ut3-yd-q6G" secondAttribute="leading" id="xmq-Ob-wCJ"/>
                     </constraints>
                 </customView>
             </subviews>

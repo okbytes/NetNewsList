@@ -13,7 +13,7 @@ import RSCore
 public typealias DownloadCallback = @MainActor (DownloadResponse, Error?) -> Swift.Void
 
 /// Simple downloader, for a one-shot download like an image
-/// or a web page. For a download-feeds session, see DownloadSession.
+/// or a web page.
 /// Caches response for a short time for GET requests. May return cached response.
 @MainActor public final class Downloader {
 	public static let shared = Downloader()
