@@ -22,11 +22,7 @@ import ActivityLog
 	public let defaultAccount: Account
 	public let errorLogDatabase: ErrorLogDatabase
 
-	private let accountsFolder: String
-    private var accountsDictionary = [String: Account]()
-
-	private let defaultAccountFolderName = "OnMyMac"
-	private let defaultAccountIdentifier = "OnMyMac"
+	private var accountsDictionary = [String: Account]()
 
 	private var lastStatusRepairDate: Date?
 	private static let statusRepairInterval: TimeInterval = 1 * 60 * 60
@@ -77,11 +73,11 @@ import ActivityLog
 	}
 
 	public var iCloudAccount: Account? {
-		accounts.first(where: { $0.type == .cloudKit })
+		defaultAccount
 	}
 
 	public var hasiCloudAccount: Bool {
-		iCloudAccount != nil
+		true
 	}
 
 	public var activeAccounts: [Account] {
@@ -132,24 +128,22 @@ import ActivityLog
 	private var isActive = false
 
 	public init() {
-		self.accountsFolder = AppConfig.dataSubfolder(named: "Accounts").path
-
-		// The local "On My Mac" account must always exist, even if it's empty.
-		let localAccountFolder = (accountsFolder as NSString).appendingPathComponent("OnMyMac")
+		// The one iCloud account always exists. It syncs whenever the device is signed in to iCloud.
+		let accountsFolder = AppConfig.dataSubfolder(named: "Accounts").path
+		let accountID = "iCloud"
+		let accountFolder = (accountsFolder as NSString).appendingPathComponent("\(AccountType.cloudKit.rawValue)_\(accountID)")
 		do {
-			try FileManager.default.createDirectory(atPath: localAccountFolder, withIntermediateDirectories: true, attributes: nil)
+			try FileManager.default.createDirectory(atPath: accountFolder, withIntermediateDirectories: true, attributes: nil)
 		} catch {
-			assertionFailure("Could not create folder for OnMyMac account.")
+			assertionFailure("Could not create folder for the iCloud account.")
 			abort()
 		}
 
 		let errorLogDatabasePath = AppConfig.dataFolder.appendingPathComponent("Errors.db").path
 		self.errorLogDatabase = ErrorLogDatabase(databasePath: errorLogDatabasePath)
 
-		defaultAccount = Account(dataFolder: localAccountFolder, type: .onMyMac, accountID: defaultAccountIdentifier)
-        accountsDictionary[defaultAccount.accountID] = defaultAccount
-
-		readAccountsFromDisk()
+		defaultAccount = Account(dataFolder: accountFolder, type: .cloudKit, accountID: accountID)
+		accountsDictionary[defaultAccount.accountID] = defaultAccount
 
 		NotificationCenter.default.addObserver(self, selector: #selector(handleUbiquitousKeyValueStoreDidChangeExternally(_:)), name: NSUbiquitousKeyValueStore.didChangeExternallyNotification, object: NSUbiquitousKeyValueStore.default)
 		if Platform.deviceHasiCloudAccount {
@@ -178,75 +172,6 @@ import ActivityLog
 	}
 
 	// MARK: - API
-
-	public func createAccount(type: AccountType) -> Account {
-		if type == .cloudKit {
-			if let existingiCloudAccount = iCloudAccount {
-				return existingiCloudAccount
-			}
-		}
-
-		let accountID = type == .cloudKit ? "iCloud" : UUID().uuidString
-		let accountFolder = (accountsFolder as NSString).appendingPathComponent("\(type.rawValue)_\(accountID)")
-
-		do {
-			try FileManager.default.createDirectory(atPath: accountFolder, withIntermediateDirectories: true, attributes: nil)
-		} catch {
-			assertionFailure("Could not create folder for \(accountID) account.")
-			abort()
-		}
-
-		let account = Account(dataFolder: accountFolder, type: type, accountID: accountID)
-		accountsDictionary[accountID] = account
-
-		var userInfo = [String: Any]()
-		userInfo[Account.UserInfoKey.account] = account
-		NotificationCenter.default.post(name: .UserDidAddAccount, object: self, userInfo: userInfo)
-
-		return account
-	}
-
-	public func deleteAccount(_ account: Account) {
-		guard !account.refreshInProgress else {
-			return
-		}
-
-		account.prepareForDeletion()
-		account.deleteSettings()
-
-		accountsDictionary.removeValue(forKey: account.accountID)
-		account.isDeleted = true
-
-		do {
-			try FileManager.default.removeItem(atPath: account.dataFolder)
-		} catch let error as CocoaError where error.code == .fileNoSuchFile {
-			// Already doesn’t exist.
-		} catch {
-			// TODO: add logging and/or reporting to user. No need to crash here.
-		}
-
-		updateUnreadCount()
-
-		var userInfo = [String: Any]()
-		userInfo[Account.UserInfoKey.account] = account
-		NotificationCenter.default.post(name: .UserDidDeleteAccount, object: self, userInfo: userInfo)
-	}
-
-	public func duplicateServiceAccount(type: AccountType, username: String?, endpoint: URL? = nil) -> Bool {
-		guard type != .onMyMac else {
-			return false
-		}
-		for account in accounts {
-			if account.type == type && username == account.username {
-				// Self-hosted services can have the same username on different servers.
-				if let endpoint, let existingEndpoint = account.endpointURL, endpoint != existingEndpoint {
-					continue
-				}
-				return true
-			}
-		}
-		return false
-	}
 
 	public func existingAccount(accountID: String) -> Account? {
 		return accountsDictionary[accountID]
@@ -595,50 +520,7 @@ private extension AccountManager {
 		unreadCount = calculateUnreadCount(activeAccounts)
 	}
 
-	func loadAccount(_ accountSpecifier: AccountSpecifier) -> Account? {
-		Account(dataFolder: accountSpecifier.folderPath, type: accountSpecifier.type, accountID: accountSpecifier.identifier)
-	}
-
-	func loadAccount(_ filename: String) -> Account? {
-		let folderPath = (accountsFolder as NSString).appendingPathComponent(filename)
-		if let accountSpecifier = AccountSpecifier(folderPath: folderPath) {
-			return loadAccount(accountSpecifier)
-		}
-		return nil
-	}
-
-	func readAccountsFromDisk() {
-		var filenames: [String]?
-
-		do {
-			filenames = try FileManager.default.contentsOfDirectory(atPath: accountsFolder)
-		} catch {
-			print("Error reading Accounts folder: \(error)")
-			return
-		}
-
-		guard let filenames = filenames?.sorted() else {
-			return
-		}
-
-		for oneFilename in filenames {
-			guard oneFilename != defaultAccountFolderName else {
-				continue
-			}
-			if let oneAccount = loadAccount(oneFilename) {
-				if !duplicateServiceAccount(oneAccount) {
-					accountsDictionary[oneAccount.accountID] = oneAccount
-				}
-			}
-		}
-	}
-
-	func duplicateServiceAccount(_ account: Account) -> Bool {
-		duplicateServiceAccount(type: account.type, username: account.username, endpoint: account.endpointURL)
-	}
-
 	func sortByName(_ accounts: [Account]) -> [Account] {
-		// LocalAccount is first.
 
 		return accounts.sorted { (account1, account2) -> Bool in
 			if account1 === defaultAccount {
@@ -649,44 +531,5 @@ private extension AccountManager {
 			}
 			return (account1.nameForDisplay as NSString).localizedStandardCompare(account2.nameForDisplay) == .orderedAscending
 		}
-	}
-}
-
-private struct AccountSpecifier {
-
-	let type: AccountType
-	let identifier: String
-	let folderPath: String
-	let folderName: String
-	let dataFilePath: String
-
-	init?(folderPath: String) {
-		if !FileManager.default.isFolder(atPath: folderPath) {
-			return nil
-		}
-
-		let name = NSString(string: folderPath).lastPathComponent
-		if name.hasPrefix(".") {
-			return nil
-		}
-
-		let nameComponents = name.components(separatedBy: "_")
-
-		guard nameComponents.count == 2, let rawType = Int(nameComponents[0]), let accountType = AccountType(rawValue: rawType) else {
-			return nil
-		}
-
-		self.folderPath = folderPath
-		self.folderName = name
-		self.type = accountType
-		self.identifier = nameComponents[1]
-
-		self.dataFilePath = AccountSpecifier.accountFilePathWithFolder(self.folderPath)
-	}
-
-	private static let accountDataFileName = "AccountData.plist"
-
-	private static func accountFilePathWithFolder(_ folderPath: String) -> String {
-		return NSString(string: folderPath).appendingPathComponent(accountDataFileName)
 	}
 }

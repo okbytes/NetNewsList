@@ -24,10 +24,6 @@ import Account
 				continue
 			}
 
-			if restrictToSpecialAccounts && !(account.type == .onMyMac || account.type == .cloudKit) {
-				continue
-			}
-
 			let menuItem = NSMenuItem(title: account.nameForDisplay, action: nil, keyEquivalent: "")
 			menuItem.representedObject = childNode.representedObject
 

@@ -15,7 +15,6 @@ let package = Package(
 		.package(path: "../Articles"),
 		.package(path: "../ArticlesDatabase"),
 		.package(path: "../CloudKitSync"),
-		.package(path: "../FeedFinder"),
 		.package(path: "../Secrets"),
 		.package(path: "../ErrorLog"),
 		.package(path: "../SyncDatabase"),
@@ -37,7 +36,6 @@ let package = Package(
 				"ArticlesDatabase",
 				"CloudKitSync",
 				"ErrorLog",
-				"FeedFinder",
 				"Secrets",
 				"SyncDatabase"
 			],

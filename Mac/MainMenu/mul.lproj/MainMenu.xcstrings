@@ -1207,24 +1207,6 @@
         }
       }
     },
-    "m0T-w3-neT.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Show iCloud Drive Missing Alert\"; ObjectID = \"m0T-w3-neT\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Show iCloud Drive Missing Alert"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar alerta de iCloud Drive no disponible"
-          }
-        }
-      }
-    },
     "mE2-pM-rQF.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Bug Tracker\"; ObjectID = \"mE2-pM-rQF\";",
       "extractionState" : "extracted_with_value",

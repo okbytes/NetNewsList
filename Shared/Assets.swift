@@ -61,7 +61,6 @@ struct Assets {
 		static let starredFeed = IconImage(starClosed, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.star)
 
 #if os(macOS)
-		static var accountLocal: RSImage { RSImage(named: "accountLocal")! }
 		static let addNewSidebarItem = RSImage(symbol: "plus")!
 		static let articleTheme = RSImage(symbol: "doc.richtext")!
 		static let cleanUp = RSImage(symbol: "bubbles.and.sparkles")!
@@ -70,7 +69,6 @@ struct Assets {
 		static let filterActive = RSImage(symbol: "line.horizontal.3.decrease.circle.fill")!
 		static let filterInactive = RSImage(symbol: "line.horizontal.3.decrease.circle")!
 		static let openInBrowser = RSImage(symbol: "safari")!
-		static let preferencesToolbarAccounts = RSImage(symbol: "at")!
 		static let preferencesToolbarGeneral = RSImage(symbol: "gearshape")!
 		static let readClosed = RSImage(symbol: "largecircle.fill.circle")!
 		static let readOpen = RSImage(symbol: "circle")!
@@ -88,8 +86,6 @@ struct Assets {
 		static let unreadFeed = IconImage(RSImage(symbol: "largecircle.fill.circle")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 
 #else // iOS
-		static var accountLocalPadImage: RSImage { RSImage(named: "accountLocalPad")! }
-		static var accountLocalPhoneImage: RSImage { RSImage(named: "accountLocalPhone")! }
 
 		static let circleClosed = RSImage(symbol: "largecircle.fill.circle")!
 		static let markBelowAsRead = RSImage(symbol: "arrowtriangle.down.circle")!
@@ -125,16 +121,6 @@ struct Assets {
 
 	@MainActor static func accountImage(_ accountType: AccountType) -> RSImage {
 		switch accountType {
-		case .onMyMac:
-#if os(macOS)
-			return Assets.Images.accountLocal
-#else // iOS
-			if UIDevice.current.userInterfaceIdiom == .pad {
-				return Assets.Images.accountLocalPadImage
-			} else {
-				return Assets.Images.accountLocalPhoneImage
-			}
-#endif
 		case .cloudKit:
 			return Assets.Images.accountCloudKit
 		}

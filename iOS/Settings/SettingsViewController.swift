@@ -17,12 +17,11 @@ final class SettingsViewController: UITableViewController {
 
 	private enum Section: Int {
 		case notifications = 0
-		case accounts = 1
-		case timeline = 2
-		case articles = 3
-		case appearance = 4
-		case troubleshooting = 5
-		case help = 6
+		case timeline = 1
+		case articles = 2
+		case appearance = 3
+		case troubleshooting = 4
+		case help = 5
 	}
 
 	private enum TroubleshootingRow: Int {
@@ -73,13 +72,6 @@ final class SettingsViewController: UITableViewController {
 		// This hack mostly works around a bug in static tables with dynamic type.  See: https://spin.atomicobject.com/2018/10/15/dynamic-type-static-uitableview/
 		NotificationCenter.default.removeObserver(tableView!, name: UIContentSizeCategory.didChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
-
-		NotificationCenter.default.addObserver(self, selector: #selector(accountsDidChange), name: .UserDidAddAccount, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(accountsDidChange), name: .UserDidDeleteAccount, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(displayNameDidChange), name: .DisplayNameDidChange, object: nil)
-
-		tableView.register(UINib(nibName: "SettingsComboTableViewCell", bundle: nil), forCellReuseIdentifier: "SettingsComboTableViewCell")
-		tableView.register(UINib(nibName: "SettingsTableViewCell", bundle: nil), forCellReuseIdentifier: "SettingsTableViewCell")
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
@@ -160,8 +152,6 @@ final class SettingsViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
 
 		switch Section(rawValue: section) {
-		case .accounts:
-			return AccountManager.shared.accounts.count + 1
 		case .articles:
 			// The Full Screen Articles row is iPhone-only.
 			return traitCollection.userInterfaceIdiom == .phone ? ArticlesRow.allCases.count : ArticlesRow.allCases.count - 1
@@ -176,50 +166,12 @@ final class SettingsViewController: UITableViewController {
 		}
 	}
 
-	override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-
-		let cell: UITableViewCell
-		switch Section(rawValue: indexPath.section) {
-		case .accounts:
-
-			let sortedAccounts = AccountManager.shared.sortedAccounts
-			if indexPath.row == sortedAccounts.count {
-				cell = tableView.dequeueReusableCell(withIdentifier: "SettingsTableViewCell", for: indexPath)
-				cell.textLabel?.text = NSLocalizedString("Add Account", comment: "Add Account")
-			} else {
-				let acctCell = tableView.dequeueReusableCell(withIdentifier: "SettingsComboTableViewCell", for: indexPath) as! SettingsComboTableViewCell
-				acctCell.applyThemeProperties()
-				let account = sortedAccounts[indexPath.row]
-				acctCell.comboImage?.image = Assets.accountImage(account.type)
-				acctCell.comboNameLabel?.text = account.nameForDisplay
-				cell = acctCell
-			}
-		default:
-			cell = super.tableView(tableView, cellForRowAt: indexPath)
-
-		}
-
-		return cell
-	}
-
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 
 		switch Section(rawValue: indexPath.section) {
 		case .notifications:
 			UIApplication.shared.open(URL(string: "\(UIApplication.openSettingsURLString)")!)
 			tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-		case .accounts:
-			let sortedAccounts = AccountManager.shared.sortedAccounts
-			if indexPath.row == sortedAccounts.count {
-				let addAccountView = AddAccountView { [weak self] in
-					self?.navigationController?.popViewController(animated: false)
-				}
-				self.navigationController?.pushViewController(UIHostingController(rootView: addAccountView), animated: true)
-			} else {
-				let controller = UIStoryboard.inspector.instantiateController(ofType: AccountInspectorViewController.self)
-				controller.account = sortedAccounts[indexPath.row]
-				self.navigationController?.pushViewController(controller, animated: true)
-			}
 		case .timeline:
 			switch TimelineRow(rawValue: indexPath.row) {
 			case .timelineLayout:
@@ -298,10 +250,6 @@ final class SettingsViewController: UITableViewController {
 		return UITableView.automaticDimension
 	}
 
-	override func tableView(_ tableView: UITableView, indentationLevelForRowAt indexPath: IndexPath) -> Int {
-		return super.tableView(tableView, indentationLevelForRowAt: IndexPath(row: 0, section: Section.accounts.rawValue))
-	}
-
 	// MARK: Actions
 
 	@IBAction func done(_ sender: Any) {
@@ -363,14 +311,6 @@ final class SettingsViewController: UITableViewController {
 	// MARK: - Notifications
 
 	@objc func contentSizeCategoryDidChange() {
-		tableView.reloadData()
-	}
-
-	@objc func accountsDidChange() {
-		tableView.reloadData()
-	}
-
-	@objc func displayNameDidChange() {
 		tableView.reloadData()
 	}
 

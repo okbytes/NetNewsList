@@ -1509,23 +1509,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		rootSplitViewController.present(hostingController, animated: true)
 	}
 
-	func showAccountInspector(for account: Account) {
-		let accountInspectorNavController =
-			UIStoryboard.inspector.instantiateViewController(identifier: "AccountInspectorNavigationViewController") as! UINavigationController
-		let accountInspectorController = accountInspectorNavController.topViewController as! AccountInspectorViewController
-		accountInspectorNavController.modalPresentationStyle = .formSheet
-		accountInspectorNavController.preferredContentSize = AccountInspectorViewController.preferredContentSizeForFormSheetDisplay
-		accountInspectorController.isModal = true
-		accountInspectorController.account = account
-		rootSplitViewController.present(accountInspectorNavController, animated: true)
-	}
-
-	func showNotificationInspector(for account: Account) {
-		let hostingController = UIHostingController(rootView: AccountNotificationInspectorView(account: account))
-		hostingController.modalPresentationStyle = .formSheet
-		rootSplitViewController.present(hostingController, animated: true)
-	}
-
 	func showFeedInspector() {
 		guard let feed = timelineFeed as? Feed ?? currentArticle?.feed else {
 			return

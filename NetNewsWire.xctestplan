@@ -93,13 +93,6 @@
         "identifier" : "SyncDatabaseTests",
         "name" : "SyncDatabaseTests"
       }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:Modules\/FeedFinder",
-        "identifier" : "FeedFinderTests",
-        "name" : "FeedFinderTests"
-      }
     }
   ],
   "version" : 1

@@ -39,17 +39,10 @@ public extension Notification.Name {
 
 nonisolated public enum AccountType: Int, Codable, Sendable {
 	// Raw values should not change since they’re stored on disk.
-	case onMyMac = 1
 	case cloudKit = 2
 
 	public var displayName: String {
-		switch self {
-		case .onMyMac:
-			return NSLocalizedString("account.name.on-my-device", tableName: "DefaultAccountNames", comment: "Device specific default account name, e.g: On My iPhone")
-		// These proper names don’t have a translation.
-		case .cloudKit:
-			return "iCloud"
-		}
+		"iCloud"
 	}
 }
 
@@ -269,12 +262,7 @@ public enum FetchType {
 	}
 
 	init(dataFolder: String, type: AccountType, accountID: String) {
-		switch type {
-		case .onMyMac:
-			self.delegate = LocalAccountDelegate()
-		case .cloudKit:
-			self.delegate = CloudKitAccountDelegate(dataFolder: dataFolder)
-		}
+		self.delegate = CloudKitAccountDelegate(dataFolder: dataFolder)
 
 		self.accountID = accountID
 		self.type = type
@@ -820,24 +808,8 @@ public enum FetchType {
 
 	// MARK: - Updating Feeds
 
-	@discardableResult
-	func updateAsync(feed: Feed, parsedFeed: ParsedFeed) async -> ArticleChanges {
-		precondition(Thread.isMainThread)
-		precondition(type == .onMyMac || type == .cloudKit)
-
-		feed.takeSettings(from: parsedFeed)
-		let parsedItems = parsedFeed.items
-		guard !parsedItems.isEmpty else {
-			return ArticleChanges()
-		}
-
-		return await updateAsync(feedID: feed.feedID, parsedItems: parsedItems)
-	}
-
 	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>, deleteOlder: Bool = true) async -> ArticleChanges {
-		// Used only by an On My Mac or iCloud account.
 		precondition(Thread.isMainThread)
-		precondition(type == .onMyMac || type == .cloudKit)
 
 		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID, deleteOlder: deleteOlder)
 		sendNotificationAbout(articleChanges)

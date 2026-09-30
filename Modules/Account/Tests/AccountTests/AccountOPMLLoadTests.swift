@@ -14,7 +14,7 @@ import RSParser
 	private let accountManager = TestAccountManager()
 
 	@Test func restoringOwnFileSetsNameOnly() throws {
-		let account = accountManager.createAccount(type: .onMyMac)
+		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
 			accountManager.deleteAccount(account)
 		}
@@ -28,7 +28,7 @@ import RSParser
 	}
 
 	@Test func importingSetsEditedNameSoTheTitleSurvivesRefreshes() throws {
-		let account = accountManager.createAccount(type: .onMyMac)
+		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
 			accountManager.deleteAccount(account)
 		}
@@ -41,7 +41,7 @@ import RSParser
 	}
 
 	@Test func restoringOwnFileLeavesAnExistingEditedNameAlone() throws {
-		let account = accountManager.createAccount(type: .onMyMac)
+		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
 			accountManager.deleteAccount(account)
 		}

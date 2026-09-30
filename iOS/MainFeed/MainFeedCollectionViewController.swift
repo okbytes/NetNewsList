@@ -1060,15 +1060,9 @@ extension MainFeedCollectionViewController: UIContextMenuInteractionDelegate {
 		return UIContextMenuConfiguration(identifier: accountID as NSCopying, previewProvider: nil) { _ in
 
 			var menuElements = [UIMenuElement]()
-			menuElements.append(UIMenu(title: "", options: .displayInline, children: [self.getAccountInfoAction(account: account)]))
-
-			menuElements.append(UIMenu(title: "", options: .displayInline, children: [self.getAccountNotificationsAction(account: account)]))
-
 			if let markAllAction = self.markAllAsReadAction(account: account, contentView: interaction.view) {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [markAllAction]))
 			}
-
-			menuElements.append(UIMenu(title: "", options: .displayInline, children: [self.deactivateAccountAction(account: account)]))
 
 			return UIMenu(title: "", children: menuElements)
 		}
@@ -1301,30 +1295,6 @@ extension MainFeedCollectionViewController {
 		let title = NSLocalizedString("Get Info", comment: "Get Info")
 		let action = UIAction(title: title, image: Assets.Images.info) { [weak self] _ in
 			self?.coordinator.showFeedInspector(for: feed)
-		}
-		return action
-	}
-
-	func getAccountInfoAction(account: Account) -> UIAction {
-		let title = NSLocalizedString("Get Info", comment: "Get Info")
-		let action = UIAction(title: title, image: Assets.Images.info) { [weak self] _ in
-			self?.coordinator.showAccountInspector(for: account)
-		}
-		return action
-	}
-
-	func getAccountNotificationsAction(account: Account) -> UIAction {
-		let title = NSLocalizedString("Notifications", comment: "Notifications")
-		let action = UIAction(title: title, image: UIImage(systemName: "bell.badge")) { [weak self] _ in
-			self?.coordinator.showNotificationInspector(for: account)
-		}
-		return action
-	}
-
-	func deactivateAccountAction(account: Account) -> UIAction {
-		let title = NSLocalizedString("Deactivate", comment: "Deactivate")
-		let action = UIAction(title: title, image: Assets.Images.deactivate) { _ in
-			account.isActive = false
 		}
 		return action
 	}

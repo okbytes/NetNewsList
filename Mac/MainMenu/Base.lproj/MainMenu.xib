@@ -545,12 +545,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="dgO-u4-aEs"/>
-                            <menuItem title="Show iCloud Drive Missing Alert" id="m0T-w3-neT">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="showiCloudDriveMissingAlert:" target="-1" id="kfQ-dM-8vB"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="c4R-jH-7kP"/>
                             <menuItem title="Open Image Cache Folder" id="x9L-mW-2vQ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
