@@ -1,0 +1,24 @@
+{
+  "comment": "Shared by URLCanonicalizer (Swift) and the browser extension (JavaScript). Both must produce `output` for every `input`; null means the URL cannot be saved.",
+  "vectors": [
+    { "input": "https://example.com/post", "output": "https://example.com/post" },
+    { "input": "HTTPS://Example.COM/Post", "output": "https://example.com/Post" },
+    { "input": "https://example.com/post/", "output": "https://example.com/post" },
+    { "input": "https://example.com", "output": "https://example.com/" },
+    { "input": "https://example.com/", "output": "https://example.com/" },
+    { "input": "https://example.com/post#comments", "output": "https://example.com/post" },
+    { "input": "https://example.com:443/post", "output": "https://example.com/post" },
+    { "input": "http://example.com:80/post", "output": "http://example.com/post" },
+    { "input": "http://example.com:8080/post", "output": "http://example.com:8080/post" },
+    { "input": "https://example.com/post?utm_source=rss&utm_medium=feed", "output": "https://example.com/post" },
+    { "input": "https://example.com/post?id=7&utm_campaign=x&fbclid=abc", "output": "https://example.com/post?id=7" },
+    { "input": "https://example.com/post?b=2&a=1", "output": "https://example.com/post?b=2&a=1" },
+    { "input": "https://example.com/post?gclid=1&GCLID=2", "output": "https://example.com/post" },
+    { "input": "  https://example.com/post  ", "output": "https://example.com/post" },
+    { "input": "https://example.com/a%20b/", "output": "https://example.com/a%20b" },
+    { "input": "ftp://example.com/file", "output": null },
+    { "input": "mailto:someone@example.com", "output": null },
+    { "input": "not a url", "output": null },
+    { "input": "https://", "output": null }
+  ]
+}

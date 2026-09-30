@@ -45,6 +45,9 @@ let package = Package(
 		.testTarget(
 			name: "AccountTests",
 			dependencies: ["Account"],
+			resources: [
+				.copy("Resources")
+			],
 			swiftSettings: [.swiftLanguageMode(.v6)]
 		)
 	]

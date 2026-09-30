@@ -79,6 +79,16 @@ final class ArticlesTable: DatabaseTable, Sendable {
 		fetchArticlesAsync({ self.fetchUnreadArticles(feedIDs, limit, $0) }, completion)
 	}
 
+	// MARK: - Fetching Read Articles
+
+	func fetchReadArticles(_ feedIDs: Set<String>, _ limit: Int?) -> Set<Article> {
+		fetchArticles { self.fetchReadArticles(feedIDs, limit, $0) }
+	}
+
+	func fetchReadArticlesAsync(_ feedIDs: Set<String>, _ limit: Int?, _ completion: @escaping ArticleSetResultBlock) {
+		fetchArticlesAsync({ self.fetchReadArticles(feedIDs, limit, $0) }, completion)
+	}
+
 	// MARK: - Fetching Today Articles
 
 	func fetchArticlesSince(_ feedIDs: Set<String>, _ cutoffDate: Date, _ limit: Int?) -> Set<Article> {
@@ -640,6 +650,19 @@ nonisolated private extension ArticlesTable {
 		let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(feedIDs.count))
 		var whereClause = "feedID in \(placeholders) and read=0"
 		if let limit = limit {
+			whereClause.append(" order by coalesce(datePublished, dateModified, dateArrived) desc limit \(limit)")
+		}
+		return fetchArticlesWithWhereClause(database, whereClause: whereClause, parameters: parameters)
+	}
+
+	func fetchReadArticles(_ feedIDs: Set<String>, _ limit: Int?, _ database: FMDatabase) -> Set<Article> {
+		if feedIDs.isEmpty {
+			return Set<Article>()
+		}
+		let parameters = feedIDs.map { $0 as AnyObject }
+		let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(feedIDs.count))
+		var whereClause = "feedID in \(placeholders) and read=1"
+		if let limit {
 			whereClause.append(" order by coalesce(datePublished, dateModified, dateArrived) desc limit \(limit)")
 		}
 		return fetchArticlesWithWhereClause(database, whereClause: whereClause, parameters: parameters)

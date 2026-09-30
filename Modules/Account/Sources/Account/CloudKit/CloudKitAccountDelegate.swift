@@ -651,6 +651,10 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			return
 		}
 
+		// Created locally before any fetch, so articles arriving from iCloud in this
+		// launch already have their feed.
+		account.ensureReadingListFeed()
+
 		accountZone.delegate = CloudKitAcountZoneDelegate(account: account, articlesZone: articlesZone)
 		articlesZone.delegate = CloudKitArticlesZoneDelegate(account: account, database: syncDatabase, articlesZone: articlesZone, syncErrorHandler: syncErrorHandler)
 
@@ -681,6 +685,13 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 				do {
 					let externalID = try await accountZone.findOrCreateAccount()
 					account.externalID = externalID
+					do {
+						try await self.ensureReadingListFeedInCloud(account: account)
+					} catch {
+						// Retry the whole first-launch sequence next launch.
+						account.externalID = nil
+						throw error
+					}
 					try? await self.initialRefreshAll(for: account)
 				} catch {
 					Self.logger.error("CloudKitAccountDelegate: \(#function, privacy: .public) error: \(error.localizedDescription)")
@@ -713,6 +724,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 
 		try await account.logActivity(kind: .refreshAll, detail: "Resetting iCloud sync") {
 			account.externalID = try await accountZone.findOrCreateAccount()
+			try await ensureReadingListFeedInCloud(account: account)
 			subscribeToZoneChangesIfNeeded(account: account)
 			try await initialRefreshAll(for: account)
 
@@ -723,6 +735,27 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			await storeArticleChanges(new: articles, updated: nil, deleted: nil)
 			_ = try await sendArticleStatus(account: account, showProgress: true)
 		}
+	}
+
+	/// Queues article changes for iCloud and sends them now. Without the immediate send,
+	/// a save could wait out the 30-minute quiet-period backoff before leaving the device.
+	func storeAndSendArticleChanges(new: Set<Article>?, updated: Set<Article>?, deleted: Set<Article>?) async {
+		await storeArticleChanges(new: new, updated: updated, deleted: deleted)
+		guard let account, isCloudKitEnabled else {
+			return
+		}
+		lastNoChangeSyncDate = nil
+		NotificationCenter.default.post(name: .AccountDidQueueArticleStatuses, object: account)
+		Task {
+			try? await sendArticleStatus()
+		}
+	}
+
+	/// Saves the reading-list feed’s iCloud record. Its record name is fixed, so saving it
+	/// from several devices converges on one record.
+	func ensureReadingListFeedInCloud(account: Account) async throws {
+		let feed = account.ensureReadingListFeed()
+		_ = try await accountZone.createFeed(url: feed.url, name: feed.name, editedName: nil, homePageURL: nil, container: account)
 	}
 
 	func accountWillBeDeleted() {

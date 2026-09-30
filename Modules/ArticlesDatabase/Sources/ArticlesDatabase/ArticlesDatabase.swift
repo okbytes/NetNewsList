@@ -131,6 +131,11 @@ public struct ArticleCounts: Sendable {
 		return articlesTable.fetchUnreadArticles(feedIDs, limit)
 	}
 
+	public func fetchReadArticles(feedIDs: Set<String>, limit: Int? = nil) -> Set<Article> {
+		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
+		return articlesTable.fetchReadArticles(feedIDs, limit)
+	}
+
 	public func fetchTodayArticles(feedIDs: Set<String>, limit: Int? = nil) -> Set<Article> {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
 		return articlesTable.fetchArticlesSince(feedIDs, todayCutoffDate(), limit)
@@ -197,6 +202,15 @@ public struct ArticleCounts: Sendable {
 	public func fetchArticlesAsync(articleIDs: Set<String>) async -> Set<Article> {
 		await withCheckedContinuation { continuation in
 			_fetchArticlesAsync(articleIDs: articleIDs) { articles in
+				continuation.resume(returning: articles)
+			}
+		}
+	}
+
+	public func fetchReadArticlesAsync(feedIDs: Set<String>, limit: Int? = nil) async -> Set<Article> {
+		await withCheckedContinuation { continuation in
+			Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
+			articlesTable.fetchReadArticlesAsync(feedIDs, limit) { articles in
 				continuation.resume(returning: articles)
 			}
 		}

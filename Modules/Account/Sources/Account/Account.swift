@@ -48,6 +48,8 @@ nonisolated public enum AccountType: Int, Codable, Sendable {
 public enum FetchType {
     case starred(_: Int? = nil)
 	case unread(_: Int? = nil)
+	/// Read articles — the reading list’s Archive.
+	case read(_: Int? = nil)
 	case today(_: Int? = nil)
 	case folder(Folder, Bool)
 	case feed(Feed)
@@ -666,6 +668,8 @@ public enum FetchType {
 			return _fetchStarredArticles(limit: limit)
 		case .unread(let limit):
 			return _fetchUnreadArticles(limit: limit)
+		case .read(let limit):
+			return database.fetchReadArticles(feedIDs: flattenedFeedsIDs, limit: limit)
 		case .today(let limit):
 			return _fetchTodayArticles(limit: limit)
 		case .folder(let folder, let readFilter):
@@ -691,6 +695,8 @@ public enum FetchType {
 			return await _fetchStarredArticlesAsync(limit: limit)
 		case .unread(let limit):
 			return await _fetchUnreadArticlesAsync(limit: limit)
+		case .read(let limit):
+			return await database.fetchReadArticlesAsync(feedIDs: flattenedFeedsIDs, limit: limit)
 		case .today(let limit):
 			return await _fetchTodayArticlesAsync(limit: limit)
 		case .folder(let folder, let readFilter):
