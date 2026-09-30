@@ -3,7 +3,7 @@ var SafariExtPreprocessorClass = function() {};
 SafariExtPreprocessorClass.prototype = {
     
     run: function(arguments) {
-        arguments.completionFunction({ "url": document.URL });
+        arguments.completionFunction({ "url": document.URL, "title": document.title });
     } 
     
 };

@@ -184,6 +184,18 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 				return
 			}
 
+			// Save a page: netnewslist://add?url={url}&title={title}
+			if let request = AddArticleURLScheme.request(from: context.url) {
+				Task { @MainActor in
+					do {
+						try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title)
+					} catch {
+						self.coordinator.showAddArticle(initialURL: request.url)
+					}
+				}
+				return
+			}
+
 			let filename = context.url.standardizedFileURL.path
 			if filename.hasSuffix(ArticleTheme.nnwThemeSuffix) {
 				self.coordinator.importTheme(filename: filename)

@@ -202,9 +202,8 @@ let appName = "NetNewsList"
 		MemoryPressureMonitor.shared.start()
 
 		if !Platform.isRunningUnitTests {
-			ExtensionContainersFile.shared.start()
-			ExtensionFeedAddRequestFile.shared.start()
 			ExtractionCoordinator.shared.start()
+			SavedArticleRequestProcessor.shared.start()
 		}
 
 		ArticleStatusSyncTimer.shared.start()

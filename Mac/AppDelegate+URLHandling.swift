@@ -19,6 +19,12 @@ extension AppDelegate {
 			return
 		}
 
+		// Save a page: netnewslist://add?url={url}&title={title}
+		if let url = URL(string: urlString), let request = AddArticleURLScheme.request(from: url) {
+			saveArticle(from: request)
+			return
+		}
+
 		// Handle themes
 		if urlString.hasPrefix("netnewslist://theme/") {
 			guard let comps = URLComponents(string: urlString),
@@ -31,6 +37,23 @@ extension AppDelegate {
 				ArticleThemeDownloader.shared.downloadTheme(from: themeURL)
 			}
 			return
+		}
+	}
+
+	/// Saves without showing anything, then hands the focus back to the app that asked
+	/// (a browser, usually), so saving from the browser doesn’t pull you out of it.
+	/// When the page can’t be saved, the Add Article sheet opens with it filled in.
+	private func saveArticle(from request: SavedArticleRequest) {
+		let requestingApp = NSWorkspace.shared.frontmostApplication
+		Task { @MainActor in
+			do {
+				try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title)
+				if let requestingApp, requestingApp != NSRunningApplication.current {
+					requestingApp.activate()
+				}
+			} catch {
+				self.addArticle(request.url, title: request.title)
+			}
 		}
 	}
 }

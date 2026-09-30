@@ -91,10 +91,9 @@ import Images
 		ArticleThemesManager.shared.start()
 		NetworkMonitor.shared.start()
 
-		ExtensionContainersFile.shared.start()
-		ExtensionFeedAddRequestFile.shared.start()
 		if !Platform.isRunningUnitTests {
 			ExtractionCoordinator.shared.start()
+			SavedArticleRequestProcessor.shared.start()
 		}
 
 		#if DEBUG
@@ -165,7 +164,7 @@ import Images
 	func prepareAccountsForBackground() {
 		updateBadge()
 
-		ExtensionFeedAddRequestFile.shared.suspend()
+		SavedArticleRequestProcessor.shared.suspend()
 
 		ArticleStatusSyncTimer.shared.invalidate()
 		scheduleBackgroundFeedRefresh()
@@ -176,7 +175,7 @@ import Images
 
 	func prepareAccountsForForeground() {
 		updateBadge()
-		ExtensionFeedAddRequestFile.shared.resume()
+		SavedArticleRequestProcessor.shared.resume()
 		ArticleStatusSyncTimer.shared.update()
 
 		if let lastRefresh = AppDefaults.shared.lastRefresh {
@@ -439,6 +438,9 @@ private extension AppDelegate {
 			if AccountManager.shared.isSuspended {
 				AccountManager.shared.resumeAll()
 			}
+			// Pages shared while the app was closed get saved and uploaded now, so they
+			// reach other devices; they are extracted the next time an app is opened.
+			await SavedArticleRequestProcessor.shared.processInbox()
 			let didRefresh = await AccountManager.shared.refreshAll(errorHandler: ErrorHandler.log)
 			if !Task.isCancelled {
 				await WidgetDataEncoder.shared?.encodeAndWait()

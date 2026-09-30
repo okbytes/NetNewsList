@@ -32,6 +32,22 @@ enum ExtractedContentFormatter {
 		return "<p class=\"netNewsListSource\"><small>\(sourceLine)</small></p>\n\(contentHTML)"
 	}
 
+	/// A body handed in by the sender. HTML is kept as is (stored content never runs
+	/// scripts); plain text becomes paragraphs. Nil when there is no text.
+	static func storedHTML(forSuppliedBody body: String?) -> String? {
+		guard let body = body?.trimmingCharacters(in: .whitespacesAndNewlines), !body.isEmpty else {
+			return nil
+		}
+		if body.range(of: #"<(p|div|article|section|br|h[1-6]|ul|ol|li|blockquote|pre|img|a)\b"#, options: [.regularExpression, .caseInsensitive]) != nil {
+			return body
+		}
+		let paragraphs = body.components(separatedBy: .newlines)
+			.map { $0.trimmingCharacters(in: .whitespaces) }
+			.filter { !$0.isEmpty }
+			.map { "<p>\($0.escapingSpecialXMLCharacters)</p>" }
+		return paragraphs.joined(separator: "\n")
+	}
+
 	static func date(from string: String) -> Date? {
 		let formatter = ISO8601DateFormatter()
 		for options: ISO8601DateFormatter.Options in [[.withInternetDateTime, .withFractionalSeconds], [.withInternetDateTime], [.withFullDate]] {

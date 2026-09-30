@@ -104,10 +104,15 @@ extension Notification {
 
 	// MARK: - API
 
-	/// Saves a page to the reading list and starts extracting it.
+	/// Saves a page to the reading list and starts extracting it. A `body` supplied by the
+	/// caller (a Shortcut using Safari Reader, for instance) is stored instead, and the page isn’t fetched.
 	@discardableResult
-	func saveArticle(url urlString: String, title: String?) async throws -> Article {
-		let article = try await account.saveArticle(url: urlString, title: title, content: nil)
+	func saveArticle(url urlString: String, title: String?, body: String? = nil) async throws -> Article {
+		var content: ReadingListContent?
+		if let contentHTML = ExtractedContentFormatter.storedHTML(forSuppliedBody: body) {
+			content = ReadingListContent(title: title, contentHTML: contentHTML)
+		}
+		let article = try await account.saveArticle(url: urlString, title: title, content: content)
 		if article.contentHTML == nil {
 			enqueue(Job(articleID: article.articleID, usesLivePage: false, isManual: false))
 		}

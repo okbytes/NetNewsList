@@ -1,166 +1,67 @@
 //
 //  ShareViewController.swift
-//  ShareExtension
+//  NetNewsList Share Extension
 //
-//  Created by Maurice Parker on 8/13/20.
-//  Copyright © 2020 Ranchero Software. All rights reserved.
+//  Saves the shared page in one step: it leaves a request in the app-group inbox,
+//  shows a short confirmation and closes. The app saves and extracts the page.
 //
 
 import AppKit
-import UniformTypeIdentifiers
 import os
+import RSCore
 
 final class ShareViewController: NSViewController {
-	@IBOutlet var nameTextField: NSTextField!
-	@IBOutlet var folderPopUpButton: NSPopUpButton!
 
-	private struct State: Sendable {
-		var url: URL?
-	}
-	private let state = OSAllocatedUnfairLock(initialState: State())
+	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ShareViewController")
+	private let messageField = NSTextField(labelWithString: NSLocalizedString("Saving to NetNewsList…", comment: "Share extension: saving"))
 
-	nonisolated private var url: URL? {
-		get {
-			state.withLock { $0.url }
-		}
-		set {
-			state.withLock { $0.url = newValue }
-		}
-	}
-	private var extensionContainers: ExtensionContainers?
+	override func loadView() {
+		messageField.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+		messageField.alignment = .center
+		messageField.lineBreakMode = .byTruncatingMiddle
+		messageField.translatesAutoresizingMaskIntoConstraints = false
 
-	override var nibName: NSNib.Name? {
-        return NSNib.Name("ShareViewController")
-    }
-
-    override func loadView() {
-        super.loadView()
-
-		extensionContainers = ExtensionContainersFile.read()
-		buildFolderPopupMenu()
-
-		var provider: NSItemProvider?
-
-		// Try to get any HTML that is maybe passed in
-		for item in self.extensionContext!.inputItems as! [NSExtensionItem] {
-			for itemProvider in item.attachments! {
-				if itemProvider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) {
-					provider = itemProvider
-				}
-			}
-		}
-
-		if provider != nil {
-			provider!.loadItem(forTypeIdentifier: UTType.propertyList.identifier, options: nil, completionHandler: { [weak self] (pList, error) in
-				if error != nil {
-					return
-				}
-				guard let dataGraph = pList as? NSDictionary else {
-					return
-				}
-				guard let results = dataGraph["NSExtensionJavaScriptPreprocessingResultsKey"] as? NSDictionary else {
-					return
-				}
-				if let url = URL(string: results["url"] as! String) {
-					self?.url = url
-				}
-			})
-			return
-		}
-
-		// Try to get the URL if it is passed in as a URL
-		for item in self.extensionContext!.inputItems as! [NSExtensionItem] {
-			for itemProvider in item.attachments! {
-				if itemProvider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-					provider = itemProvider
-				}
-			}
-		}
-
-		if provider != nil {
-			provider!.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil, completionHandler: { [weak self] (urlCoded, error) in
-				if error != nil {
-					return
-				}
-				if let url = urlCoded as? URL {
-					self?.url = url
-					return
-				}
-				if let urlData = urlCoded as? Data {
-					self?.url = URL(dataRepresentation: urlData, relativeTo: nil)
-				}
-			})
-		}
+		let view = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 64))
+		view.addSubview(messageField)
+		NSLayoutConstraint.activate([
+			messageField.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+			messageField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+			messageField.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+			messageField.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20)
+		])
+		self.view = view
 	}
 
-    @IBAction func send(_ sender: AnyObject?) {
-		guard let url, let selectedContainer = selectedContainer(), let containerID = selectedContainer.containerID else {
-			self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
-			return
+	override func viewDidAppear() {
+		super.viewDidAppear()
+		let inputItems = extensionContext?.inputItems ?? []
+		Task { @MainActor in
+			await save(inputItems)
 		}
-
-		let name = nameTextField.stringValue.isEmpty ? nil : nameTextField.stringValue
-		let request = ExtensionFeedAddRequest(name: name, feedURL: url, destinationContainerID: containerID)
-		ExtensionFeedAddRequestFile.save(request)
-
-		self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
 	}
-
-    @IBAction func cancel(_ sender: AnyObject?) {
-        let cancelError = NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError, userInfo: nil)
-        self.extensionContext!.cancelRequest(withError: cancelError)
-    }
-
 }
 
 private extension ShareViewController {
 
-	func buildFolderPopupMenu() {
-
-		let menu = NSMenu(title: "Folders")
-		menu.autoenablesItems = false
-
-		guard let extensionContainers = extensionContainers else {
-			folderPopUpButton.menu = nil
+	func save(_ inputItems: [Any]) async {
+		guard let page = await SharedPageResolver.resolve(inputItems) else {
+			finish(NSLocalizedString("There’s no web page to save.", comment: "Share extension: nothing to save"), succeeded: false)
 			return
 		}
-
-		let defaultContainer = ShareDefaultContainer.defaultContainer(containers: extensionContainers)
-		var defaultMenuItem: NSMenuItem?
-
-		for account in extensionContainers.accounts {
-
-			let menuItem = NSMenuItem(title: account.name, action: nil, keyEquivalent: "")
-			menuItem.representedObject = account
-
-			if account.disallowFeedInRootFolder {
-				menuItem.isEnabled = false
-			}
-
-			menu.addItem(menuItem)
-
-			if defaultContainer?.containerID == account.containerID {
-				defaultMenuItem = menuItem
-			}
-
-			for folder in account.folders {
-				let menuItem = NSMenuItem(title: folder.name, action: nil, keyEquivalent: "")
-				menuItem.indentationLevel = 1
-				menuItem.representedObject = folder
-				menu.addItem(menuItem)
-				if defaultContainer?.containerID == folder.containerID {
-					defaultMenuItem = menuItem
-				}
-			}
-
+		do {
+			try SavedArticleInbox.add(SavedArticleRequest(url: page.url.absoluteString, title: page.title))
+			finish(NSLocalizedString("Saved to NetNewsList", comment: "Share extension: saved"), succeeded: true)
+		} catch {
+			Self.logger.error("ShareViewController: couldn’t save \(page.url.absoluteString, privacy: .public): \(error.localizedDescription, privacy: .public)")
+			finish(NSLocalizedString("Couldn’t save the page. Open NetNewsList and use Add Article.", comment: "Share extension: failed"), succeeded: false)
 		}
-
-		folderPopUpButton.menu = menu
-		folderPopUpButton.select(defaultMenuItem)
 	}
 
-	func selectedContainer() -> ExtensionContainer? {
-		return folderPopUpButton.selectedItem?.representedObject as? ExtensionContainer
+	func finish(_ message: String, succeeded: Bool) {
+		messageField.stringValue = message
+		Task { @MainActor in
+			try? await Task.sleep(for: .milliseconds(succeeded ? 700 : 2000))
+			self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+		}
 	}
-
 }

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 76;
+	objectVersion = 71;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,7 +14,6 @@
 		4679674625E599C100844E8D /* Articles in Frameworks */ = {isa = PBXBuildFile; productRef = 4679674525E599C100844E8D /* Articles */; };
 		4679674725E599C100844E8D /* Articles in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 4679674525E599C100844E8D /* Articles */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		510C416924E5CDE3008226FD /* NetNewsWire Share Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 510C415C24E5CDE3008226FD /* NetNewsWire Share Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		511B148924E5DBDD00C919BD /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 511B148824E5DBDD00C919BD /* Account */; };
 		513277442590FBB60064F1E7 /* Account in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 514C16CD24D2E63F009A3AFA /* Account */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5132775E2590FC640064F1E7 /* Articles in Frameworks */ = {isa = PBXBuildFile; productRef = 5132775D2590FC640064F1E7 /* Articles */; };
 		5132775F2590FC640064F1E7 /* Articles in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 5132775D2590FC640064F1E7 /* Articles */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -32,7 +31,6 @@
 		513F32812593EF180003048F /* Account in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 516B695E24D2F33B00B5702F /* Account */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		514C16CE24D2E63F009A3AFA /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 514C16CD24D2E63F009A3AFA /* Account */; };
 		516B695F24D2F33B00B5702F /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 516B695E24D2F33B00B5702F /* Account */; };
-		51BC2F3824D3439A00E90810 /* Account in Frameworks */ = {isa = PBXBuildFile; productRef = 51BC2F3724D3439A00E90810 /* Account */; };
 		8424B3182DB73D4C0053AA11 /* RSParser in Frameworks */ = {isa = PBXBuildFile; productRef = 8424B3172DB73D4C0053AA11 /* RSParser */; };
 		8424B3192DB73D4C0053AA11 /* RSParser in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 8424B3172DB73D4C0053AA11 /* RSParser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8424B31B2DB73D530053AA11 /* RSParser in Frameworks */ = {isa = PBXBuildFile; productRef = 8424B31A2DB73D530053AA11 /* RSParser */; };
@@ -74,7 +72,6 @@
 		84EE3F132DB8A088009D3A8D /* RSTree in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F112DB8A088009D3A8D /* RSTree */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		84EE3F152DB8A0A0009D3A8D /* RSTree in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F142DB8A0A0009D3A8D /* RSTree */; };
 		84EE3F162DB8A0A0009D3A8D /* RSTree in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F142DB8A0A0009D3A8D /* RSTree */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		84EE3F182DB8A0AC009D3A8D /* RSTree in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F172DB8A0AC009D3A8D /* RSTree */; };
 		84EE43482DB8A441009D3A8D /* RSDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE43472DB8A441009D3A8D /* RSDatabase */; };
 		84EE43492DB8A441009D3A8D /* RSDatabase in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE43472DB8A441009D3A8D /* RSDatabase */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		84EE434B2DB8A44C009D3A8D /* RSDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE434A2DB8A44C009D3A8D /* RSDatabase */; };
@@ -86,10 +83,6 @@
 		D1A7E100000000000000A003 /* HTMLMetadata in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000A001 /* HTMLMetadata */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		D1A7E100000000000000A005 /* HTMLMetadata in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000A004 /* HTMLMetadata */; };
 		D1A7E100000000000000A006 /* HTMLMetadata in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000A004 /* HTMLMetadata */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		D1A7E100000000000000E002 /* Extraction in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E001 /* Extraction */; };
-		D1A7E100000000000000E003 /* Extraction in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E001 /* Extraction */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		D1A7E100000000000000E005 /* Extraction in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E004 /* Extraction */; };
-		D1A7E100000000000000E006 /* Extraction in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E004 /* Extraction */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		D1A7E100000000000000B002 /* ActivityLog in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000B001 /* ActivityLog */; };
 		D1A7E100000000000000B003 /* ActivityLog in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000B001 /* ActivityLog */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		D1A7E100000000000000B005 /* ActivityLog in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000B004 /* ActivityLog */; };
@@ -98,7 +91,10 @@
 		D1A7E100000000000000C003 /* Images in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000C001 /* Images */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		D1A7E100000000000000C005 /* Images in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000C004 /* Images */; };
 		D1A7E100000000000000C006 /* Images in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000C004 /* Images */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		D1A7E100000000000000C008 /* Images in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000C007 /* Images */; };
+		D1A7E100000000000000E002 /* Extraction in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E001 /* Extraction */; };
+		D1A7E100000000000000E003 /* Extraction in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E001 /* Extraction */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1A7E100000000000000E005 /* Extraction in Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E004 /* Extraction */; };
+		D1A7E100000000000000E006 /* Extraction in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1A7E100000000000000E004 /* Extraction */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -295,7 +291,6 @@
 		842E25332DB9F9B800FF7DD8 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				/Localized/ShareExtension/ShareViewController.xib,
 				Resources/Info.plist,
 				ShareExtension/icon.icns,
 				ShareExtension/Info.plist,
@@ -306,8 +301,6 @@
 		842E25362DB9F9B800FF7DD8 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				/Localized/ShareExtension/ShareViewController.xib,
-				AppDefaults.swift,
 				ShareExtension/icon.icns,
 				ShareExtension/ShareViewController.swift,
 			);
@@ -340,10 +333,6 @@
 			membershipExceptions = (
 				Resources/Info.plist,
 				ShareExtension/Info.plist,
-				ShareExtension/ShareFolderPickerAccountCell.xib,
-				ShareExtension/ShareFolderPickerCell.swift,
-				ShareExtension/ShareFolderPickerController.swift,
-				ShareExtension/ShareFolderPickerFolderCell.xib,
 				ShareExtension/ShareViewController.swift,
 			);
 			target = 840D617B2029031C009BC708 /* NetNewsWire-iOS */;
@@ -351,12 +340,7 @@
 		84A6D0402D1B4EC500F23315 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AppDefaults.swift,
 				Resources/Assets.xcassets,
-				ShareExtension/ShareFolderPickerAccountCell.xib,
-				ShareExtension/ShareFolderPickerCell.swift,
-				ShareExtension/ShareFolderPickerController.swift,
-				ShareExtension/ShareFolderPickerFolderCell.xib,
 				ShareExtension/ShareViewController.swift,
 			);
 			target = 513C5CE5232571C2003D4054 /* NetNewsWire iOS Share Extension */;
@@ -365,7 +349,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ShareExtension/SafariExt.js,
-				ShareExtension/ShareDefaultContainer.swift,
+				ShareExtension/SharedPageResolver.swift,
 				Widget/WidgetData.swift,
 				Widget/WidgetDataDecoder.swift,
 				Widget/WidgetDataEncoder.swift,
@@ -378,7 +362,7 @@
 			membershipExceptions = (
 				Commands/MarkCommandValidationStatus.swift,
 				ShareExtension/SafariExt.js,
-				ShareExtension/ShareDefaultContainer.swift,
+				ShareExtension/SharedPageResolver.swift,
 				SmartFeeds/SmartFeedPasteboardWriter.swift,
 			);
 			target = 840D617B2029031C009BC708 /* NetNewsWire-iOS */;
@@ -386,16 +370,10 @@
 		84D35E0C2DB9F32D004AA60E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ArticleSpecifier.swift,
-				Assets.swift,
-				"Extensions/Node+Extensions.swift",
-				ShareExtension/ExtensionContainers.swift,
-				ShareExtension/ExtensionContainersFile.swift,
-				ShareExtension/ExtensionFeedAddRequest.swift,
-				ShareExtension/ExtensionFeedAddRequestFile.swift,
 				ShareExtension/SafariExt.js,
-				ShareExtension/ShareDefaultContainer.swift,
-				UserInfoKey.swift,
+				ShareExtension/SavedArticleInbox.swift,
+				ShareExtension/SavedArticleRequest.swift,
+				ShareExtension/SharedPageResolver.swift,
 			);
 			target = 513C5CE5232571C2003D4054 /* NetNewsWire iOS Share Extension */;
 		};
@@ -411,13 +389,10 @@
 		84D35E0F2DB9F32D004AA60E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"Article Rendering/ArticleTextSize.swift",
-				ShareExtension/ExtensionContainers.swift,
-				ShareExtension/ExtensionContainersFile.swift,
-				ShareExtension/ExtensionFeedAddRequest.swift,
-				ShareExtension/ExtensionFeedAddRequestFile.swift,
 				ShareExtension/SafariExt.js,
-				ShareExtension/ShareDefaultContainer.swift,
+				ShareExtension/SavedArticleInbox.swift,
+				ShareExtension/SavedArticleRequest.swift,
+				ShareExtension/SharedPageResolver.swift,
 			);
 			target = 510C415B24E5CDE3008226FD /* NetNewsWire Share Extension */;
 		};
@@ -448,7 +423,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				848E84DF2DB749A40023F3BA /* RSCore in Frameworks */,
-				511B148924E5DBDD00C919BD /* Account in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -456,10 +430,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				51BC2F3824D3439A00E90810 /* Account in Frameworks */,
 				848E84D82DB749720023F3BA /* RSCore in Frameworks */,
-				84EE3F182DB8A0AC009D3A8D /* RSTree in Frameworks */,
-				D1A7E100000000000000C008 /* Images in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -634,7 +605,6 @@
 			);
 			name = "NetNewsWire Share Extension";
 			packageProductDependencies = (
-				511B148824E5DBDD00C919BD /* Account */,
 				848E84DE2DB749A40023F3BA /* RSCore */,
 			);
 			productName = ShareExtension;
@@ -657,10 +627,7 @@
 			);
 			name = "NetNewsWire iOS Share Extension";
 			packageProductDependencies = (
-				51BC2F3724D3439A00E90810 /* Account */,
 				848E84D72DB749720023F3BA /* RSCore */,
-				84EE3F172DB8A0AC009D3A8D /* RSTree */,
-				D1A7E100000000000000C007 /* Images */,
 			);
 			productName = "NetNewsWire iOS Share Extension";
 			productReference = 513C5CE6232571C2003D4054 /* NetNewsWire iOS Share Extension.appex */;
@@ -858,6 +825,7 @@
 				};
 			};
 			buildConfigurationList = 849C645B1ED37A5D003D8FC0 /* Build configuration list for PBXProject "NetNewsWire" */;
+			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -869,7 +837,6 @@
 			packageReferences = (
 				179D280926F6F93D003B2E0A /* XCRemoteSwiftPackageReference "Zip" */,
 			);
-			preferredProjectObjectVersion = 46;
 			productRefGroup = 849C64611ED37A5D003D8FC0 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1380,10 +1347,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = Articles;
 		};
-		511B148824E5DBDD00C919BD /* Account */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Account;
-		};
 		5132775D2590FC640064F1E7 /* Articles */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Articles;
@@ -1413,10 +1376,6 @@
 			productName = Account;
 		};
 		516B695E24D2F33B00B5702F /* Account */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Account;
-		};
-		51BC2F3724D3439A00E90810 /* Account */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Account;
 		};
@@ -1476,10 +1435,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = RSTree;
 		};
-		84EE3F172DB8A0AC009D3A8D /* RSTree */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = RSTree;
-		};
 		84EE43472DB8A441009D3A8D /* RSDatabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RSDatabase;
@@ -1504,14 +1459,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = HTMLMetadata;
 		};
-		D1A7E100000000000000E001 /* Extraction */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Extraction;
-		};
-		D1A7E100000000000000E004 /* Extraction */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Extraction;
-		};
 		D1A7E100000000000000B001 /* ActivityLog */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ActivityLog;
@@ -1528,9 +1475,13 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = Images;
 		};
-		D1A7E100000000000000C007 /* Images */ = {
+		D1A7E100000000000000E001 /* Extraction */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = Images;
+			productName = Extraction;
+		};
+		D1A7E100000000000000E004 /* Extraction */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Extraction;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
