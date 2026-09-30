@@ -912,15 +912,15 @@ final class MainFeedCollectionViewController: UICollectionViewController, Undoab
 	@objc func configureContextMenu(_: Any? = nil) {
 		/*
 			Context Menu Order:
-			1. Add Feed
+			1. Add Article
 			2. Add Folder
 		*/
 
 		var menuItems: [UIAction] = []
 
-		let addFeedActionTitle = NSLocalizedString("Add Feed", comment: "Add Feed")
+		let addFeedActionTitle = NSLocalizedString("Add Article", comment: "Add Article")
 		let addFeedAction = UIAction(title: addFeedActionTitle, image: Assets.Images.plus) { _ in
-			self.coordinator.showAddFeed()
+			self.coordinator.showAddArticle()
 		}
 		menuItems.append(addFeedAction)
 
@@ -952,9 +952,9 @@ final class MainFeedCollectionViewController: UICollectionViewController, Undoab
 		let cancelTitle = NSLocalizedString("Cancel", comment: "Cancel button")
 		let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel)
 
-		let addFeedActionTitle = NSLocalizedString("Add Feed", comment: "Add Feed")
+		let addFeedActionTitle = NSLocalizedString("Add Article", comment: "Add Article")
 		let addFeedAction = UIAlertAction(title: addFeedActionTitle, style: .default) { _ in
-			self.coordinator.showAddFeed()
+			self.coordinator.showAddArticle()
 		}
 
 		alertController.addAction(addFeedAction)

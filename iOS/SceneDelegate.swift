@@ -215,7 +215,7 @@ private extension SceneDelegate {
 		case "NetNewsList.ShowSearch":
 			coordinator.showSearch()
 		case "NetNewsList.ShowAdd":
-			coordinator.showAddFeed()
+			coordinator.showAddArticle()
 		default:
 			break
 		}

@@ -2042,18 +2042,18 @@
       }
     },
     "Was-JA-tGl.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"New Feed…\"; ObjectID = \"Was-JA-tGl\";",
+      "comment" : "Class = \"NSMenuItem\"; title = \"Add Article…\"; ObjectID = \"Was-JA-tGl\";",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "New Feed…"
+            "value" : "Add Article…"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Nueva fuente…"
           }
         }

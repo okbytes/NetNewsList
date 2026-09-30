@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import SwiftUI
 import UserNotifications
 import os
 import Articles
@@ -74,7 +75,7 @@ let appName = "NetNewsList"
 	private var mainWindowControllers = [MainWindowController]()
 	private lazy var preferencesWindowController = PreferencesWindowController()
 	private var aboutWindowController: AboutWindowController?
-	private var addFeedController: AddFeedController?
+	private var addArticleSheet: NSWindow?
 	private var addFolderWindowController: AddFolderWindowController?
 	private var keyboardShortcutsWindowController: WebViewWindowController?
 	private var inspectorWindowController: InspectorWindowController?
@@ -108,9 +109,17 @@ let appName = "NetNewsList"
 		addFolderWindowController!.runSheetOnWindow(window)
 	}
 
-	func showAddFeedSheetOnWindow(_ window: NSWindow, urlString: String?, name: String?, account: Account?, folder: Folder?) {
-		addFeedController = AddFeedController(hostWindow: window)
-		addFeedController?.showAddFeedSheet(urlString, name, account, folder)
+	func showAddArticleSheetOnWindow(_ window: NSWindow, urlString: String?, title: String?) {
+		let sheet = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: true)
+		let view = AddArticleView(initialURL: urlString, initialTitle: title) { [weak self, weak window, weak sheet] in
+			if let window, let sheet {
+				window.endSheet(sheet)
+			}
+			self?.addArticleSheet = nil
+		}
+		sheet.contentViewController = NSHostingController(rootView: view)
+		addArticleSheet = sheet
+		window.beginSheet(sheet)
 	}
 
 	// MARK: - NSApplicationDelegate
@@ -395,7 +404,7 @@ let appName = "NetNewsList"
 			return !AccountManager.shared.refreshInProgress && !AccountManager.shared.activeAccounts.isEmpty
 		}
 
-		if item.action == #selector(showAddFeedWindow(_:)) || item.action == #selector(showAddFolderWindow(_:)) {
+		if item.action == #selector(showAddArticleWindow(_:)) || item.action == #selector(showAddFolderWindow(_:)) {
 			return !isDisplayingSheet && !AccountManager.shared.activeAccounts.isEmpty
 		}
 
@@ -428,25 +437,15 @@ let appName = "NetNewsList"
 		}
     }
 
-	// MARK: Add Feed
-	@MainActor func addFeed(_ urlString: String?, name: String? = nil, account: Account? = nil, folder: Folder? = nil) {
+	// MARK: Add Article
+	@MainActor func addArticle(_ urlString: String?, title: String? = nil) {
 		let windowController = createAndShowMainWindowIfNecessary()
-		if windowController.isDisplayingSheet {
+		guard !windowController.isDisplayingSheet, let window = windowController.window else {
 			return
 		}
-
-		showAddFeedSheetOnWindow(windowController.window!, urlString: urlString, name: name, account: account, folder: folder)
+		showAddArticleSheetOnWindow(window, urlString: urlString, title: title)
 	}
 
-	private func addFeedContainerFromSidebarSelection() -> Container? {
-		guard let container = mainWindowController?.selectedContainerInSidebar() else {
-			return nil
-		}
-		guard let account = container as? Account else {
-			return container
-		}
-		return AddFeedDefaultContainer.substituteContainerIfNeeded(account: account)
-	}
 
 	// MARK: - Dock Badge
 	@objc func updateDockBadge() {
@@ -525,9 +524,8 @@ let appName = "NetNewsList"
 		AccountManager.shared.refreshAllWithoutWaiting(errorHandler: ErrorHandler.present)
 	}
 
-	@IBAction func showAddFeedWindow(_ sender: Any?) {
-		let container = addFeedContainerFromSidebarSelection()
-		addFeed(nil, account: container?.account, folder: container as? Folder)
+	@IBAction func showAddArticleWindow(_ sender: Any?) {
+		addArticle(NSPasteboard.urlString(from: NSPasteboard.general)?.normalizedURL)
 	}
 
 	@IBAction func showAddFolderWindow(_ sender: Any?) {

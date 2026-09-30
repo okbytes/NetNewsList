@@ -513,14 +513,8 @@ private extension SidebarOutlineDataSource {
 			return false
 		}
 
-		// Show the add-feed sheet.
-		if let account = parentNode.representedObject as? Account {
-			appDelegate.addFeed(draggedFeed.url, name: draggedFeed.editedName ?? draggedFeed.name, account: account, folder: nil)
-		} else {
-			let account = parentNode.parent?.representedObject as? Account
-			let folder = parentNode.representedObject as? Folder
-			appDelegate.addFeed(draggedFeed.url, name: draggedFeed.editedName ?? draggedFeed.name, account: account, folder: folder)
-		}
+		// A dropped web address is saved as an article.
+		appDelegate.addArticle(draggedFeed.url, title: draggedFeed.editedName ?? draggedFeed.name)
 
 		return true
 	}

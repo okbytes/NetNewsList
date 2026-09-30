@@ -488,7 +488,7 @@ struct SidebarItemNode: Hashable, Sendable {
 		// so it must not clear the current selection.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/4352>
 		if activityType == .addFeedIntent {
-			showAddFeed()
+			showAddArticle()
 			return
 		}
 
@@ -1526,15 +1526,18 @@ struct SidebarItemNode: Hashable, Sendable {
 		rootSplitViewController.present(feedInspectorNavController, animated: true)
 	}
 
-	func showAddFeed(initialFeed: String? = nil, initialFeedName: String? = nil) {
+	func showAddArticle(initialURL: String? = nil) {
 
-		// The sheet appears over the current screen, so the feed and article selection stay as they are.
+		// The sheet appears over the current screen, so the list and article selection stay as they are.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/4352>
 
-		let addFeedView = AddFeedView(initialFeed: initialFeed, initialFeedName: initialFeedName)
-		let hostingController = UIHostingController(rootView: addFeedView)
+		var presentedController: UIViewController?
+		let addArticleView = AddArticleView(initialURL: initialURL) {
+			presentedController?.dismiss(animated: true)
+		}
+		let hostingController = UIHostingController(rootView: addArticleView)
 		hostingController.modalPresentationStyle = .formSheet
-		hostingController.preferredContentSize = AddFeedView.preferredContentSizeForFormSheetDisplay
+		presentedController = hostingController
 
 		// Presenting over an active nav-bar-hosted search bar crashes inside UIKit.
 		guard let mainTimelineViewController else {

@@ -143,8 +143,8 @@ final class RootSplitViewController: UISplitViewController {
 		coordinator.showSearch()
 	}
 
-	@objc func addNewFeed(_ sender: Any?) {
-		coordinator.showAddFeed()
+	@objc func addNewArticle(_ sender: Any?) {
+		coordinator.showAddArticle()
 	}
 
 	@objc func addNewFolder(_ sender: Any?) {
