@@ -377,8 +377,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Commands/MarkCommandValidationStatus.swift,
-				ExtensionPoints/SendToMarsEditCommand.swift,
-				ExtensionPoints/SendToMicroBlogCommand.swift,
 				ShareExtension/SafariExt.js,
 				ShareExtension/ShareDefaultContainer.swift,
 				SmartFeeds/SmartFeedPasteboardWriter.swift,

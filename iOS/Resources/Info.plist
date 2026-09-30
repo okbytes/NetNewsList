@@ -6,14 +6,33 @@
 	<string>$(APP_GROUP_ID)</string>
 	<key>AppIdentifierPrefix</key>
 	<string>$(AppIdentifierPrefix)</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>NetNewsList.BackgroundRefresh</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>nnwtheme</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>NetNewsWire Theme</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.ranchero.netnewswire.theme</string>
+			</array>
+			<key>LSTypeIsPackage</key>
+			<true/>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -41,6 +60,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CloudKitContainerIdentifier</key>
+	<string>iCloud.$(ORGANIZATION_IDENTIFIER).NetNewsList</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>mailto</string>
@@ -48,6 +71,8 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -62,8 +87,6 @@
 		<string>Restoration</string>
 		<string>SelectFeed</string>
 	</array>
-	<key>CloudKitContainerIdentifier</key>
-	<string>iCloud.$(ORGANIZATION_IDENTIFIER).NetNewsList</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -140,29 +163,6 @@
 			</dict>
 		</dict>
 	</array>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>nnwtheme</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>NetNewsWire Theme</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.ranchero.netnewswire.theme</string>
-			</array>
-			<key>LSTypeIsPackage</key>
-			<true/>
-		</dict>
-	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
 	<key>UserAgent</key>
 	<string>NetNewsList</string>
 	<key>UserAgentExtended</key>
