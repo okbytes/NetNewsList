@@ -16,10 +16,6 @@ import SafariServices
 import MessageUI
 import Images
 
-@MainActor protocol WebViewControllerDelegate: AnyObject {
-	func webViewController(_: WebViewController, articleExtractorButtonStateDidUpdate: ArticleExtractorButtonState)
-}
-
 final class WebViewController: UIViewController {
 
 	private struct MessageName {
@@ -50,28 +46,7 @@ final class WebViewController: UIViewController {
 	private var mediaSourceURLs = Set<String>()
 	private var clickedImageCompletion: (() -> Void)?
 
-	private var articleExtractor: ArticleExtractor?
-	var extractedArticle: ExtractedArticle? {
-		didSet {
-			windowScrollY = 0
-		}
-	}
-	var isShowingExtractedArticle = false {
-		didSet {
-			if AppDefaults.shared.isShowingExtractedArticle != isShowingExtractedArticle {
-				AppDefaults.shared.isShowingExtractedArticle = isShowingExtractedArticle
-			}
-		}
-	}
-
-	var articleExtractorButtonState: ArticleExtractorButtonState = .off {
-		didSet {
-			delegate?.webViewController(self, articleExtractorButtonStateDidUpdate: articleExtractorButtonState)
-		}
-	}
-
 	weak var coordinator: SceneCoordinator!
-	weak var delegate: WebViewControllerDelegate?
 
 	private(set) var article: Article?
 
@@ -83,8 +58,6 @@ final class WebViewController: UIViewController {
 			}
 		}
 	}
-	private var restoreWindowScrollY: Int?
-	private var isArticleContentJavascriptEnabled = AppDefaults.shared.isArticleContentJavascriptEnabled
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
@@ -94,7 +67,8 @@ final class WebViewController: UIViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .FaviconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(currentArticleThemeDidChangeNotification(_:)), name: .CurrentArticleThemeDidChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleSceneDidEnterBackground(_:)), name: UIScene.didEnterBackgroundNotification, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUserDefaultsDidChange(_:)), name: UserDefaults.didChangeNotification, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .ExtractionStateDidChange, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .AccountDidDownloadArticles, object: nil)
 
 		// Configure the tap zones
 		configureTopShowBarsView()
@@ -145,18 +119,22 @@ final class WebViewController: UIViewController {
 		loadWebView()
 	}
 
-	@objc nonisolated func handleUserDefaultsDidChange(_ note: Notification) {
-		Task { @MainActor in
-			self.userDefaultsDidChange()
-		}
-	}
-
-	private func userDefaultsDidChange() {
-		guard isArticleContentJavascriptEnabled != AppDefaults.shared.isArticleContentJavascriptEnabled else {
+	/// Shows the body as soon as the page is saved, and keeps the saving status current until then.
+	@objc func articleContentMayHaveChanged(_ note: Notification) {
+		guard let displayed = article, note.affectedArticleIDs.contains(displayed.articleID) else {
 			return
 		}
-		isArticleContentJavascriptEnabled = AppDefaults.shared.isArticleContentJavascriptEnabled
-		loadWebView()
+		Task { @MainActor in
+			guard let fresh = await AccountManager.shared.defaultAccount.fetchArticlesAsync(.articleIDs([displayed.articleID])).first,
+				  let current = self.article, current.articleID == fresh.articleID else {
+				return
+			}
+			if fresh != current {
+				self.setArticle(fresh)
+			} else if fresh.contentHTML == nil {
+				self.loadWebView()
+			}
+		}
 	}
 
 	// MARK: Actions
@@ -168,42 +146,18 @@ final class WebViewController: UIViewController {
 	// MARK: API
 
 	func setArticle(_ article: Article?, updateView: Bool = true) {
-		stopArticleExtractor()
-
 		if article != self.article {
 			self.article = article
-			// A restoration offset belongs only to the article it was saved for.
-			// <https://github.com/Ranchero-Software/NetNewsWire/issues/5243>
-			restoreWindowScrollY = nil
 			if updateView {
-				if article?.feed?.readerViewAlwaysEnabled == true {
-					startArticleExtractor()
-				}
 				windowScrollY = 0
 				loadWebView()
 			}
 		}
 	}
 
-	func setScrollPosition(isShowingExtractedArticle: Bool, articleWindowScrollY: Int) {
-		if isShowingExtractedArticle {
-			switch articleExtractor?.state {
-			case .ready:
-				restoreWindowScrollY = articleWindowScrollY
-				startArticleExtractor()
-			case .complete:
-				windowScrollY = articleWindowScrollY
-				loadWebView()
-			case .processing:
-				restoreWindowScrollY = articleWindowScrollY
-			default:
-				restoreWindowScrollY = articleWindowScrollY
-				startArticleExtractor()
-			}
-		} else {
-			windowScrollY = articleWindowScrollY
-			loadWebView()
-		}
+	func setScrollPosition(articleWindowScrollY: Int) {
+		windowScrollY = articleWindowScrollY
+		loadWebView()
 	}
 
 	func focus() {
@@ -284,43 +238,6 @@ final class WebViewController: UIViewController {
 		}
 	}
 
-	func toggleArticleExtractor() {
-
-		guard let article = article else {
-			return
-		}
-
-		guard articleExtractor?.state != .processing else {
-			stopArticleExtractor()
-			loadWebView()
-			return
-		}
-
-		guard !isShowingExtractedArticle else {
-			isShowingExtractedArticle = false
-			loadWebView()
-			articleExtractorButtonState = .off
-			return
-		}
-
-		if let articleExtractor = articleExtractor {
-			if article.preferredLink == articleExtractor.articleLink {
-				isShowingExtractedArticle = true
-				loadWebView()
-				articleExtractorButtonState = .on
-			}
-		} else {
-			startArticleExtractor()
-		}
-
-	}
-
-	func stopArticleExtractorIfProcessing() {
-		if articleExtractor?.state == .processing {
-			stopArticleExtractor()
-		}
-	}
-
 	func stopWebViewActivity() {
 		imageDownloadTask?.cancel()
 		imageDownloadTask = nil
@@ -361,35 +278,6 @@ final class WebViewController: UIViewController {
 	}
 }
 
-// MARK: ArticleExtractorDelegate
-
-extension WebViewController: ArticleExtractorDelegate {
-
-	func articleExtractionDidFail(with: Error) {
-		guard articleExtractor != nil else {
-			return
-		}
-		stopArticleExtractor()
-		articleExtractorButtonState = .error
-		loadWebView()
-	}
-
-	func articleExtractionDidComplete(extractedArticle: ExtractedArticle) {
-		guard let articleExtractor, articleExtractor.state != .cancelled else {
-			return
-		}
-		self.extractedArticle = extractedArticle
-		if let restoreWindowScrollY = restoreWindowScrollY {
-			windowScrollY = restoreWindowScrollY
-			self.restoreWindowScrollY = nil
-		}
-		isShowingExtractedArticle = true
-		loadWebView()
-		articleExtractorButtonState = .on
-	}
-
-}
-
 // MARK: UIContextMenuInteractionDelegate
 
 extension WebViewController: UIContextMenuInteractionDelegate {
@@ -422,7 +310,7 @@ extension WebViewController: UIContextMenuInteractionDelegate {
 				menus.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
 
-			menus.append(UIMenu(title: "", options: .displayInline, children: [self.toggleArticleExtractorAction()]))
+			menus.append(UIMenu(title: "", options: .displayInline, children: [self.showOriginalAction()]))
 			menus.append(UIMenu(title: "", options: .displayInline, children: [self.shareAction()]))
 
 			return UIMenu(title: "", children: menus)
@@ -449,7 +337,9 @@ extension WebViewController: WKNavigationDelegate {
 
 	func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 
-		preferences.allowsContentJavaScript = WebViewConfiguration.allowsContentJavaScript(for: article)
+		// Stored content is untrusted HTML from the web: its scripts never run.
+		// Show Original opens the live page in Safari instead of here.
+		preferences.allowsContentJavaScript = false
 
 		if navigationAction.navigationType == .linkActivated {
 			guard let url = navigationAction.request.url else {
@@ -676,17 +566,7 @@ private extension WebViewController {
 		let theme = ArticleThemesManager.shared.currentTheme
 		let rendering: ArticleRenderer.Rendering
 
-		if let articleExtractor = articleExtractor, articleExtractor.state == .processing {
-			rendering = ArticleRenderer.loadingHTML(theme: theme)
-		} else if let articleExtractor = articleExtractor, articleExtractor.state == .failedToParse, let article = article {
-			rendering = ArticleRenderer.articleHTML(article: article, theme: theme)
-		} else if let article = article, let extractedArticle = extractedArticle {
-			if isShowingExtractedArticle {
-				rendering = ArticleRenderer.articleHTML(article: article, extractedArticle: extractedArticle, theme: theme)
-			} else {
-				rendering = ArticleRenderer.articleHTML(article: article, theme: theme)
-			}
-		} else if let article = article {
+		if let article {
 			rendering = ArticleRenderer.articleHTML(article: article, theme: theme)
 		} else {
 			rendering = ArticleRenderer.noSelectionHTML(theme: theme)
@@ -722,22 +602,6 @@ private extension WebViewController {
 		} else {
 			return webView.scrollView.contentSize.height - webView.scrollView.bounds.height + webView.scrollView.safeAreaInsets.bottom
 		}
-	}
-
-	func startArticleExtractor() {
-		guard articleExtractor == nil else { return }
-		if let link = article?.preferredLink, let extractor = ArticleExtractor(link, delegate: self) {
-			extractor.process()
-			articleExtractor = extractor
-			articleExtractorButtonState = .animated
-		}
-	}
-
-	func stopArticleExtractor() {
-		articleExtractor?.cancel()
-		articleExtractor = nil
-		isShowingExtractedArticle = false
-		articleExtractorButtonState = .off
 	}
 
 	func reloadArticleImage() {
@@ -922,12 +786,10 @@ private extension WebViewController {
 		}
 	}
 
-	func toggleArticleExtractorAction() -> UIAction {
-		let extracted = articleExtractorButtonState == .on
-		let title = extracted ? NSLocalizedString("Show Feed Article", comment: "Show Feed Article") : NSLocalizedString("Show Reader View", comment: "Show Reader View")
-		let extractorImage = extracted ? Assets.Images.articleExtractorOff : Assets.Images.articleExtractorOn
-		return UIAction(title: title, image: extractorImage) { [weak self] _ in
-			self?.toggleArticleExtractor()
+	func showOriginalAction() -> UIAction {
+		let title = NSLocalizedString("Show Original", comment: "Show Original")
+		return UIAction(title: title, image: Assets.Images.showOriginal) { [weak self] _ in
+			self?.openInAppBrowser()
 		}
 	}
 

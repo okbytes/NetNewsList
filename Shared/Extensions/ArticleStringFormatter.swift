@@ -62,7 +62,9 @@ import RSParser
 
 	func truncatedTitle(_ article: Article, forHTML: Bool = false) -> String {
 		guard let rawTitle = article.title, !rawTitle.isEmpty else {
-			return ""
+			// A saved page shows its address until it has a title.
+			let address = article.preferredLink?.strippingHTTPOrHTTPSScheme ?? ""
+			return forHTML ? address.escapingSpecialXMLCharacters : address
 		}
 
 		let cacheKey = TitleCacheKey(title: rawTitle, forHTML: forHTML)
@@ -106,7 +108,7 @@ import RSParser
 
 	func attributedTruncatedTitle(_ article: Article) -> NSAttributedString {
 		guard let rawTitle = article.title, !rawTitle.isEmpty else {
-			return NSAttributedString()
+			return NSAttributedString(string: truncatedTitle(article))
 		}
 
 		if let cached = attributedTitleCache[rawTitle] {

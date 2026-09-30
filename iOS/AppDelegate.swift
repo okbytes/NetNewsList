@@ -93,6 +93,9 @@ import Images
 
 		ExtensionContainersFile.shared.start()
 		ExtensionFeedAddRequestFile.shared.start()
+		if !Platform.isRunningUnitTests {
+			ExtractionCoordinator.shared.start()
+		}
 
 		#if DEBUG
 		ArticleStatusSyncTimer.shared.update()

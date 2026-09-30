@@ -22,8 +22,7 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
     private var activityManager = ActivityManager()
 
-	private var isShowingExtractedArticle = false
-	private var articleExtractor: ArticleExtractor?
+	private var isShowingOriginal = false
 	private var sharingServicePickerDelegate: SharingServicePickerDelegate?
 
 	private let windowAutosaveName = NSWindow.FrameAutosaveName("MainWindow")
@@ -252,6 +251,10 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	public func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 
+		if item.action == #selector(retrySavingPage(_:)) || item.action == #selector(retrySavingLivePage(_:)) {
+			return !(selectedArticles?.isEmpty ?? true)
+		}
+
 		if item.action == #selector(copyArticleURL(_:)) {
 			return canCopyArticleURL()
 		}
@@ -292,8 +295,8 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return canMarkBelowArticlesAsRead()
 		}
 
-		if item.action == #selector(toggleArticleExtractor(_:)) {
-			return validateToggleArticleExtractor(item)
+		if item.action == #selector(toggleShowOriginal(_:)) {
+			return validateToggleShowOriginal(item)
 		}
 
 		if item.action == #selector(toolbarShowShareMenu(_:)) {
@@ -460,45 +463,31 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		currentTimelineViewController?.toggleStarredStatusForSelectedArticles()
 	}
 
-	@IBAction func toggleArticleExtractor(_ sender: Any?) {
-
-		guard let currentLink = currentLink, let article = oneSelectedArticle else {
+	/// Switches the detail view between the saved copy and the live page.
+	@IBAction func toggleShowOriginal(_ sender: Any?) {
+		guard let article = oneSelectedArticle, article.preferredURL != nil else {
 			return
 		}
-
 		defer {
 			makeToolbarValidate()
 		}
+		isShowingOriginal.toggle()
+		let detailState: DetailState = isShowingOriginal ? .original(article) : .article(article, nil)
+		detailViewController?.setState(detailState, mode: timelineSourceMode)
+	}
 
-		if articleExtractor?.state == .failedToParse {
-			startArticleExtractorForCurrentLink()
+	@IBAction func retrySavingPage(_ sender: Any?) {
+		guard let articleIDs = selectedArticles?.map(\.articleID), !articleIDs.isEmpty else {
 			return
 		}
+		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: false)
+	}
 
-		guard articleExtractor?.state != .processing else {
-			articleExtractor?.cancel()
-			articleExtractor = nil
-			isShowingExtractedArticle = false
-			detailViewController?.setState(DetailState.article(article, nil), mode: timelineSourceMode)
+	@IBAction func retrySavingLivePage(_ sender: Any?) {
+		guard let articleIDs = selectedArticles?.map(\.articleID), !articleIDs.isEmpty else {
 			return
 		}
-
-		guard !isShowingExtractedArticle else {
-			isShowingExtractedArticle = false
-			detailViewController?.setState(DetailState.article(article, nil), mode: timelineSourceMode)
-			return
-		}
-
-		if let articleExtractor = articleExtractor, let extractedArticle = articleExtractor.article {
-			if currentLink == articleExtractor.articleLink {
-				isShowingExtractedArticle = true
-				let detailState = DetailState.extracted(article, extractedArticle, nil)
-				detailViewController?.setState(detailState, mode: timelineSourceMode)
-			}
-		} else {
-			startArticleExtractorForCurrentLink()
-		}
-
+		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: true)
 	}
 
 	@IBAction func markAllAsReadAndGoToNextUnread(_ sender: Any?) {
@@ -700,22 +689,15 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?, mode: TimelineSourceMode) {
 		activityManager.invalidateReading()
 
-		articleExtractor?.cancel()
-		articleExtractor = nil
-		isShowingExtractedArticle = false
+		isShowingOriginal = false
 		makeToolbarValidate()
 
 		let detailState: DetailState
 		if let articles = articles {
 			if articles.count == 1 {
 				activityManager.reading(feed: nil, article: articles.first)
-				if articles.first?.feed?.readerViewAlwaysEnabled == true {
-					detailState = .loading
-					startArticleExtractorForCurrentLink()
-				} else {
-					detailState = .article(articles.first!, restoreArticleWindowScrollY)
-					restoreArticleWindowScrollY = nil
-				}
+				detailState = .article(articles.first!, restoreArticleWindowScrollY)
+				restoreArticleWindowScrollY = nil
 			} else {
 				detailState = .multipleSelection
 			}
@@ -803,26 +785,6 @@ extension MainWindowController: NSSearchFieldDelegate {
 	}
 }
 
-// MARK: - ArticleExtractorDelegate
-
-extension MainWindowController: ArticleExtractorDelegate {
-
-	func articleExtractionDidFail(with: Error) {
-		makeToolbarValidate()
-	}
-
-	func articleExtractionDidComplete(extractedArticle: ExtractedArticle) {
-		if let article = oneSelectedArticle, articleExtractor?.state != .cancelled {
-			isShowingExtractedArticle = true
-			let detailState = DetailState.extracted(article, extractedArticle, restoreArticleWindowScrollY)
-			restoreArticleWindowScrollY = nil
-			detailViewController?.setState(detailState, mode: timelineSourceMode)
-			makeToolbarValidate()
-		}
-	}
-
-}
-
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {
@@ -837,7 +799,7 @@ extension NSToolbarItem.Identifier {
 	static let nextUnread = NSToolbarItem.Identifier("nextUnread")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let markStar = NSToolbarItem.Identifier("markStar")
-	static let readerView = NSToolbarItem.Identifier("readerView")
+	static let showOriginal = NSToolbarItem.Identifier("showOriginal")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
 	static let share = NSToolbarItem.Identifier("share")
 	static let articleThemeMenu = NSToolbarItem.Identifier("articleThemeMenu")
@@ -899,17 +861,9 @@ extension MainWindowController: NSToolbarDelegate {
 			let title = NSLocalizedString("Next Unread", comment: "Next Unread")
 			return buildToolbarButton(.nextUnread, title, Assets.Images.nextUnread, "nextUnread:")
 
-		case .readerView:
-			let toolbarItem = RSToolbarItem(itemIdentifier: .readerView)
-			toolbarItem.autovalidates = true
-			let description = NSLocalizedString("Reader View", comment: "Reader View")
-			toolbarItem.toolTip = description
-			toolbarItem.label = description
-			let button = ArticleExtractorButton()
-			button.action = #selector(toggleArticleExtractor(_:))
-			toolbarItem.view = button
-			toolbarItem.menuFormRepresentation = NSMenuItem(title: description, action: #selector(toggleArticleExtractor(_:)), keyEquivalent: "")
-			return toolbarItem
+		case .showOriginal:
+			let title = NSLocalizedString("Show Original", comment: "Show Original")
+			return buildToolbarButton(.showOriginal, title, Assets.Images.showOriginal, "toggleShowOriginal:")
 
 		case .share:
 			let title = NSLocalizedString("Share", comment: "Share button")
@@ -960,7 +914,7 @@ extension MainWindowController: NSToolbarDelegate {
 			.nextUnread,
 			.markRead,
 			.markStar,
-			.readerView,
+			.showOriginal,
 			.openInBrowser,
 			.share,
 			.articleThemeMenu,
@@ -982,7 +936,7 @@ extension MainWindowController: NSToolbarDelegate {
 			.markRead,
 			.markStar,
 			.nextUnread,
-			.readerView,
+			.showOriginal,
 			.share,
 			.openInBrowser,
 			.flexibleSpace,
@@ -1328,11 +1282,6 @@ private extension MainWindowController {
 
 		timelineContainerViewController?.restoreState(from: state.timelineWindowState)
 		restoreArticleWindowScrollY = state.detailWindowState?.windowScrollY
-
-		let isShowingExtractedArticle = state.detailWindowState?.isShowingExtractedArticle ?? false
-		if isShowingExtractedArticle {
-			startArticleExtractorForCurrentLink()
-		}
 	}
 
 	/// Restore state using pre-secure-state-restoration data.
@@ -1353,12 +1302,6 @@ private extension MainWindowController {
 		let articleWindowScrollY = state[UserInfoKey.articleWindowScrollY] as? CGFloat
 		restoreArticleWindowScrollY = articleWindowScrollY
 		timelineContainerViewController?.restoreLegacyState(from: state)
-
-		let isShowingExtractedArticle = state[UserInfoKey.isShowingExtractedArticle] as? Bool ?? false
-		if isShowingExtractedArticle {
-			restoreArticleWindowScrollY = articleWindowScrollY
-			startArticleExtractorForCurrentLink()
-		}
 	}
 
 	// MARK: - Command Validation
@@ -1450,33 +1393,19 @@ private extension MainWindowController {
 		return result
 	}
 
-	func validateToggleArticleExtractor(_ item: NSValidatedUserInterfaceItem) -> Bool {
-		guard let toolbarItem = item as? NSToolbarItem, let toolbarButton = toolbarItem.view as? ArticleExtractorButton else {
-			if let menuItem = item as? NSMenuItem {
-				menuItem.state = isShowingExtractedArticle ? .on : .off
+	func validateToggleShowOriginal(_ item: NSValidatedUserInterfaceItem) -> Bool {
+		let title = isShowingOriginal ? NSLocalizedString("Show Saved Page", comment: "Show Saved Page") : NSLocalizedString("Show Original", comment: "Show Original")
+		if let menuItem = item as? NSMenuItem {
+			menuItem.state = isShowingOriginal ? .on : .off
+		}
+		if let toolbarItem = item as? NSToolbarItem {
+			toolbarItem.label = title
+			toolbarItem.toolTip = title
+			if let button = toolbarItem.view as? NSButton {
+				button.image = isShowingOriginal ? Assets.Images.showSavedPage : Assets.Images.showOriginal
 			}
-			return currentLink != nil
 		}
-
-		if currentTimelineViewController?.selectedArticles.first?.feed != nil {
-			toolbarButton.isEnabled = true
-		}
-
-		guard let state = articleExtractor?.state else {
-			toolbarButton.buttonState = .off
-			return currentLink != nil
-		}
-
-		switch state {
-		case .processing:
-			toolbarButton.buttonState = .animated
-		case .failedToParse:
-			toolbarButton.buttonState = .error
-		case .ready, .cancelled, .complete:
-			toolbarButton.buttonState = isShowingExtractedArticle ? .on : .off
-		}
-
-		return state != .processing
+		return oneSelectedArticle?.preferredURL != nil
 	}
 
 	func canMarkAboveArticlesAsRead() -> Bool {
@@ -1656,13 +1585,6 @@ private extension MainWindowController {
 			if let unreadCountProvider = currentFeedOrFolder as? UnreadCountProvider {
 				setSubtitle(unreadCountProvider.unreadCount)
 			}
-		}
-	}
-
-	func startArticleExtractorForCurrentLink() {
-		if let link = currentLink, let extractor = ArticleExtractor(link, delegate: self) {
-			extractor.process()
-			articleExtractor = extractor
 		}
 	}
 

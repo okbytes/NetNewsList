@@ -507,9 +507,19 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="qgr-Gl-Xhw"/>
-                            <menuItem title="Show Reader View" keyEquivalent="R" id="p5x-Xq-1fW">
+                            <menuItem title="Show Original Page" keyEquivalent="R" id="p5x-Xq-1fW">
                                 <connections>
-                                    <action selector="toggleArticleExtractor:" target="-1" id="H3B-RR-1tB"/>
+                                    <action selector="toggleShowOriginal:" target="-1" id="H3B-RR-1tB"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Retry Saving Page" keyEquivalent="" id="rSP-mn-01a">
+                                <connections>
+                                    <action selector="retrySavingPage:" target="-1" id="rSP-ac-01a"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Retry with Live Page" keyEquivalent="" id="rLP-mn-01a">
+                                <connections>
+                                    <action selector="retrySavingLivePage:" target="-1" id="rLP-ac-01a"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Open in Browser" keyEquivalent="" id="4iQ-1v-dTa">

@@ -168,8 +168,8 @@ private extension KeyboardManager {
 		let toggleReadArticlesFilter = NSLocalizedString("Toggle Read Articles Filter", comment: "Toggle Read Articles Filter")
 		keys.append(KeyboardManager.createKeyCommand(title: toggleReadArticlesFilter, action: "toggleReadArticlesFilter:", input: "h", modifiers: [.command, .shift]))
 
-		let toggleReaderView = NSLocalizedString("Toggle Reader View", comment: "Toggle Reader View")
-		keys.append(KeyboardManager.createKeyCommand(title: toggleReaderView, action: "toggleReaderView:", input: "r", modifiers: [.command, .shift]))
+		let showOriginal = NSLocalizedString("Show Original", comment: "Show Original")
+		keys.append(KeyboardManager.createKeyCommand(title: showOriginal, action: "showOriginal:", input: "r", modifiers: [.command, .shift]))
 
 		return keys
 	}

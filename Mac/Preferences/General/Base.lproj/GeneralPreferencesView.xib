@@ -98,7 +98,7 @@
                         </button>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="92N-8I-bOs">
                             <rect key="frame" x="-2" y="300" width="106" height="16"/>
-                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Article Content:" id="BJB-pP-mhQ">
+                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Original Pages:" id="BJB-pP-mhQ">
                                 <font key="font" usesAppearanceFont="YES"/>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -106,7 +106,7 @@
                         </textField>
                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="UI6-sq-M15">
                             <rect key="frame" x="110" y="300" width="283" height="16"/>
-                            <buttonCell key="cell" type="check" title="Enable JavaScript" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="GUo-0M-xMc">
+                            <buttonCell key="cell" type="check" title="Allow JavaScript in original pages" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="GUo-0M-xMc">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
@@ -126,7 +126,7 @@
                         </button>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="0W5-tO-S63">
                             <rect key="frame" x="130" y="244" width="265" height="48"/>
-                            <textFieldCell key="cell" controlSize="small" title="Some content, such as videos and embedded social media posts, may require JavaScript to work correctly." id="g2Q-oq-h2P">
+                            <textFieldCell key="cell" controlSize="small" title="Applies to Show Original. Saved pages never run JavaScript." id="g2Q-oq-h2P">
                                 <font key="font" usesAppearanceFont="YES"/>
                                 <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>

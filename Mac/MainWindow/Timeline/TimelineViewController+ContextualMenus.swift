@@ -107,6 +107,20 @@ extension TimelineViewController {
 		URLPasteboardWriter.write(urlString: urlString, to: .general)
 	}
 
+	@objc func retrySavingPageFromContextualMenu(_ sender: Any?) {
+		guard let menuItem = sender as? NSMenuItem, let articles = menuItem.representedObject as? [Article] else {
+			return
+		}
+		ExtractionCoordinator.shared.retry(articleIDs: Set(articles.map(\.articleID)), usesLivePage: false)
+	}
+
+	@objc func retrySavingLivePageFromContextualMenu(_ sender: Any?) {
+		guard let menuItem = sender as? NSMenuItem, let articles = menuItem.representedObject as? [Article] else {
+			return
+		}
+		ExtractionCoordinator.shared.retry(articleIDs: Set(articles.map(\.articleID)), usesLivePage: true)
+	}
+
 	@objc func performShareServiceFromContextualMenu(_ sender: Any?) {
 		guard let menuItem = sender as? NSMenuItem, let sharingCommandInfo = menuItem.representedObject as? SharingCommandInfo else {
 			return
@@ -189,6 +203,12 @@ private extension TimelineViewController {
 			if let externalLink = articles.first?.externalLink, externalLink != link {
 				menu.addItem(copyExternalURLMenuItem(externalLink))
 			}
+		}
+
+		if !articles.isEmpty {
+			menu.addSeparatorIfNeeded()
+			menu.addItem(menuItem(NSLocalizedString("Retry Saving Page", comment: "Command"), #selector(retrySavingPageFromContextualMenu(_:)), articles))
+			menu.addItem(menuItem(NSLocalizedString("Retry with Live Page", comment: "Command"), #selector(retrySavingLivePageFromContextualMenu(_:)), articles))
 		}
 
 		menu.addSeparatorIfNeeded()

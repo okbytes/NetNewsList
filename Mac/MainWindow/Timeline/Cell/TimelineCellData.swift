@@ -55,8 +55,11 @@ import Images
 		self.starred = article.status.starred
 	}
 
-	/// The article’s summary, or “(No Text)” when it has neither a title nor a summary.
+	/// Whether the page is still being saved, else the article’s summary, or “(No Text)” when it has neither a title nor a summary.
 	static func summaryText(for article: Article, title: String) -> String {
+		if let statusText = ExtractionCoordinator.shared.statusText(for: article) {
+			return statusText
+		}
 		let truncatedSummary = ArticleStringFormatter.shared.truncatedSummary(article)
 		if title.isEmpty && truncatedSummary.isEmpty {
 			return noText

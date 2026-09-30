@@ -204,6 +204,7 @@ let appName = "NetNewsList"
 		if !Platform.isRunningUnitTests {
 			ExtensionContainersFile.shared.start()
 			ExtensionFeedAddRequestFile.shared.start()
+			ExtractionCoordinator.shared.start()
 		}
 
 		ArticleStatusSyncTimer.shared.start()

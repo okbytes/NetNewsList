@@ -353,6 +353,15 @@ public struct ArticleCounts: Sendable {
 		}
 	}
 
+	/// IDs of articles in these feeds that have no stored body yet.
+	public func fetchArticleIDsWithoutContentAsync(feedIDs: Set<String>) async -> Set<String> {
+		await withCheckedContinuation { continuation in
+			articlesTable.fetchArticleIDsWithoutContentAsync(feedIDs) { articleIDs in
+				continuation.resume(returning: articleIDs)
+			}
+		}
+	}
+
 	public func fetchStarredArticleIDsAsync() async -> Set<String> {
 		await withCheckedContinuation { continuation in
 			_fetchStarredArticleIDsAsync { articleIDs in

@@ -133,15 +133,6 @@ extension SidebarViewController {
 		}
 	}
 
-	@objc func toggleArticleExtractorFromContextMenu(_ sender: Any?) {
-		guard let item = sender as? NSMenuItem,
-			  let feed = item.representedObject as? Feed else {
-			return
-		}
-		feed.readerViewAlwaysEnabled.toggle()
-		NotificationCenter.default.post(Notification(name: .DidUpdateFeedPreferencesFromContextMenu))
-	}
-
 	nonisolated func showNotificationsNotEnabledAlert() {
 		DispatchQueue.main.async {
 			let alert = NSAlert()
@@ -232,12 +223,6 @@ private extension SidebarViewController {
 		let notificationMenuItem = menuItem(notificationText, #selector(toggleNotificationsFromContextMenu(_:)), feed)
 		notificationMenuItem.state = feed.newArticleNotificationsEnabled ? .on : .off
 		menu.addItem(notificationMenuItem)
-
-		let articleExtractorText = NSLocalizedString("Always Use Reader View", comment: "Always Use Reader View")
-		let articleExtractorMenuItem = menuItem(articleExtractorText, #selector(toggleArticleExtractorFromContextMenu(_:)), feed)
-
-		articleExtractorMenuItem.state = feed.readerViewAlwaysEnabled ? .on : .off
-		menu.addItem(articleExtractorMenuItem)
 
 		menu.addItem(NSMenuItem.separator())
 

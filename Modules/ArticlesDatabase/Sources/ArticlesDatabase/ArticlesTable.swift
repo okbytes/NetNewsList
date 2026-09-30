@@ -433,6 +433,30 @@ final class ArticlesTable: DatabaseTable, Sendable {
 		}
 	}
 
+	// MARK: - Content
+
+	/// IDs of articles in these feeds that have no stored body yet.
+	func fetchArticleIDsWithoutContentAsync(_ feedIDs: Set<String>, _ completion: @escaping ArticleIDsCompletionBlock) {
+		guard !feedIDs.isEmpty else {
+			completion(Set<String>())
+			return
+		}
+		queue.runInDatabase { database in
+			let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(feedIDs.count))
+			let sql = "select articleID from articles where feedID in \(placeholders) and contentHTML is null;"
+			guard let resultSet = database.executeQuery(sql, withArgumentsIn: Array(feedIDs)) else {
+				DispatchQueue.main.async {
+					completion(Set<String>())
+				}
+				return
+			}
+			let articleIDs = resultSet.mapToSet { $0.swiftString(forColumnIndex: 0) }
+			DispatchQueue.main.async {
+				completion(articleIDs)
+			}
+		}
+	}
+
 	// MARK: - Indexing
 
 	func indexUnindexedArticles() {

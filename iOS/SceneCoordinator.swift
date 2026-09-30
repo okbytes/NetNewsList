@@ -474,7 +474,7 @@ struct SidebarItemNode: Hashable, Sendable {
 		if let article {
 			// Disable animation since this function runs only during state restoration on launch.
 			UIView.performWithoutAnimation {
-				selectArticle(article, isShowingExtractedArticle: stateInfo.isShowingExtractedArticle, articleWindowScrollY: stateInfo.articleWindowScrollY)
+				selectArticle(article, articleWindowScrollY: stateInfo.articleWindowScrollY)
 			}
 		}
 	}
@@ -1134,7 +1134,7 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func selectArticle(_ article: Article?, animations: Animations = [], isShowingExtractedArticle: Bool? = nil, articleWindowScrollY: Int? = nil) {
+	func selectArticle(_ article: Article?, animations: Animations = [], articleWindowScrollY: Int? = nil) {
 		guard article != currentArticle else {
 			return
 		}
@@ -1164,8 +1164,8 @@ struct SidebarItemNode: Hashable, Sendable {
 
 		mainTimelineViewController?.updateArticleSelection(animations: animations)
 		articleViewController?.article = article
-		if let isShowingExtractedArticle = isShowingExtractedArticle, let articleWindowScrollY = articleWindowScrollY {
-			articleViewController?.restoreScrollPosition = (isShowingExtractedArticle, articleWindowScrollY)
+		if let articleWindowScrollY {
+			articleViewController?.restoreScrollPosition = articleWindowScrollY
 		}
 	}
 
@@ -1397,11 +1397,11 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func toggleReaderViewForCurrentArticle() {
+	func showOriginalForCurrentArticle() {
 		guard currentArticle != nil else {
 			return
 		}
-		articleViewController?.toggleReaderView(nil)
+		articleViewController?.openInAppBrowser()
 	}
 
 	func toggleRead(_ article: Article) {
@@ -1651,9 +1651,9 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func selectArticleInCurrentFeed(_ articleID: String, isShowingExtractedArticle: Bool? = nil, articleWindowScrollY: Int? = nil) {
+	func selectArticleInCurrentFeed(_ articleID: String, articleWindowScrollY: Int? = nil) {
 		if let article = self.articles.first(where: { $0.articleID == articleID }) {
-			self.selectArticle(article, isShowingExtractedArticle: isShowingExtractedArticle, articleWindowScrollY: articleWindowScrollY)
+			self.selectArticle(article, articleWindowScrollY: articleWindowScrollY)
 		}
 	}
 

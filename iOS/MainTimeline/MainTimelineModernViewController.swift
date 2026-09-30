@@ -576,6 +576,8 @@ extension MainTimelineModernViewController: UICollectionViewDelegate {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
 
+			menuElements.append(UIMenu(title: "", options: .displayInline, children: self.retrySavingPageActions(article)))
+
 			if let action = self.shareAction(article, indexPath: firstIndex) {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
@@ -668,6 +670,7 @@ private extension MainTimelineModernViewController {
 	func addNotificationObservers() {
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(statusesDidChange(_:)), name: .StatusesDidChange, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(statusesDidChange(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(avatarDidBecomeAvailable(_:)), name: .AvatarDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .FaviconDidBecomeAvailable, object: nil)
@@ -1399,6 +1402,16 @@ extension MainTimelineModernViewController {
 	func showBrowserForArticle(_ article: Article) {
 		assert(coordinator != nil)
 		coordinator?.showBrowserForArticle(article)
+	}
+
+	func retrySavingPageActions(_ article: Article) -> [UIAction] {
+		let retry = UIAction(title: NSLocalizedString("Retry Saving Page", comment: "Command"), image: UIImage(systemName: "arrow.clockwise")) { _ in
+			ExtractionCoordinator.shared.retry(articleIDs: [article.articleID], usesLivePage: false)
+		}
+		let retryLive = UIAction(title: NSLocalizedString("Retry with Live Page", comment: "Command"), image: UIImage(systemName: "globe")) { _ in
+			ExtractionCoordinator.shared.retry(articleIDs: [article.articleID], usesLivePage: true)
+		}
+		return [retry, retryLive]
 	}
 
 	func openInBrowserAction(_ article: Article) -> UIAction? {

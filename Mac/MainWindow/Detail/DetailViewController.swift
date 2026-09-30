@@ -17,7 +17,8 @@ enum DetailState: Equatable {
 	case multipleSelection
 	case loading
 	case article(Article, CGFloat?)
-	case extracted(Article, ExtractedArticle, CGFloat?)
+	/// The live page, loaded from the web.
+	case original(Article)
 }
 
 final class DetailViewController: NSViewController, WKUIDelegate {

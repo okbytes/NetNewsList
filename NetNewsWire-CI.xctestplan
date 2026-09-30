@@ -19,6 +19,13 @@
   "testTargets" : [
     {
       "target" : {
+        "containerPath" : "container:Modules\/Extraction",
+        "identifier" : "ExtractionTests",
+        "name" : "ExtractionTests"
+      }
+    },
+    {
+      "target" : {
         "containerPath" : "container:Modules\/RSParser",
         "identifier" : "RSParserTests",
         "name" : "RSParserTests"

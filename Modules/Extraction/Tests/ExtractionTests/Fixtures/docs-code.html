@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Configuring the Build Cache — Example Docs</title></head>
+<body><nav class="toc"><ul><li><a href="#intro">Introduction</a></li><li><a href="#setup">Setup</a></li><li><a href="#faq">FAQ</a></li></ul></nav>
+<div class="content" role="main">
+<h1 id="intro">Configuring the Build Cache</h1>
+<p>The build cache stores the outputs of previous builds so that unchanged steps can be skipped. This guide explains how to enable it, how to size it, and how to share it between machines on the same network.</p>
+<h2 id="setup">Setup</h2>
+<p>Add the following section to your configuration file. The <code>maxSize</code> value is in megabytes, and the cache evicts the least recently used entries when it is full.</p>
+<pre><code class="language-toml">[cache]
+enabled = true
+maxSize = 2048
+path = "~/.cache/example"</code></pre>
+<p>After changing the file, restart the build daemon so that it picks up the new settings. You can confirm the cache is active by running the status command and looking for the cache line in its output.</p>
+<pre><code>$ example status
+cache: enabled (2048 MB, 12% used)</code></pre>
+<h2 id="faq">Frequently asked questions</h2>
+<p>Sharing a cache across machines requires that every machine use the same toolchain version, otherwise the cache keys will not match and every build will miss.</p>
+</div></body></html>

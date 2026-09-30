@@ -41,8 +41,7 @@ final class SettingsViewController: UITableViewController {
 	private enum ArticlesRow: Int, CaseIterable {
 		case theme = 0
 		case openLinksInNetNewsWire = 1
-		case enableJavaScript = 2
-		case enableFullScreenArticles = 3
+		case enableFullScreenArticles = 2
 	}
 
 	private enum HelpRow: Int {
@@ -62,7 +61,6 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var showFullscreenArticlesSwitch: UISwitch!
 	@IBOutlet var colorPaletteDetailLabel: UILabel!
 	@IBOutlet var openLinksInNetNewsWire: UISwitch!
-	@IBOutlet var enableJavaScriptSwitch: UISwitch!
 
 	var scrollToArticlesSection = false
 	weak var presentingParentController: UIViewController?
@@ -109,12 +107,6 @@ final class SettingsViewController: UITableViewController {
 			showFullscreenArticlesSwitch.isOn = true
 		} else {
 			showFullscreenArticlesSwitch.isOn = false
-		}
-
-		if AppDefaults.shared.isArticleContentJavascriptEnabled {
-			enableJavaScriptSwitch.isOn = true
-		} else {
-			enableJavaScriptSwitch.isOn = false
 		}
 
 		colorPaletteDetailLabel.text = String(describing: AppDefaults.userInterfaceColorPalette)
@@ -297,10 +289,6 @@ final class SettingsViewController: UITableViewController {
 			AppDefaults.shared.useSystemBrowser = true
 		}
 	}
-
-	@IBAction func switchJavaScriptPreference(_ sender: Any) {
-		AppDefaults.shared.isArticleContentJavascriptEnabled = enableJavaScriptSwitch.isOn
- 	}
 
 	// MARK: - Notifications
 

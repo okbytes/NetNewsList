@@ -149,8 +149,7 @@ extension Account: ReadingListStore {
 		guard let feed = readingListFeed else {
 			return Set<String>()
 		}
-		let articles = await fetchArticlesAsync(.feed(feed))
-		return Set(articles.filter { $0.contentHTML == nil }.map(\.articleID))
+		return await database.fetchArticleIDsWithoutContentAsync(feedIDs: [feed.feedID])
 	}
 }
 

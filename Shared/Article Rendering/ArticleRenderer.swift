@@ -36,7 +36,6 @@ import Account
 	static var page = Page(name: "page")
 
 	private let article: Article?
-	private let extractedArticle: ExtractedArticle?
 	private let articleTheme: ArticleTheme
 	private let title: String
 	private let body: String
@@ -105,47 +104,46 @@ import Account
 		return formatter
 	}()
 
-	private init(article: Article?, extractedArticle: ExtractedArticle?, theme: ArticleTheme) {
+	private init(article: Article?, theme: ArticleTheme) {
 		self.article = article
-		self.extractedArticle = extractedArticle
 		self.articleTheme = theme
 		self.title = ArticleStringFormatter.sanitizedTitle(article?.title, forHTML: true) ?? ""
-		// Some feeds embed a full HTML document as the article content —
-		// render just the body fragment.
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/3008>
-		if let content = extractedArticle?.content {
-			self.body = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(content)
-			self.baseURL = extractedArticle?.url
+		if let article, article.contentHTML == nil, article.contentText == nil {
+			// The page hasn’t been extracted yet, or extraction failed.
+			self.body = ExtractionCoordinator.shared.placeholderHTML(for: article)
 		} else {
+			// Some pages embed a full HTML document as the content —
+			// render just the body fragment.
+			// <https://github.com/Ranchero-Software/NetNewsWire/issues/3008>
 			self.body = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(article?.body ?? "")
-			self.baseURL = article?.baseURL?.absoluteString
 		}
+		self.baseURL = article?.baseURL?.absoluteString
 	}
 
 	// MARK: - API
 
-	static func articleHTML(article: Article, extractedArticle: ExtractedArticle? = nil, theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: article, extractedArticle: extractedArticle, theme: theme)
+	static func articleHTML(article: Article, theme: ArticleTheme) -> Rendering {
+		let renderer = ArticleRenderer(article: article, theme: theme)
 		return (renderer.articleCSS, renderer.articleHTML, renderer.title, renderer.baseURL ?? "")
 	}
 
 	static func multipleSelectionHTML(theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: nil, extractedArticle: nil, theme: theme)
+		let renderer = ArticleRenderer(article: nil, theme: theme)
 		return (renderer.articleCSS, renderer.multipleSelectionHTML, renderer.title, renderer.baseURL ?? "")
 	}
 
 	static func loadingHTML(theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: nil, extractedArticle: nil, theme: theme)
+		let renderer = ArticleRenderer(article: nil, theme: theme)
 		return (renderer.articleCSS, renderer.loadingHTML, renderer.title, renderer.baseURL ?? "")
 	}
 
 	static func noSelectionHTML(theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: nil, extractedArticle: nil, theme: theme)
+		let renderer = ArticleRenderer(article: nil, theme: theme)
 		return (renderer.articleCSS, renderer.noSelectionHTML, renderer.title, renderer.baseURL ?? "")
 	}
 
 	static func noContentHTML(theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: nil, extractedArticle: nil, theme: theme)
+		let renderer = ArticleRenderer(article: nil, theme: theme)
 		return (renderer.articleCSS, renderer.noContentHTML, renderer.title, renderer.baseURL ?? "")
 	}
 }

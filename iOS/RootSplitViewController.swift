@@ -187,8 +187,8 @@ final class RootSplitViewController: UISplitViewController {
 		coordinator.toggleReadForCurrentArticle()
 	}
 
-	@objc func toggleReaderView(_ sender: Any?) {
-		coordinator.toggleReaderViewForCurrentArticle()
+	@objc func showOriginal(_ sender: Any?) {
+		coordinator.showOriginalForCurrentArticle()
 	}
 
 	@objc func toggleStarred(_ sender: Any?) {

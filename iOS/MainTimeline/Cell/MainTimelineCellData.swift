@@ -38,7 +38,9 @@ import Images
 		self.attributedTitle = ArticleStringFormatter.shared.attributedTruncatedTitle(article)
 
 		let truncatedSummary = ArticleStringFormatter.shared.truncatedSummary(article)
-		if self.title.isEmpty && truncatedSummary.isEmpty {
+		if let statusText = ExtractionCoordinator.shared.statusText(for: article) {
+			self.summary = statusText
+		} else if self.title.isEmpty && truncatedSummary.isEmpty {
 			self.summary = Self.noText
 		} else {
 			self.summary = truncatedSummary

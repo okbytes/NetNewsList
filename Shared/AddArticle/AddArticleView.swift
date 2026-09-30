@@ -116,7 +116,7 @@ struct AddArticleView: View {
 		let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 		Task { @MainActor in
 			do {
-				try await AccountManager.shared.defaultAccount.saveArticle(url: urlString, title: trimmedTitle.isEmpty ? nil : trimmedTitle, content: nil)
+				try await ExtractionCoordinator.shared.saveArticle(url: urlString, title: trimmedTitle.isEmpty ? nil : trimmedTitle)
 				dismiss()
 			} catch {
 				errorMessage = error.localizedDescription
