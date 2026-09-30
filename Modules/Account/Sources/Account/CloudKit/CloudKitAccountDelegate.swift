@@ -700,6 +700,12 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 					}
 				}
 			}
+		} else if !UserDefaults.standard.bool(forKey: Self.didSaveReadingListFeedKey) {
+			// An account created before the reading list existed, or a first launch whose
+			// feed save failed: save the reading-list feed record now.
+			Task {
+				try? await self.ensureReadingListFeedInCloud(account: account)
+			}
 		}
 
 		// Checked on every launch, not only for a new account, so a reinstall or a failed
@@ -719,6 +725,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		accountZone.resetChangeToken()
 		articlesZone.resetChangeToken()
 		UserDefaults.standard.removeObject(forKey: Self.didSubscribeToZonesKey)
+		UserDefaults.standard.removeObject(forKey: Self.didSaveReadingListFeedKey)
 		lastNoChangeSyncDate = nil
 		iCloudAccountIsUnavailable = false
 
@@ -753,9 +760,12 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 
 	/// Saves the reading-list feed’s iCloud record. Its record name is fixed, so saving it
 	/// from several devices converges on one record.
+	static let didSaveReadingListFeedKey = "cloudkit.didSaveReadingListFeed"
+
 	func ensureReadingListFeedInCloud(account: Account) async throws {
 		let feed = account.ensureReadingListFeed()
 		_ = try await accountZone.createFeed(url: feed.url, name: feed.name, editedName: nil, homePageURL: nil, container: account)
+		UserDefaults.standard.set(true, forKey: Self.didSaveReadingListFeedKey)
 	}
 
 	func accountWillBeDeleted() {

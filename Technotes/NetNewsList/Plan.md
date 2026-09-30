@@ -239,6 +239,8 @@ Each of these exists today and is neutralized in PR5 unless noted. Add the unit 
 
 ## 5. Phased roadmap
 
+**Progress (2026-09-30).** PR1-PR6 are merged on the working branch; each commit builds on macOS and iOS with no warnings and passes the Mac and iOS test plans. Done: Sparkle, crash reporter, sync services, AppleScript, Safari extension, OPML/NNW3, dinosaurs, notifications, Secrets, local accounts, account UI and the RSS refresher are gone; identity is `eitherslice.NetNewsList`; iCloud is the only account; every retention and content-gating trap in section 4 is neutralized with regression tests; the reading-list API (`Account+ReadingList.swift`, `URLCanonicalizer`, `FetchType.read`) and the Add Article sheet exist. Differences from the plan as written: the CloudKit container and zones are created lazily and never touched under unit tests (an unsigned process traps when it creates a `CKContainer`); a content upload that fails is re-queued as `.content` after the send finishes; Reset iCloud Sync is in the Mac app menu and iOS Settings > Troubleshooting. Pending: the PR5/PR6 two-device checkpoint, then PR7 (extraction).
+
 Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_and_test.sh`; they build the extension and widget targets as dependencies); `git diff` the pbxproj after any Xcode UI action; delete a nib's `.xcstrings` with the nib; remove test-plan entries (`NetNewsWire.xctestplan`, `NetNewsWire-CI.xctestplan`, `NetNewsWire-iOS.xctestplan`) when a module goes; commit small. Effort assumes one experienced developer with AI help.
 
 ### Phase A: pure deletions (no design risk)
