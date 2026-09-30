@@ -311,9 +311,9 @@ public struct ArticleCounts: Sendable {
 	// MARK: - Saving, Updating, and Deleting Articles
 
 	/// Update articles and save new ones — for feed-based systems (local and iCloud).
-	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String, deleteOlder: Bool) async -> ArticleChanges {
+	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String) async -> ArticleChanges {
 		await withCheckedContinuation { continuation in
-			_update(parsedItems: parsedItems, feedID: feedID, deleteOlder: deleteOlder) { articleChanges in
+			_update(parsedItems: parsedItems, feedID: feedID) { articleChanges in
 				continuation.resume(returning: articleChanges)
 			}
 		}
@@ -387,14 +387,10 @@ public struct ArticleCounts: Sendable {
 
 	// MARK: - Cleanup
 
-	/// Calls the various clean-up functions. To be used only at startup.
-	///
-	/// This prevents the database from growing forever. If we didn’t do this:
-	/// 1) The database would grow to an inordinate size, and
-	/// 2) the app would become very slow.
-	public func cleanupDatabaseAtStartup(subscribedToFeedIDs: Set<String>) {
+	/// Clean-up to run at startup. Deletes only orphaned statuses (no matching article).
+	/// Articles are never deleted here: a saved article leaves only through an explicit delete.
+	public func cleanupDatabaseAtStartup() {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		articlesTable.deleteArticlesNotInSubscribedToFeedIDs(subscribedToFeedIDs)
 		articlesTable.deleteOldStatuses()
 	}
 }
@@ -528,9 +524,9 @@ private extension ArticlesDatabase {
 		articlesTable.fetchArticlesMatchingWithArticleIDsAsync(searchString, articleIDs, completion)
 	}
 
-	func _update(parsedItems: Set<ParsedItem>, feedID: String, deleteOlder: Bool, completion: @escaping UpdateArticlesCompletionBlock) {
+	func _update(parsedItems: Set<ParsedItem>, feedID: String, completion: @escaping UpdateArticlesCompletionBlock) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		articlesTable.update(parsedItems, feedID, deleteOlder, completion)
+		articlesTable.update(parsedItems, feedID, completion)
 	}
 
 	func _delete(articleIDs: Set<String>, completion: DatabaseCompletionBlock?) {

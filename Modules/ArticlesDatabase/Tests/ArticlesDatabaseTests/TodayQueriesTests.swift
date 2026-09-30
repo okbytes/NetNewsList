@@ -101,7 +101,7 @@ private extension TodayQueriesTests {
 			parsedItem(uniqueID: "\(prefix)-old", feedID: feedID, datePublished: Self.twentyFiveHoursAgo),
 			parsedItem(uniqueID: "\(prefix)-nil", feedID: feedID, datePublished: nil)
 		]
-		let changes = await database.updateAsync(parsedItems: items, feedID: feedID, deleteOlder: false)
+		let changes = await database.updateAsync(parsedItems: items, feedID: feedID)
 		let newArticles = changes.new ?? Set<Article>()
 		#expect(newArticles.count == items.count)
 		for article in newArticles {

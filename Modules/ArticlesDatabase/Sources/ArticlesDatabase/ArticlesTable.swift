@@ -201,34 +201,27 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 	// MARK: - Updating and Deleting
 
-	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, _ deleteOlder: Bool, _ completion: @escaping UpdateArticlesCompletionBlock) {
+	/// Saves new articles and updates changed ones. Never deletes: a saved article leaves only
+	/// through an explicit delete, never because it is old or missing from `parsedItems`.
+	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, _ completion: @escaping UpdateArticlesCompletionBlock) {
 		if parsedItems.isEmpty {
 			callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
 			return
 		}
 
-		// 1. Ensure statuses for all the incoming articles.
+		// 1. Ensure statuses for all the incoming articles. New articles are unread, whatever their age.
 		// 2. Create incoming articles with parsedItems.
-		// 3. [Deleted - this step is no longer needed]
-		// 4. Fetch all articles for the feed.
-		// 5. Create array of Articles not in database and save them.
-		// 6. Create array of updated Articles and save what’s changed.
-		// 7. Call back with new and updated Articles.
-		// 8. Delete Articles in database no longer present in the feed.
-		// 9. Update search index.
+		// 3. Fetch all articles for the feed.
+		// 4. Create array of Articles not in database and save them.
+		// 5. Create array of updated Articles and save what’s changed.
+		// 6. Call back with new and updated Articles.
+		// 7. Update search index.
 
 		self.queue.runInTransaction { database in
 
 			let articleIDs = parsedItems.articleIDs()
 
-			// Split by age: articles older than ~6 months default to read.
-			let cutoffDate = Date(timeIntervalSinceNow: -ArticleStatus.staleIntervalInSeconds)
-			let oldArticleIDs = Set(parsedItems.filter { ($0.datePublished ?? .distantFuture) < cutoffDate }.map { $0.articleID })
-			let recentArticleIDs = articleIDs.subtracting(oldArticleIDs)
-
-			let (recentStatusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(recentArticleIDs, false, database) // 1a
-			let (oldStatusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(oldArticleIDs, true, database) // 1b
-			let statusesDictionary = recentStatusesDictionary.merging(oldStatusesDictionary) { current, _ in current }
+			let (statusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(articleIDs, false, database) // 1
 			assert(statusesDictionary.count == articleIDs.count)
 
 			let incomingArticles = Article.articlesWithParsedItems(parsedItems, feedID, self.accountID, statusesDictionary) // 2
@@ -237,36 +230,18 @@ final class ArticlesTable: DatabaseTable, Sendable {
 				return
 			}
 
-			let fetchedArticles = self.fetchArticlesForFeedID(feedID, database) // 4
+			let fetchedArticles = self.fetchArticlesForFeedID(feedID, database) // 3
 			let fetchedArticlesDictionary = fetchedArticles.dictionary()
 
-			let newArticles = self.findAndSaveNewArticles(incomingArticles, fetchedArticlesDictionary, database) // 5
-			let updatedArticles = self.findAndSaveUpdatedArticles(incomingArticles, fetchedArticlesDictionary, database) // 6
+			let newArticles = self.findAndSaveNewArticles(incomingArticles, fetchedArticlesDictionary, database) // 4
+			let updatedArticles = self.findAndSaveUpdatedArticles(incomingArticles, fetchedArticlesDictionary, database) // 5
 
-			// Articles to delete are 1) not starred and 2) older than 30 days and 3) no longer in feed.
-			let articlesToDelete: Set<Article>
-			if deleteOlder {
-				let cutoffDate = Date().bySubtracting(days: 30)
-				articlesToDelete = fetchedArticles.filter { (article) -> Bool in
-					return !article.status.starred && article.status.dateArrived < cutoffDate && !articleIDs.contains(article.articleID)
-				}
-			} else {
-				articlesToDelete = Set<Article>()
-			}
-
-			self.callUpdateArticlesCompletionBlock(newArticles, updatedArticles, articlesToDelete, completion) // 7
+			self.callUpdateArticlesCompletionBlock(newArticles, updatedArticles, nil, completion) // 6
 
 			self.addArticlesToCache(newArticles)
 			self.addArticlesToCache(updatedArticles)
 
-			// 8. Delete articles no longer in feed.
-			let articleIDsToDelete = articlesToDelete.articleIDs()
-			if !articleIDsToDelete.isEmpty {
-				self.removeArticles(articleIDsToDelete, database)
-				self.removeArticleIDsFromCache(articleIDsToDelete)
-			}
-
-			// 9. Update search index.
+			// 7. Update search index.
 			if let newArticles = newArticles {
 				self.searchTable.indexNewArticles(newArticles, database)
 			}
@@ -276,9 +251,12 @@ final class ArticlesTable: DatabaseTable, Sendable {
 		}
 	}
 
+	/// Deletes the articles and their statuses, so saving the same article again starts fresh.
 	public func delete(articleIDs: Set<String>, completion: DatabaseCompletionBlock?) {
 		self.queue.runInTransaction { database in
 			self.removeArticles(articleIDs, database)
+			self.removeArticleIDsFromCache(articleIDs)
+			self.statusesTable.removeStatuses(articleIDs, database)
 			DispatchQueue.main.async {
 				completion?()
 			}
@@ -496,28 +474,6 @@ final class ArticlesTable: DatabaseTable, Sendable {
 		statusesTable.repairStatuses(database)
 	}
 
-	/// Delete articles from feeds that are no longer in the current set of subscribed-to feeds.
-	/// This deletes from the articles and articleStatuses tables,
-	/// and, via a trigger, it also deletes from the search index.
-	func deleteArticlesNotInSubscribedToFeedIDs(_ feedIDs: Set<String>) {
-		if feedIDs.isEmpty {
-			return
-		}
-		queue.runInDatabase { database in
-			let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(feedIDs.count))
-			let sql = "select articleID from articles where feedID not in \(placeholders);"
-			let parameters = Array(feedIDs) as [Any]
-			guard let resultSet = database.executeQuery(sql, withArgumentsIn: parameters) else {
-				return
-			}
-			let articleIDs = resultSet.mapToSet { $0.swiftString(forColumn: DatabaseKey.articleID) }
-			if articleIDs.isEmpty {
-				return
-			}
-			self.removeArticles(articleIDs, database)
-			self.statusesTable.removeStatuses(articleIDs, database)
-		}
-	}
 }
 
 // MARK: - Private

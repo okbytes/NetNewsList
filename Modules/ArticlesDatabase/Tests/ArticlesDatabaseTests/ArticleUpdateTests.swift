@@ -29,21 +29,21 @@ import ArticlesDatabase
 
 	@Test func identicalUpdateReportsNoChanges() async {
 		let item = parsedItem(title: "Title", markdown: nil)
-		let firstChanges = await database.updateAsync(parsedItems: [item], feedID: feedID, deleteOlder: false)
+		let firstChanges = await database.updateAsync(parsedItems: [item], feedID: feedID)
 		#expect(firstChanges.new?.count == 1)
 
 		database.emptyCaches()
-		let secondChanges = await database.updateAsync(parsedItems: [item], feedID: feedID, deleteOlder: false)
+		let secondChanges = await database.updateAsync(parsedItems: [item], feedID: feedID)
 		#expect(secondChanges.new == nil)
 		#expect(secondChanges.updated == nil)
 	}
 
 	@Test func markdownChangePersists() async {
 		let original = parsedItem(title: "Title", markdown: "one")
-		_ = await database.updateAsync(parsedItems: [original], feedID: feedID, deleteOlder: false)
+		_ = await database.updateAsync(parsedItems: [original], feedID: feedID)
 
 		let edited = parsedItem(title: "Title", markdown: "two")
-		let changes = await database.updateAsync(parsedItems: [edited], feedID: feedID, deleteOlder: false)
+		let changes = await database.updateAsync(parsedItems: [edited], feedID: feedID)
 		#expect(changes.updated?.count == 1)
 
 		database.emptyCaches()
@@ -53,10 +53,10 @@ import ArticlesDatabase
 
 	@Test func clearedFieldStopsReportingAsUpdated() async {
 		let withTitle = parsedItem(title: "Title", markdown: nil)
-		_ = await database.updateAsync(parsedItems: [withTitle], feedID: feedID, deleteOlder: false)
+		_ = await database.updateAsync(parsedItems: [withTitle], feedID: feedID)
 
 		let withoutTitle = parsedItem(title: nil, markdown: nil)
-		let clearingChanges = await database.updateAsync(parsedItems: [withoutTitle], feedID: feedID, deleteOlder: false)
+		let clearingChanges = await database.updateAsync(parsedItems: [withoutTitle], feedID: feedID)
 		#expect(clearingChanges.updated?.count == 1)
 
 		database.emptyCaches()
@@ -64,7 +64,7 @@ import ArticlesDatabase
 		#expect(fetched?.title == nil)
 
 		database.emptyCaches()
-		let repeatChanges = await database.updateAsync(parsedItems: [withoutTitle], feedID: feedID, deleteOlder: false)
+		let repeatChanges = await database.updateAsync(parsedItems: [withoutTitle], feedID: feedID)
 		#expect(repeatChanges.updated == nil)
 	}
 

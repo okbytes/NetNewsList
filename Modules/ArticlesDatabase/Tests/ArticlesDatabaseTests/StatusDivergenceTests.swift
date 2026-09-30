@@ -129,7 +129,7 @@ private extension StatusDivergenceTests {
 
 	func seedUnreadArticles(count: Int) async -> [Article] {
 		let items = Set((1...count).map { parsedItem(uniqueID: String($0)) })
-		let changes = await database.updateAsync(parsedItems: items, feedID: feedID, deleteOlder: false)
+		let changes = await database.updateAsync(parsedItems: items, feedID: feedID)
 		let newArticles = changes.new ?? Set<Article>()
 		#expect(newArticles.count == count)
 		return Array(newArticles)

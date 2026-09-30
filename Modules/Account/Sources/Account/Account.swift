@@ -292,7 +292,7 @@ public enum FetchType {
 		feedSettingsDatabase.deleteSettingsForFeedsNotIn(flattenedFeedURLs)
 
 		DispatchQueue.main.async {
-			self.database.cleanupDatabaseAtStartup(subscribedToFeedIDs: self.flattenedFeedsIDs)
+			self.database.cleanupDatabaseAtStartup()
 			self._fetchAllUnreadCounts()
 		}
 
@@ -758,10 +758,10 @@ public enum FetchType {
 
 	// MARK: - Updating Feeds
 
-	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>, deleteOlder: Bool = true) async -> ArticleChanges {
+	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>) async -> ArticleChanges {
 		precondition(Thread.isMainThread)
 
-		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID, deleteOlder: deleteOlder)
+		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID)
 		sendNotificationAbout(articleChanges)
 		return articleChanges
 	}

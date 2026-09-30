@@ -103,7 +103,7 @@ private extension CloudKitArticlesZoneDelegate {
 		await self.account?.markAsStarredAsync(articleIDs: updateableStarredArticleIDs)
 
 		for (feedID, parsedItems) in feedIDsAndItems {
-			guard let articleChanges = await self.account?.updateAsync(feedID: feedID, parsedItems: parsedItems, deleteOlder: false) else {
+			guard let articleChanges = await self.account?.updateAsync(feedID: feedID, parsedItems: parsedItems) else {
 				continue
 			}
 			guard let deletes = articleChanges.deleted, !deletes.isEmpty else {
