@@ -545,7 +545,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="dgO-u4-aEs"/>
-                            <menuItem isSeparatorItem="YES" id="c4R-jH-7kP"/>
                             <menuItem title="Open Image Cache Folder" id="x9L-mW-2vQ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -594,18 +593,6 @@
                             <menuItem title="Error Log" keyEquivalent="9" id="erl-0g-Kw7">
                                 <connections>
                                     <action selector="showErrorLog:" target="-1" id="erl-1h-Lx8"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="iCloud Storage Stats" id="dLy-xR-u6N">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="showCloudKitStats:" target="-1" id="ypX-Ya-bcD"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Account Stats" id="aS7-kP-m3Q">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="showAccountStats:" target="-1" id="bR2-nL-v8X"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="eu3-7i-yIM"/>

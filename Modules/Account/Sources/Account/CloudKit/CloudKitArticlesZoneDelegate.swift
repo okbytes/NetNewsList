@@ -141,19 +141,9 @@ nonisolated func makeParsedItem(_ articleRecord: CKRecord) -> ParsedItem? {
 		return nil
 	}
 
-	var contentHTML = articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.contentHTML] as? String
-	if let contentHTMLData = articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.contentHTMLData] as? NSData {
-		if let decompressedContentHTMLData = try? contentHTMLData.decompressed(using: .lzfse) {
-			contentHTML = String(data: decompressedContentHTMLData as Data, encoding: .utf8)
-		}
-	}
-
-	var contentText = articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.contentText] as? String
-	if let contentTextData = articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.contentTextData] as? NSData {
-		if let decompressedContentTextData = try? contentTextData.decompressed(using: .lzfse) {
-			contentText = String(data: decompressedContentTextData as Data, encoding: .utf8)
-		}
-	}
+	typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+	let contentHTML = decompressedString(in: articleRecord, stringField: Fields.contentHTML, dataField: Fields.contentHTMLData, assetField: Fields.contentHTMLAsset)
+	let contentText = decompressedString(in: articleRecord, stringField: Fields.contentText, dataField: Fields.contentTextData, assetField: Fields.contentTextAsset)
 
 	let parsedItem = ParsedItem(syncServiceID: nil,
 								uniqueID: uniqueID,
@@ -175,4 +165,18 @@ nonisolated func makeParsedItem(_ articleRecord: CKRecord) -> ParsedItem? {
 								attachments: nil)
 
 	return parsedItem
+}
+
+/// Content arrives as a plain string (old records), inline LZFSE data, or an LZFSE CKAsset for long articles.
+nonisolated private func decompressedString(in record: CKRecord, stringField: String, dataField: String, assetField: String) -> String? {
+	var compressedData: NSData?
+	if let data = record[dataField] as? NSData {
+		compressedData = data
+	} else if let asset = record[assetField] as? CKAsset, let fileURL = asset.fileURL, let data = try? Data(contentsOf: fileURL) {
+		compressedData = data as NSData
+	}
+	if let compressedData, let decompressed = try? compressedData.decompressed(using: .lzfse) {
+		return String(data: decompressed as Data, encoding: .utf8)
+	}
+	return record[stringField] as? String
 }

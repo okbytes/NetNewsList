@@ -930,19 +930,6 @@ public enum FetchType {
 		await delegate.vacuumDatabases()
 	}
 
-	public func fetchCloudKitStats(progress: @escaping CloudKitStatsProgressHandler) async throws -> CloudKitStats {
-		guard type == .cloudKit, let cloudKitDelegate = delegate as? CloudKitAccountDelegate else {
-			throw AccountError.invalidParameter
-		}
-		return try await cloudKitDelegate.fetchCloudKitStats(progress: progress)
-	}
-
-	public func cleanUpCloudKit(progress: @escaping @MainActor @Sendable (CloudKitCleanUpProgress) -> Void) async throws {
-		guard type == .cloudKit, let cloudKitDelegate = delegate as? CloudKitAccountDelegate else {
-			throw AccountError.invalidParameter
-		}
-		try await cloudKitDelegate.cleanUpCloudKit(progress: progress)
-	}
 
 	public func debugDropConditionalGetInfo() {
 #if DEBUG

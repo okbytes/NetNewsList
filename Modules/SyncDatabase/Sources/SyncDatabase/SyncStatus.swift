@@ -16,6 +16,8 @@ public struct SyncStatus: Hashable, Equatable, Sendable {
 		case starred
 		case deleted
 		case new
+		/// The article’s content changed locally and must be uploaded again.
+		case content
 
 		public init(_ articleStatusKey: ArticleStatus.Key) {
 			switch articleStatusKey {

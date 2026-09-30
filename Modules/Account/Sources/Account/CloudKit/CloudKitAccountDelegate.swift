@@ -47,8 +47,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 	}()
 
 	private lazy var accountZone = CloudKitAccountZone(container: container)
-	private lazy var articlesZone = CloudKitArticlesZone(container: container, syncArticleContentForUnreadArticles: syncArticleContentForUnreadArticles)
-	private let syncArticleContentForUnreadArticles: @Sendable () -> Bool
+	private lazy var articlesZone = CloudKitArticlesZone(container: container)
 
 	private let mainThreadOperationQueue = MainThreadOperationQueue()
 	private var syncErrorHandler: CloudKitSyncErrorHandler?
@@ -92,10 +91,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 
 	init(dataFolder: String) {
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public)")
-		let syncArticleContentForUnreadArticles: @Sendable () -> Bool = {
-			UserDefaults.standard.bool(forKey: AccountManager.syncArticleContentForUnreadArticlesKey)
-		}
-		self.syncArticleContentForUnreadArticles = syncArticleContentForUnreadArticles
 
 		let databaseFilePath = (dataFolder as NSString).appendingPathComponent("Sync.sqlite3")
 		self.syncDatabase = SyncDatabase(databasePath: databaseFilePath)
@@ -194,7 +189,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			lastNoChangeSyncDate = Date()
 		}
 
-		await cleanUpContentRecordsIfNeeded()
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")
 		return didWork
 	}
@@ -717,37 +711,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		}
 	}
 
-	func fetchCloudKitStats(progress: @escaping CloudKitStatsProgressHandler) async throws -> CloudKitStats {
-		guard let account else {
-			throw CloudKitAccountDelegateError.unknown
-		}
-		do {
-			return try await account.logActivity(kind: .fetchCloudKitStats) {
-				try await articlesZone.fetchStats(account: account, progress: progress)
-			}
-		} catch {
-			Self.logger.error("CloudKitAccountDelegate: fetchCloudKitStats error: \(error)")
-			account.postSyncError(error, operation: "Fetching iCloud stats")
-			throw error
-		}
-	}
-
-	func cleanUpCloudKit(progress: @escaping @MainActor @Sendable (CloudKitCleanUpProgress) -> Void) async throws {
-		guard let account else {
-			throw CloudKitAccountDelegateError.unknown
-		}
-		let syncUnreadContent = AccountManager.shared.syncArticleContentForUnreadArticles
-		do {
-			try await account.logActivity(kind: .cleanUpCloudKitRecords, detail: "Manual") {
-				try await articlesZone.cleanUpRecordsUsingCache(account: account, syncUnreadContent: syncUnreadContent, deleteStaleRecords: false, progress: progress)
-			}
-		} catch {
-			Self.logger.error("CloudKitAccountDelegate: cleanUpCloudKit error: \(error)")
-			account.postSyncError(error, operation: "Cleaning up iCloud records")
-			throw error
-		}
-	}
-
 	// MARK: - Suspend and Resume
 
 	func suspendNetwork() {
@@ -933,18 +896,17 @@ private extension CloudKitAccountDelegate {
 	}
 
 	func storeArticleChanges(new: Set<Article>?, updated: Set<Article>?, deleted: Set<Article>?) async {
-		// New records with a read status aren't really new, they just didn't have the read article stored
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public)")
 		await withTaskGroup(of: Void.self) { group in
-			if let new = new {
-				let filteredNew = new.filter { $0.status.read == false }
-				group.addTask {
-					await self.insertSyncStatuses(articles: filteredNew, statusKey: .new, flag: true)
-				}
+			// Every new article is uploaded with its content, even one that is already read.
+			group.addTask {
+				await self.insertSyncStatuses(articles: new, statusKey: .new, flag: true)
 			}
 
+			// Changed content (an extracted body arriving after the first upload, a re-save)
+			// is sent as a modification; `.new` would be ignored for records that already exist.
 			group.addTask {
-				await self.insertSyncStatuses(articles: updated, statusKey: .new, flag: false)
+				await self.insertSyncStatuses(articles: updated, statusKey: .content, flag: true)
 			}
 
 			group.addTask {
@@ -973,7 +935,6 @@ private extension CloudKitAccountDelegate {
 			let op = CloudKitSendStatusOperation(account: account,
 												 articlesZone: articlesZone,
 												 database: syncDatabase,
-												 syncArticleContentForUnreadArticles: syncArticleContentForUnreadArticles,
 												 syncErrorHandler: syncErrorHandler)
 			op.completionBlock = { mainThreadOperation in
 				Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")
@@ -1021,42 +982,4 @@ private extension CloudKitAccountDelegate {
 		}
 	}
 
-	// MARK: - Record Cleanup
-
-	private static let lastCleanUpKey = "cloudkit.lastCleanUpDate"
-
-	func cleanUpContentRecordsIfNeeded() async {
-		if UserDefaults.standard.object(forKey: Self.lastCleanUpKey) == nil {
-			UserDefaults.standard.set(Date(), forKey: Self.lastCleanUpKey)
-			return
-		}
-		let lastCleanUp = UserDefaults.standard.object(forKey: Self.lastCleanUpKey) as? Date ?? .distantPast
-		let sixDaysAgo = Date(timeIntervalSinceNow: -6 * 24 * 60 * 60)
-		guard lastCleanUp < sixDaysAgo else {
-			return
-		}
-
-		guard let account else {
-			return
-		}
-
-		// Set this unconditionally. If it fails, we don’t want to keep trying, possibly
-		// doing a bunch of extra work that will fail. Let it rest until the next go.
-		UserDefaults.standard.set(Date(), forKey: Self.lastCleanUpKey)
-
-		Self.logger.info("CloudKitAccountDelegate: running weekly record cleanup")
-		do {
-			let syncUnreadContent = AccountManager.shared.syncArticleContentForUnreadArticles
-			let successMessage: (Int) -> String? = { count in
-				count == 0 ? "no records deleted" : "deleted \(count) record\(count == 1 ? "" : "s")"
-			}
-			let deleted = try await account.logActivity(kind: .cleanUpCloudKitRecords, detail: "Weekly", successMessage: successMessage) { () -> Int in
-				try await articlesZone.cleanUpRecords(account: account, syncUnreadContent: syncUnreadContent, deleteStaleRecords: false)
-			}
-			Self.logger.info("CloudKitAccountDelegate: weekly cleanup deleted \(deleted, privacy: .public) records")
-		} catch {
-			Self.logger.error("CloudKitAccountDelegate: weekly cleanup error: \(error.localizedDescription, privacy: .public)")
-			account.postSyncError(error, operation: "Weekly record cleanup")
-		}
-	}
 }

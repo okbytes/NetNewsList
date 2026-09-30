@@ -81,8 +81,6 @@ let appName = "NetNewsList"
 	private var activityWindowController: CurrentActivityWindowController?
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
-	private var cloudKitStatsWindowController: CloudKitStatsWindowController?
-	private var accountStatsWindowController: AccountStatsWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
 
 	private var themeImportPath: String?
@@ -187,9 +185,6 @@ let appName = "NetNewsList"
 			}
 			if ErrorLogWindowController.shouldOpenAtStartup {
 				showErrorLog(self)
-			}
-			if AccountStatsWindowController.shouldOpenAtStartup {
-				showAccountStats(self)
 			}
 		}
 
@@ -402,10 +397,6 @@ let appName = "NetNewsList"
 
 		if item.action == #selector(showAddFeedWindow(_:)) || item.action == #selector(showAddFolderWindow(_:)) {
 			return !isDisplayingSheet && !AccountManager.shared.activeAccounts.isEmpty
-		}
-
-		if item.action == #selector(showCloudKitStats(_:)) {
-			return AccountManager.shared.hasiCloudAccount
 		}
 
 		if item.action == #selector(toggleWebInspectorEnabled(_:)) {
@@ -665,19 +656,6 @@ extension AppDelegate {
 		NSWorkspace.shared.open(AppConfig.cacheFolder)
 	}
 
-	@IBAction func showCloudKitStats(_ sender: Any?) {
-		if cloudKitStatsWindowController == nil {
-			cloudKitStatsWindowController = CloudKitStatsWindowController()
-		}
-		cloudKitStatsWindowController?.showWindow(self)
-	}
-
-	@IBAction func showAccountStats(_ sender: Any?) {
-		if accountStatsWindowController == nil {
-			accountStatsWindowController = AccountStatsWindowController()
-		}
-		accountStatsWindowController?.showWindow(self)
-	}
 }
 
 @MainActor internal extension AppDelegate {
@@ -705,7 +683,6 @@ extension AppDelegate {
 		activityWindowController?.saveState()
 		activityLogWindowController?.saveState()
 		errorLogWindowController?.saveState()
-		accountStatsWindowController?.saveState()
 	}
 
 	@MainActor func updateColumnLayoutMenuItem() {

@@ -22,13 +22,11 @@ struct CloudKitArticleStatusUpdate {
 	var articleID: String
 	var statuses: [SyncStatus]
 	var article: Article?
-	var syncArticleContentForUnreadArticles: @Sendable () -> Bool
 
-	init?(articleID: String, statuses: [SyncStatus], article: Article?, syncArticleContentForUnreadArticles: @escaping @Sendable () -> Bool) {
+	init?(articleID: String, statuses: [SyncStatus], article: Article?) {
 		self.articleID = articleID
 		self.statuses = statuses
 		self.article = article
-		self.syncArticleContentForUnreadArticles = syncArticleContentForUnreadArticles
 
 		let rec = record
 		// This is an invalid status update.  The article is required for new and all
@@ -42,17 +40,17 @@ struct CloudKitArticleStatusUpdate {
 			return .delete
 		}
 
-		if statuses.count == 1, statuses.first!.key == .new {
+		// A lone first upload is saved only if the records don’t exist yet, so two devices
+		// saving the same page don’t overwrite each other.
+		if statuses.count == 1, statuses.first?.key == .new {
 			return .new
 		}
 
-		if let article {
-			if article.status.starred {
-				return .all
-			}
-			if !article.status.read && syncArticleContentForUnreadArticles() {
-				return .all
-			}
+		// New content, or a first upload bundled with a status change (saved, then marked
+		// read before it was sent): upload status and content, overwriting the server copy.
+		// A pure status change never touches content.
+		if statuses.contains(where: { $0.key == .new || $0.key == .content }) {
+			return .all
 		}
 
 		return .statusOnly

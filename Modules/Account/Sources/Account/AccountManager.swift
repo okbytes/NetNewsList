@@ -29,22 +29,6 @@ import ActivityLog
 
 	public var isSuspended = false
 
-	nonisolated static let syncArticleContentForUnreadArticlesKey = "iCloudSyncArticleContentForUnreadArticles"
-
-	public var syncArticleContentForUnreadArticles: Bool {
-		get {
-			assert(Thread.isMainThread)
-			return UserDefaults.standard.bool(forKey: Self.syncArticleContentForUnreadArticlesKey)
-		}
-		set {
-			assert(Thread.isMainThread)
-			UserDefaults.standard.set(newValue, forKey: Self.syncArticleContentForUnreadArticlesKey)
-			if Platform.deviceHasiCloudAccount {
-				NSUbiquitousKeyValueStore.default.set(newValue, forKey: Self.syncArticleContentForUnreadArticlesKey)
-			}
-		}
-	}
-
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "AccountManager")
 
 	public var areUnreadCountsInitialized: Bool {
@@ -145,13 +129,6 @@ import ActivityLog
 		defaultAccount = Account(dataFolder: accountFolder, type: .cloudKit, accountID: accountID)
 		accountsDictionary[defaultAccount.accountID] = defaultAccount
 
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUbiquitousKeyValueStoreDidChangeExternally(_:)), name: NSUbiquitousKeyValueStore.didChangeExternallyNotification, object: NSUbiquitousKeyValueStore.default)
-		if Platform.deviceHasiCloudAccount {
-			NSUbiquitousKeyValueStore.default.synchronize()
-		}
-
-		migrateSyncArticleContentForUnreadArticlesSetting(hasiCloudAccount: hasiCloudAccount)
-		seedSyncArticleContentForUnreadArticlesInUbiquitousKeyValueStore()
 	}
 
 	public func start() {
@@ -445,76 +422,6 @@ import ActivityLog
 // MARK: - Private
 
 private extension AccountManager {
-
-	@objc nonisolated func handleUbiquitousKeyValueStoreDidChangeExternally(_ note: Notification) {
-		guard !Platform.isRunningUnitTests else {
-			return
-		}
-
-		// Extract only Sendable primitives before hopping to the MainActor.
-		let changeReason = note.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
-		let changedKeys = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]
-
-		Task { @MainActor in
-			assert(Thread.isMainThread)
-			guard let changeReason, changeReason == NSUbiquitousKeyValueStoreServerChange || changeReason == NSUbiquitousKeyValueStoreInitialSyncChange else {
-				return
-			}
-
-			guard let changedKeys, changedKeys.contains(Self.syncArticleContentForUnreadArticlesKey) else {
-				return
-			}
-
-			// Only apply if the store actually has a value for the key.
-			guard NSUbiquitousKeyValueStore.default.object(forKey: Self.syncArticleContentForUnreadArticlesKey) != nil else {
-				return
-			}
-
-			let newValue = NSUbiquitousKeyValueStore.default.bool(forKey: Self.syncArticleContentForUnreadArticlesKey)
-			UserDefaults.standard.set(newValue, forKey: Self.syncArticleContentForUnreadArticlesKey)
-		}
-	}
-
-	func migrateSyncArticleContentForUnreadArticlesSetting(hasiCloudAccount: Bool) {
-		assert(Thread.isMainThread)
-		// syncArticleContentForUnreadArticles should be set to false unless
-		// the user already has an iCloud account.
-		guard UserDefaults.standard.object(forKey: Self.syncArticleContentForUnreadArticlesKey) == nil else {
-			return
-		}
-
-		guard !Platform.isRunningUnitTests else {
-			return
-		}
-
-		guard Platform.deviceHasiCloudAccount else {
-			syncArticleContentForUnreadArticles = false
-			return
-		}
-
-		// Check if another device already set a value via iCloud key-value store.
-		if NSUbiquitousKeyValueStore.default.object(forKey: Self.syncArticleContentForUnreadArticlesKey) != nil {
-			let iCloudValue = NSUbiquitousKeyValueStore.default.bool(forKey: Self.syncArticleContentForUnreadArticlesKey)
-			UserDefaults.standard.set(iCloudValue, forKey: Self.syncArticleContentForUnreadArticlesKey)
-			return
-		}
-
-		syncArticleContentForUnreadArticles = hasiCloudAccount
-	}
-
-	func seedSyncArticleContentForUnreadArticlesInUbiquitousKeyValueStore() {
-		assert(Thread.isMainThread)
-		guard !Platform.isRunningUnitTests else {
-			return
-		}
-		guard Platform.deviceHasiCloudAccount else {
-			return
-		}
-		guard NSUbiquitousKeyValueStore.default.object(forKey: Self.syncArticleContentForUnreadArticlesKey) == nil else {
-			return
-		}
-		NSUbiquitousKeyValueStore.default.set(syncArticleContentForUnreadArticles, forKey: Self.syncArticleContentForUnreadArticlesKey)
-	}
 
 	func updateUnreadCount() {
 		unreadCount = calculateUnreadCount(activeAccounts)

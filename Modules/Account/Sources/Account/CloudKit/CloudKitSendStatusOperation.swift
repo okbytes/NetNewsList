@@ -21,7 +21,6 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 	private weak var articlesZone: CloudKitArticlesZone?
 	private let accountID: String
 	private var syncDatabase: SyncDatabase
-	private let syncArticleContentForUnreadArticles: @Sendable () -> Bool
 	private static let logger = cloudKitLogger
 	let syncErrorHandler: CloudKitSyncErrorHandler?
 
@@ -32,12 +31,15 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 	/// Whether any statuses failed to send. Read after the operation completes.
 	private(set) var didFail = false
 
-	init(account: Account, articlesZone: CloudKitArticlesZone, database: SyncDatabase, syncArticleContentForUnreadArticles: @escaping @Sendable () -> Bool, syncErrorHandler: CloudKitSyncErrorHandler?) {
+	/// Articles whose content upload failed. Queued again once this run finishes,
+	/// so a failing upload is retried on the next send instead of looping in this one.
+	private var failedContentArticleIDs = Set<String>()
+
+	init(account: Account, articlesZone: CloudKitArticlesZone, database: SyncDatabase, syncErrorHandler: CloudKitSyncErrorHandler?) {
 		self.account = account
 		self.accountID = account.accountID
 		self.articlesZone = articlesZone
 		self.syncDatabase = database
-		self.syncArticleContentForUnreadArticles = syncArticleContentForUnreadArticles
 		self.syncErrorHandler = syncErrorHandler
 		super.init(name: "CloudKitSendStatusOperation")
 	}
@@ -71,6 +73,7 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 				Self.logger.debug("iCloud: Send status error: \(error.localizedDescription)")
 				activityLog.didFail(id: activityID, error: error)
 			}
+			await requeueFailedContent()
 			didComplete()
 		}
 	}
@@ -110,7 +113,7 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 			result[article.articleID] = article
 		}
 		let statusUpdates = syncStatusesDict.compactMap { (key, value) in
-			CloudKitArticleStatusUpdate(articleID: key, statuses: value, article: articlesDict[key], syncArticleContentForUnreadArticles: self.syncArticleContentForUnreadArticles)
+			CloudKitArticleStatusUpdate(articleID: key, statuses: value, article: articlesDict[key])
 		}
 
 		// We somehow have new status records but the articles didn't come back
@@ -121,16 +124,20 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 		}
 
 		do {
-			let withContent = try await account.logActivity(
+			let result = try await account.logActivity(
 				kind: .sendArticleStatuses,
 				detail: ActivityLog.shared.nextTaskNumberString(),
-				successMessage: { "\(statusUpdates.count) status\(statusUpdates.count == 1 ? "" : "es") sent\($0 > 0 ? " (\($0) with content)" : "")" },
+				successMessage: { "\(statusUpdates.count) status\(statusUpdates.count == 1 ? "" : "es") sent\($0.contentUploadCount > 0 ? " (\($0.contentUploadCount) with content)" : "")" },
 				{
 					try await articlesZone.modifyArticles(statusUpdates)
 				}
 			)
 			await syncDatabase.deleteSelectedForProcessing(Set(statusUpdates.map({ $0.articleID })))
-			return (statusUpdates.count, withContent)
+			if let contentError = result.contentError {
+				failedContentArticleIDs.formUnion(result.failedContentArticleIDs)
+				syncErrorHandler?(contentError, "Uploading article content", #fileID, #function, #line)
+			}
+			return (statusUpdates.count, result.contentUploadCount)
 		} catch {
 			await syncDatabase.resetSelectedForProcessing(Set(syncStatuses.map({ $0.articleID })))
 			syncErrorHandler?(error, "Sending article status", #fileID, #function, #line)
@@ -139,4 +146,12 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 		}
 	}
 
+	func requeueFailedContent() async {
+		guard !failedContentArticleIDs.isEmpty else {
+			return
+		}
+		let statuses = Set(failedContentArticleIDs.map { SyncStatus(articleID: $0, key: .content, flag: true) })
+		failedContentArticleIDs.removeAll()
+		await syncDatabase.insertStatuses(statuses)
+	}
 }

@@ -415,24 +415,6 @@
         }
       }
     },
-    "aS7-kP-m3Q.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Account Stats\"; ObjectID = \"aS7-kP-m3Q\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Account Stats"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estadísticas de cuentas"
-          }
-        }
-      }
-    },
     "aUF-d1-5bR.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Window\"; ObjectID = \"aUF-d1-5bR\";",
       "extractionState" : "extracted_with_value",
@@ -609,24 +591,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Convertir en minúsculas"
-          }
-        }
-      }
-    },
-    "dLy-xR-u6N.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"iCloud Storage Stats\"; ObjectID = \"dLy-xR-u6N\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "iCloud Storage Stats"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estadísticas de almacenamiento de iCloud"
           }
         }
       }

@@ -27,8 +27,6 @@ final class SettingsViewController: UITableViewController {
 	private enum TroubleshootingRow: Int {
 		case errorLog = 0
 		case activityLog = 1
-		case accountStats = 2
-		case cloudKitZoneStats = 3
 	}
 
 	private enum TimelineRow: Int {
@@ -155,12 +153,6 @@ final class SettingsViewController: UITableViewController {
 		case .articles:
 			// The Full Screen Articles row is iPhone-only.
 			return traitCollection.userInterfaceIdiom == .phone ? ArticlesRow.allCases.count : ArticlesRow.allCases.count - 1
-		case .troubleshooting:
-			let defaultNumberOfRows = super.tableView(tableView, numberOfRowsInSection: section)
-			if !AccountManager.shared.hasiCloudAccount {
-				return defaultNumberOfRows - 1
-			}
-			return defaultNumberOfRows
 		default:
 			return super.tableView(tableView, numberOfRowsInSection: section)
 		}
@@ -196,10 +188,6 @@ final class SettingsViewController: UITableViewController {
 				switch TroubleshootingRow(rawValue: indexPath.row) {
 				case .errorLog:
 					return UIHostingController(rootView: ErrorLogView())
-				case .accountStats:
-					return UIHostingController(rootView: AccountStatsView())
-				case .cloudKitZoneStats:
-					return UIHostingController(rootView: CloudKitStatsView())
 				case .activityLog:
 					return UIHostingController(rootView: ActivityLogView())
 				default:
