@@ -300,6 +300,14 @@ public enum FetchType {
 		delegate.accountDidInitialize()
 	}
 
+	/// Rebuilds this device’s link to iCloud and uploads any article iCloud lacks.
+	public func resetiCloudSync() async throws {
+		guard let cloudKitDelegate = delegate as? CloudKitAccountDelegate else {
+			return
+		}
+		try await cloudKitDelegate.resetSync()
+	}
+
 	public func receiveRemoteNotification(userInfo: [AnyHashable: Any]) async {
 		await delegate.receiveRemoteNotification(userInfo: userInfo)
 	}

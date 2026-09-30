@@ -689,10 +689,40 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 					}
 				}
 			}
-			subscribeToZoneChangesWithActivity(account: account, zone: accountZone)
-			subscribeToZoneChangesWithActivity(account: account, zone: articlesZone)
 		}
 
+		// Checked on every launch, not only for a new account, so a reinstall or a failed
+		// first attempt still ends up with push notifications.
+		subscribeToZoneChangesIfNeeded(account: account)
+	}
+
+	/// Rebuilds this device’s link to iCloud: forgets the change tokens, finds or recreates
+	/// the iCloud zones and subscriptions, fetches everything, then uploads any article this
+	/// device has that iCloud lacks. Articles already in iCloud are left as they are there.
+	func resetSync() async throws {
+		guard let account, isCloudKitEnabled else {
+			return
+		}
+		Self.logger.info("CloudKitAccountDelegate: resetting iCloud sync")
+
+		accountZone.resetChangeToken()
+		articlesZone.resetChangeToken()
+		UserDefaults.standard.removeObject(forKey: Self.didSubscribeToZonesKey)
+		lastNoChangeSyncDate = nil
+		iCloudAccountIsUnavailable = false
+
+		try await account.logActivity(kind: .refreshAll, detail: "Resetting iCloud sync") {
+			account.externalID = try await accountZone.findOrCreateAccount()
+			subscribeToZoneChangesIfNeeded(account: account)
+			try await initialRefreshAll(for: account)
+
+			var articles = Set<Article>()
+			for feed in account.flattenedFeeds() {
+				articles.formUnion(await account.fetchArticlesAsync(.feed(feed)))
+			}
+			await storeArticleChanges(new: articles, updated: nil, deleted: nil)
+			_ = try await sendArticleStatus(account: account, showProgress: true)
+		}
 	}
 
 	func accountWillBeDeleted() {
@@ -739,25 +769,40 @@ private extension CloudKitAccountDelegate {
 
 private extension CloudKitAccountDelegate {
 
-	/// Push-subscription setup runs once per zone at first iCloud account add.
-	/// Wraps it in an activity so silent failures (offline, account issues) become
-	/// visible — without it, a failed subscription means no future remote pushes.
-	func subscribeToZoneChangesWithActivity(account: Account, zone: any CloudKitZone) {
-		let zoneName = zone.zoneID.zoneName
+	static let didSubscribeToZonesKey = "cloudkit.didSubscribeToZones"
+
+	/// Subscribes both zones to change pushes, once per install. Saving a subscription that
+	/// already exists succeeds, so this is safe to repeat; the flag only avoids a request per
+	/// launch. Failures are logged and retried on the next launch.
+	func subscribeToZoneChangesIfNeeded(account: Account) {
+		guard !UserDefaults.standard.bool(forKey: Self.didSubscribeToZonesKey) else {
+			return
+		}
 		Task { [weak self] in
 			guard let self else {
 				return
 			}
-			do {
-				try await account.logActivity(kind: .subscribeToCloudKitZone, detail: zoneName) {
-					try await zone.subscribeToZoneChanges()
-				}
-			} catch {
-				Self.logger.error("CloudKitAccountDelegate: subscribeToZoneChanges \(zoneName, privacy: .public) error: \(error.localizedDescription)")
-				if let account = self.account {
-					account.postSyncError(error, operation: "Subscribing to zone changes")
-				}
+			let accountZoneSubscribed = await subscribeToZoneChangesWithActivity(account: account, zone: accountZone)
+			let articlesZoneSubscribed = await subscribeToZoneChangesWithActivity(account: account, zone: articlesZone)
+			if accountZoneSubscribed && articlesZoneSubscribed {
+				UserDefaults.standard.set(true, forKey: Self.didSubscribeToZonesKey)
 			}
+		}
+	}
+
+	/// Wraps a zone subscription in an activity so silent failures (offline, account issues)
+	/// become visible. Without a subscription there are no remote pushes.
+	func subscribeToZoneChangesWithActivity(account: Account, zone: any CloudKitZone) async -> Bool {
+		let zoneName = zone.zoneID.zoneName
+		do {
+			try await account.logActivity(kind: .subscribeToCloudKitZone, detail: zoneName) {
+				try await zone.subscribeToZoneChanges()
+			}
+			return true
+		} catch {
+			Self.logger.error("CloudKitAccountDelegate: subscribeToZoneChanges \(zoneName, privacy: .public) error: \(error.localizedDescription)")
+			account.postSyncError(error, operation: "Subscribing to zone changes")
+			return false
 		}
 	}
 }
@@ -829,10 +874,12 @@ private extension CloudKitAccountDelegate {
 			}
 		} catch {
 			if case CloudKitZoneError.userDeletedZone = error {
-				account.removeFeedsFromTreeAtTopLevel(account.topLevelFeeds)
-				for folder in account.folders ?? Set<Folder>() {
-					account.removeFolderFromTree(folder)
-				}
+				// The app’s iCloud data was deleted (for instance from iCloud settings). Keep
+				// everything on this device; Reset iCloud Sync uploads it again if wanted.
+				accountZone.resetChangeToken()
+				articlesZone.resetChangeToken()
+				account.externalID = nil
+				UserDefaults.standard.removeObject(forKey: Self.didSubscribeToZonesKey)
 			}
 			account.postSyncError(error, operation: "Fetching zone changes")
 			iCloudError = error

@@ -470,6 +470,25 @@ let appName = "NetNewsList"
 		windowController.window?.makeKey()
 	}
 
+	@IBAction func resetiCloudSync(_ sender: Any?) {
+		let alert = NSAlert()
+		alert.alertStyle = .warning
+		alert.messageText = NSLocalizedString("Reset iCloud Sync?", comment: "Reset iCloud Sync alert title")
+		alert.informativeText = NSLocalizedString("NetNewsList will download everything from iCloud again, then upload any article on this Mac that iCloud doesn’t have. Nothing is deleted.", comment: "Reset iCloud Sync alert message")
+		alert.addButton(withTitle: NSLocalizedString("Reset", comment: "Reset button"))
+		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+		guard alert.runModal() == .alertFirstButtonReturn else {
+			return
+		}
+		Task {
+			do {
+				try await AccountManager.shared.defaultAccount.resetiCloudSync()
+			} catch {
+				mainWindowController?.presentError(error)
+			}
+		}
+	}
+
 	@IBAction func showErrorLog(_ sender: Any?) {
 		if errorLogWindowController == nil {
 			errorLogWindowController = ErrorLogWindowController()

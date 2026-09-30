@@ -2238,6 +2238,18 @@
           }
         }
       }
+    },
+    "rIS-mn-01a.title" : {
+      "comment" : "Class = \"NSMenuItem\"; title = \"Reset iCloud Sync…\"; ObjectID = \"rIS-mn-01a\";",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reset iCloud Sync…"
+          }
+        }
+      }
     }
   },
   "version" : "1.2"

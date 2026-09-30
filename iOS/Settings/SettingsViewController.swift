@@ -27,6 +27,7 @@ final class SettingsViewController: UITableViewController {
 	private enum TroubleshootingRow: Int {
 		case errorLog = 0
 		case activityLog = 1
+		case resetiCloudSync = 2
 	}
 
 	private enum TimelineRow: Int {
@@ -184,6 +185,11 @@ final class SettingsViewController: UITableViewController {
 			let colorPalette = UIStoryboard.settings.instantiateController(ofType: ColorPaletteTableViewController.self)
 			self.navigationController?.pushViewController(colorPalette, animated: true)
 		case .troubleshooting:
+			if TroubleshootingRow(rawValue: indexPath.row) == .resetiCloudSync {
+				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
+				confirmResetiCloudSync()
+				return
+			}
 			let viewController: UIViewController? = {
 				switch TroubleshootingRow(rawValue: indexPath.row) {
 				case .errorLog:
@@ -311,6 +317,23 @@ final class SettingsViewController: UITableViewController {
 // MARK: - Private
 
 private extension SettingsViewController {
+
+	func confirmResetiCloudSync() {
+		let title = NSLocalizedString("Reset iCloud Sync?", comment: "Reset iCloud Sync alert title")
+		let message = NSLocalizedString("NetNewsList will download everything from iCloud again, then upload any article on this device that iCloud doesn’t have. Nothing is deleted.", comment: "Reset iCloud Sync alert message")
+		let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel button"), style: .cancel))
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Reset", comment: "Reset button"), style: .destructive) { [weak self] _ in
+			Task { @MainActor in
+				do {
+					try await AccountManager.shared.defaultAccount.resetiCloudSync()
+				} catch {
+					self?.presentError(error)
+				}
+			}
+		})
+		present(alertController, animated: true)
+	}
 
 	func openURL(_ urlString: String) {
 		guard let url = URL(string: urlString) else {

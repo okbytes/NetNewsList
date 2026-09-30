@@ -36,6 +36,12 @@
                                     <action selector="showPreferences:" target="-1" id="Syu-AN-6P4"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Reset iCloud Sync…" id="rIS-mn-01a">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="resetiCloudSync:" target="-1" id="rIS-ac-01b"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="wFC-TO-SCJ"/>
                             <menuItem title="Services" id="NMo-om-nkz">
                                 <modifierMask key="keyEquivalentModifierMask"/>
