@@ -15,7 +15,6 @@ let package = Package(
 		.package(path: "../Articles"),
 		.package(path: "../ArticlesDatabase"),
 		.package(path: "../CloudKitSync"),
-		.package(path: "../Secrets"),
 		.package(path: "../ErrorLog"),
 		.package(path: "../SyncDatabase"),
 		.package(path: "../RSWeb"),
@@ -36,7 +35,6 @@ let package = Package(
 				"ArticlesDatabase",
 				"CloudKitSync",
 				"ErrorLog",
-				"Secrets",
 				"SyncDatabase"
 			],
 			swiftSettings: [

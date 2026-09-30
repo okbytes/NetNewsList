@@ -18,7 +18,6 @@ import RSWeb
 import SyncDatabase
 import Articles
 import ArticlesDatabase
-import Secrets
 import CloudKitSync
 
 /// Parameters: (error, operation, fileName, functionName, lineNumber)
@@ -74,8 +73,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 	let behaviors: AccountBehaviors = []
 	let isOPMLImportInProgress = false
 
-	let server: String? = nil
-	var credentials: Credentials?
 	var accountSettings: AccountSettings?
 
 	var progressInfo = ProgressInfo() {
@@ -709,10 +706,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		accountZone.resetChangeToken()
 		articlesZone.resetChangeToken()
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")
-	}
-
-	static func validateCredentials(credentials: Credentials, endpoint: URL?) async throws -> Credentials? {
-		nil
 	}
 
 	func vacuumDatabases() async {

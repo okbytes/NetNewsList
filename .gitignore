@@ -83,12 +83,7 @@ fastlane/screenshots
 fastlane/test_output
 
 
-/Shared/Secrets.swift
-/Frameworks/Secrets/Secrets.swift
-/Modules/Secrets/Sources/Secrets/Secrets.swift
 *.py[cod]
-/Secrets/Sources/Secrets/SecretKey.swift
-/Modules/Secrets/Sources/Secrets/SecretKey.swift
 
 .claude/
 

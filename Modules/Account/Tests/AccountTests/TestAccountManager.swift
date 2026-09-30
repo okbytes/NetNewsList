@@ -8,7 +8,6 @@
 
 import Foundation
 import RSWeb
-import Secrets
 
 @testable import Account
 
@@ -38,11 +37,6 @@ import Secrets
 	}
 
 	func deleteAccount(_ account: Account) {
-
-		// Credentials live in the keychain, outside the account folder removed below.
-		for credentialsType in CredentialsType.allCases {
-			try? account.removeCredentials(type: credentialsType)
-		}
 
 		account.deleteSettings()
 

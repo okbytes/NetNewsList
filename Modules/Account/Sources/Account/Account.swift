@@ -17,7 +17,6 @@ import RSParser
 import RSDatabase
 import ArticlesDatabase
 import RSWeb
-import Secrets
 import ErrorLog
 import ActivityLog
 import os
@@ -299,55 +298,6 @@ public enum FetchType {
 
 		delegate.account = self
 		delegate.accountDidInitialize()
-	}
-
-	// MARK: - Credentials
-
-	public func storeCredentials(_ credentials: Credentials) throws {
-		username = credentials.username
-		guard let server = delegate.server else {
-			assertionFailure()
-			return
-		}
-		do {
-			try CredentialsManager.storeCredentials(credentials, server: server)
-		} catch {
-			Self.logger.error("Account: storeCredentials: failed to store credentials: \(error.localizedDescription, privacy: .public)")
-			postSyncError(error, operation: "Storing credentials")
-			throw error
-		}
-		delegate.credentials = credentials
-	}
-
-	public func retrieveCredentials(type: CredentialsType) throws -> Credentials? {
-		guard let username = self.username else {
-			Self.logger.error("Account: retrieveCredentials: username is nil for \(type.rawValue, privacy: .public)")
-			return nil
-		}
-		guard let server = delegate.server else {
-			Self.logger.error("Account: retrieveCredentials: delegate.server is nil for \(type.rawValue, privacy: .public)")
-			return nil
-		}
-		do {
-			return try CredentialsManager.retrieveCredentials(type: type, server: server, username: username)
-		} catch {
-			Self.logger.error("Account: retrieveCredentials: failed to retrieve \(type.rawValue, privacy: .public) credentials: \(error.localizedDescription, privacy: .public)")
-			postSyncError(error, operation: "Retrieving credentials")
-			throw error
-		}
-	}
-
-	public func removeCredentials(type: CredentialsType) throws {
-		guard let username = self.username, let server = delegate.server else {
-			return
-		}
-		do {
-			try CredentialsManager.removeCredentials(type: type, server: server, username: username)
-		} catch {
-			Self.logger.error("Account: removeCredentials: failed to remove credentials: \(error.localizedDescription, privacy: .public)")
-			postSyncError(error, operation: "Removing credentials")
-			throw error
-		}
 	}
 
 	public func receiveRemoteNotification(userInfo: [AnyHashable: Any]) async {
