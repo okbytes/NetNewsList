@@ -19,9 +19,9 @@ public enum URLCanonicalizer {
 	/// Returns the canonical form of an http or https URL, or nil for anything else.
 	///
 	/// Rules, applied in order: lowercase the scheme and host; drop the default port;
-	/// drop the fragment; drop `utm_*` and other tracking query items (keeping the
-	/// rest in their original order); an empty path becomes `/`; any other path
-	/// loses one trailing slash.
+	/// drop the fragment; drop `utm_*` and other tracking query items, keeping the
+	/// rest exactly as written and in their original order; an empty path becomes `/`;
+	/// any other path loses one trailing slash.
 	public static func canonicalString(for urlString: String) -> String? {
 		let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 		guard var components = URLComponents(string: trimmed),
@@ -40,12 +40,16 @@ public enum URLCanonicalizer {
 
 		components.fragment = nil
 
-		if let queryItems = components.queryItems {
-			let kept = queryItems.filter { item in
-				let name = item.name.lowercased()
+		// Work on the query as written: decoding and re-encoding it would change what
+		// some servers see (`%2B` would become `+`, which they read as a space).
+		if let query = components.percentEncodedQuery {
+			let kept = query.split(separator: "&", omittingEmptySubsequences: false).filter { item in
+				let encodedName = item.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).first ?? ""
+				let name = (String(encodedName).removingPercentEncoding ?? String(encodedName)).lowercased()
 				return !name.hasPrefix("utm_") && !trackingQueryItemNames.contains(name)
 			}
-			components.queryItems = kept.isEmpty ? nil : kept
+			let keptQuery = kept.joined(separator: "&")
+			components.percentEncodedQuery = keptQuery.isEmpty ? nil : keptQuery
 		}
 
 		let path = components.percentEncodedPath

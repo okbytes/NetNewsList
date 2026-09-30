@@ -87,3 +87,6 @@ fastlane/test_output
 
 .claude/
 
+
+# Browser extension settings with a CloudKit API token; never commit it
+chrome-extension/local-config.json

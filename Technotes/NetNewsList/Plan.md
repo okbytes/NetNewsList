@@ -256,6 +256,13 @@ Each of these exists today and is neutralized in PR5 unless noted. Add the unit 
 - The browser extension opens the scheme from an extension page (the toolbar popup, or a small window for the link context menu), not from the web page, so that Chrome's "Always allow" is granted to the extension once rather than to each website. This is unverified in a browser here.
 - Not done: dropping a URL on the Mac sidebar or timeline (PR9).
 
+**Progress (2026-09-30, PR8b).** Remote mode is in `chrome-extension/` (`lib/canonicalize.js`, `lib/md5.js`, `lib/records.js`, `lib/cloudkit.js`, `lib/remote.js`, options page, 13 Node tests). Differences from 3.4 as written:
+- The CloudKit API token is a Development token (the container rejects it for Production), and it isn't committed: the repository is public. It goes in the options page or a git-ignored `chrome-extension/local-config.json`.
+- The replacement web auth token comes back in the `X-Apple-CloudKit-Web-Auth-Token` response header (CloudKit JS falls back to `X-Apple-CloudKit-Session`); requests are made one at a time because each token is good for one round trip.
+- Before writing, the extension looks up both records. A page that is already saved and archived moves back to the Inbox (a status update with its change tag), as re-saving does in the apps; an unread one is left alone; a status record left over from a delete is updated, keeping its star, instead of created.
+- `URLCanonicalizer` (Swift) now keeps the query exactly as written and only drops tracking items. It used to decode and re-encode it through `queryItems`, which turned `%2B` into `+` and so changed the page some servers return. The shared vectors grew from 19 to 49, generated from the Swift implementation, covering Foundation's encoding of invalid characters, stray `%`, IDN hosts and ports; the JavaScript matches all of them.
+- The app-side regression test from PR8b (a content-less `Article` record becomes a pending article) is not written yet.
+
 Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_and_test.sh`; they build the extension and widget targets as dependencies); `git diff` the pbxproj after any Xcode UI action; delete a nib's `.xcstrings` with the nib; remove test-plan entries (`NetNewsWire.xctestplan`, `NetNewsWire-CI.xctestplan`, `NetNewsWire-iOS.xctestplan`) when a module goes; commit small. Effort assumes one experienced developer with AI help.
 
 ### Phase A: pure deletions (no design risk)
