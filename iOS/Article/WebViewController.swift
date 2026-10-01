@@ -627,13 +627,18 @@ private extension WebViewController {
 		guard let imageURL = URL(string: clickMessage.imageURL) else { return }
 
 		imageDownloadTask?.cancel()
+		let userAgent = UserAgent.browserUserAgent
 		imageDownloadTask = Task { [weak self] in
-			guard let downloadResponse = try? await Downloader.shared.download(imageURL, userAgentStyle: .browser) else {
-				return
+			let imageData: Data?
+			if let asset = ArticleImageRewriter.parse(assetURL: imageURL) {
+				// Saved articles’ images come from the local store, so this works offline.
+				imageData = await ArticleAssetStore.shared.imageData(articleID: asset.articleID, originalURL: asset.originalURL, pageURL: nil, userAgent: userAgent, download: true)
+			} else {
+				imageData = try? await Downloader.shared.download(imageURL, userAgentStyle: .browser).data
 			}
 			// A late completion must not present the viewer over a different article
 			// or a returning app.
-			guard !Task.isCancelled, let self, let data = downloadResponse.data, !data.isEmpty,
+			guard !Task.isCancelled, let self, let data = imageData, !data.isEmpty,
 				  let image = UIImage(data: data) else {
 				return
 			}

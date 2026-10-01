@@ -192,6 +192,7 @@ let appName = "NetNewsList"
 
 		if !Platform.isRunningUnitTests {
 			ExtractionCoordinator.shared.start()
+			ArticleAssetCoordinator.shared.start()
 			SavedArticleRequestProcessor.shared.start()
 		}
 

@@ -115,7 +115,13 @@ import Account
 			// Some pages embed a full HTML document as the content —
 			// render just the body fragment.
 			// <https://github.com/Ranchero-Software/NetNewsWire/issues/3008>
-			self.body = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(article?.body ?? "")
+			let body = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(article?.body ?? "")
+			if let article {
+				// Images load from the local store, so they show offline.
+				self.body = ArticleImageRewriter.rewrite(body, articleID: article.articleID, baseURL: article.baseURL)
+			} else {
+				self.body = body
+			}
 		}
 		self.baseURL = article?.baseURL?.absoluteString
 	}
