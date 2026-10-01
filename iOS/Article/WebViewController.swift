@@ -21,7 +21,6 @@ final class WebViewController: UIViewController {
 	private struct MessageName {
 		static let imageWasClicked = "imageWasClicked"
 		static let imageWasShown = "imageWasShown"
-		static let showFeedInspector = "showFeedInspector"
 		static let mediaSourceURLs = "mediaSourceURLs"
 	}
 
@@ -437,10 +436,6 @@ extension WebViewController: WKScriptMessageHandler {
 			clickedImageCompletion?()
 		case MessageName.imageWasClicked:
 			imageWasClicked(body: message.body as? String)
-		case MessageName.showFeedInspector:
-			if let feed = article?.feed {
-				coordinator.showFeedInspector(for: feed)
-			}
 		case MessageName.mediaSourceURLs:
 			mediaSourceURLs = Set((message.body as? [String]) ?? [])
 		default:
@@ -535,13 +530,11 @@ private extension WebViewController {
 				// Remove possible existing message handlers
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.imageWasClicked)
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.imageWasShown)
-				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.showFeedInspector)
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.mediaSourceURLs)
 
 				// Add handlers
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.imageWasClicked)
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.imageWasShown)
-				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.showFeedInspector)
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.mediaSourceURLs)
 
 				self.renderPage(webView)
@@ -767,7 +760,7 @@ private extension WebViewController {
 	func toggleReadAction() -> UIAction? {
 		guard let article = article, !article.status.read || article.isAvailableToMarkUnread else { return nil }
 
-		let title = article.status.read ? NSLocalizedString("Mark as Unread", comment: "Command") : NSLocalizedString("Mark as Read", comment: "Command")
+		let title = article.status.read ? NSLocalizedString("Move to Inbox", comment: "Command") : NSLocalizedString("Archive", comment: "Command")
 		let readImage = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
 		return UIAction(title: title, image: readImage) { [weak self] _ in
 			self?.coordinator.toggleReadForCurrentArticle()

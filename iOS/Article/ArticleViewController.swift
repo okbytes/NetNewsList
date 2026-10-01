@@ -252,11 +252,11 @@ final class ArticleViewController: UIViewController {
 		if article.status.read {
 			readBarButtonItem.image = Assets.Images.circleOpen
 			readBarButtonItem.isEnabled = article.isAvailableToMarkUnread
-			readBarButtonItem.accLabelText = NSLocalizedString("Mark Article Unread", comment: "Mark Article Unread")
+			readBarButtonItem.accLabelText = NSLocalizedString("Move to Inbox", comment: "Command")
 		} else {
 			readBarButtonItem.image = Assets.Images.circleClosed
 			readBarButtonItem.isEnabled = true
-			readBarButtonItem.accLabelText = NSLocalizedString("Selected - Mark Article Unread", comment: "Selected - Mark Article Unread")
+			readBarButtonItem.accLabelText = NSLocalizedString("Archive", comment: "Command")
 		}
 
 		if article.status.starred {

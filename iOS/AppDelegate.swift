@@ -146,10 +146,6 @@ import Images
 	// MARK: - API
 
 	func manualRefresh(errorHandler: @escaping @Sendable (Error) -> Void) {
-		let sceneDelegates = UIApplication.shared.connectedScenes.compactMap { $0.delegate as? SceneDelegate }
-		for sceneDelegate in sceneDelegates {
-			sceneDelegate.cleanUp(conditional: true)
-		}
 		AccountManager.shared.refreshAllWithoutWaiting(errorHandler: errorHandler)
 	}
 
@@ -239,7 +235,7 @@ private extension AppDelegate {
 		let searchIcon = UIApplicationShortcutIcon(systemImageName: "magnifyingglass")
 		let searchItem = UIApplicationShortcutItem(type: "NetNewsList.ShowSearch", localizedTitle: searchTitle, localizedSubtitle: nil, icon: searchIcon, userInfo: nil)
 
-		let addTitle = NSLocalizedString("Add Feed", comment: "Add Feed")
+		let addTitle = NSLocalizedString("Add Article", comment: "Add Article")
 		let addIcon = UIApplicationShortcutIcon(systemImageName: "plus")
 		let addItem = UIApplicationShortcutItem(type: "NetNewsList.ShowAdd", localizedTitle: addTitle, localizedSubtitle: nil, icon: addIcon, userInfo: nil)
 

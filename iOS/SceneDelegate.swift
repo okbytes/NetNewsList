@@ -45,7 +45,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 			connectionOptions.shortcutItem != nil ||
 			!connectionOptions.userActivities.isEmpty
 
-		coordinator.restoreWindowState(activity: session.stateRestorationActivity, restoreSelection: !hasPendingExternalAction)
+		coordinator.restoreWindowState(restoreSelection: !hasPendingExternalAction)
 
 		updateUserInterfaceStyle()
 
@@ -108,10 +108,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 	func suspend() {
 		coordinator.suspend()
-	}
-
-	func cleanUp(conditional: Bool) {
-		coordinator.cleanUp(conditional: conditional)
 	}
 
 	// Handle Opening of URLs

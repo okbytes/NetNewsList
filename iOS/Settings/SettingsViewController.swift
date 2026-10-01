@@ -15,13 +15,13 @@ import ActivityLog
 
 final class SettingsViewController: UITableViewController {
 
+	// These enums match the sections and rows of the static table in Settings.storyboard.
 	private enum Section: Int {
-		case notifications = 0
-		case timeline = 1
-		case articles = 2
-		case appearance = 3
-		case troubleshooting = 4
-		case help = 5
+		case timeline = 0
+		case articles = 1
+		case appearance = 2
+		case troubleshooting = 3
+		case help = 4
 	}
 
 	private enum TroubleshootingRow: Int {
@@ -32,10 +32,9 @@ final class SettingsViewController: UITableViewController {
 
 	private enum TimelineRow: Int {
 		case sortOrder = 0
-		case groupByFeed = 1
-		case refreshClearsReadArticles = 2
-		case confirmMarkAllAsRead = 3
-		case timelineLayout = 4
+		case groupBySite = 1
+		case confirmMarkAllAsRead = 2
+		case timelineLayout = 3
 	}
 
 	private enum ArticlesRow: Int, CaseIterable {
@@ -54,8 +53,7 @@ final class SettingsViewController: UITableViewController {
 
 
 	@IBOutlet var timelineSortOrderSwitch: UISwitch!
-	@IBOutlet var groupByFeedSwitch: UISwitch!
-	@IBOutlet var refreshClearsReadArticlesSwitch: UISwitch!
+	@IBOutlet var groupBySiteSwitch: UISwitch!
 	@IBOutlet var articleThemeDetailLabel: UILabel!
 	@IBOutlet var confirmMarkAllAsReadSwitch: UISwitch!
 	@IBOutlet var showFullscreenArticlesSwitch: UISwitch!
@@ -83,17 +81,8 @@ final class SettingsViewController: UITableViewController {
 			timelineSortOrderSwitch.isOn = false
 		}
 
-		if AppDefaults.shared.timelineGroupByFeed {
-			groupByFeedSwitch.isOn = true
-		} else {
-			groupByFeedSwitch.isOn = false
-		}
-
-		if AppDefaults.shared.refreshClearsReadArticles {
-			refreshClearsReadArticlesSwitch.isOn = true
-		} else {
-			refreshClearsReadArticlesSwitch.isOn = false
-		}
+		// The setting keeps its original key; the timeline groups by site.
+		groupBySiteSwitch.isOn = AppDefaults.shared.timelineGroupByFeed
 
 		articleThemeDetailLabel.text = ArticleThemesManager.shared.currentTheme.name
 
@@ -154,9 +143,6 @@ final class SettingsViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 
 		switch Section(rawValue: indexPath.section) {
-		case .notifications:
-			UIApplication.shared.open(URL(string: "\(UIApplication.openSettingsURLString)")!)
-			tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
 		case .timeline:
 			switch TimelineRow(rawValue: indexPath.row) {
 			case .timelineLayout:
@@ -250,20 +236,8 @@ final class SettingsViewController: UITableViewController {
 		}
 	}
 
-	@IBAction func switchGroupByFeed(_ sender: Any) {
-		if groupByFeedSwitch.isOn {
-			AppDefaults.shared.timelineGroupByFeed = true
-		} else {
-			AppDefaults.shared.timelineGroupByFeed = false
-		}
-	}
-
-	@IBAction func switchClearsReadArticles(_ sender: Any) {
-		if refreshClearsReadArticlesSwitch.isOn {
-			AppDefaults.shared.refreshClearsReadArticles = true
-		} else {
-			AppDefaults.shared.refreshClearsReadArticles = false
-		}
+	@IBAction func switchGroupBySite(_ sender: Any) {
+		AppDefaults.shared.timelineGroupByFeed = groupBySiteSwitch.isOn
 	}
 
 	@IBAction func switchConfirmMarkAllAsRead(_ sender: Any) {

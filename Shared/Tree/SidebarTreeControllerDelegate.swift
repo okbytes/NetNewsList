@@ -15,16 +15,6 @@ import Account
 /// Feeds, folders and accounts are never shown.
 @MainActor final class SidebarTreeControllerDelegate: TreeControllerDelegate {
 
-	/// Kept for the iOS sidebar until its read-filter UI is removed. Every list stays
-	/// visible whether or not it has unread articles, so neither has any effect.
-	var isReadFiltered = false
-
-	func addFilterException(_ feedID: SidebarItemIdentifier) {
-	}
-
-	func resetFilterExceptions() {
-	}
-
 	func treeController(treeController: TreeController, childNodesFor node: Node) -> [Node]? {
 		if node.isRoot {
 			let smartFeedsNode = node.existingOrNewChildNode(with: SmartFeedsController.shared)
