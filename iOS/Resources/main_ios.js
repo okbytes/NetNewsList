@@ -135,26 +135,8 @@ function showClickedImage() {
 	window.webkit.messageHandlers.imageWasShown.postMessage("");
 }
 
-function showFeedInspectorSetup() {
-	const imageIcon = document.getElementById("nnwImageIcon");
-	if (!imageIcon) {
-		return;
-	}
-
-	// Tell VoiceOver the icon is a button that opens the Feed Info sheet.
-	// <https://github.com/Ranchero-Software/NetNewsWire/issues/4591>
-	imageIcon.setAttribute("role", "button");
-	imageIcon.setAttribute("tabindex", "0");
-	imageIcon.setAttribute("aria-label", nnwGetFeedInfoLabel);
-
-	imageIcon.onclick = function(event) {
-		window.webkit.messageHandlers.showFeedInspector.postMessage("");
-	}
-}
-
 function postRenderProcessing() {
 	ImageViewer.init();
-	showFeedInspectorSetup();
 	postMediaSourceURLs();
 }
 

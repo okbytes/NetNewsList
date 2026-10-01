@@ -145,10 +145,6 @@ import Images
 	// MARK: - API
 
 	func manualRefresh(errorHandler: @escaping @Sendable (Error) -> Void) {
-		let sceneDelegates = UIApplication.shared.connectedScenes.compactMap { $0.delegate as? SceneDelegate }
-		for sceneDelegate in sceneDelegates {
-			sceneDelegate.cleanUp(conditional: true)
-		}
 		AccountManager.shared.refreshAllWithoutWaiting(errorHandler: errorHandler)
 	}
 

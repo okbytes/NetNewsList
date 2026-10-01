@@ -21,7 +21,6 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	// MARK: Private Variables
 	private var numberOfTextLines = 0
 	private var iconSize = IconSize.medium
-	private lazy var feedTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(showFeedInspector(_:)))
 	private lazy var filterButton = UIBarButtonItem(image: Assets.Images.filter, style: .plain, target: self, action: #selector(toggleFilter(_:)))
 	private lazy var nextUnreadButton = UIBarButtonItem(image: Assets.Images.nextUnread, style: .plain, target: self, action: #selector(nextUnread(_:)))
 	private let refreshProgressView = RefreshProgressView(frame: .zero)
@@ -105,14 +104,9 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	private lazy var navigationBarTitleLabel: UILabel = {
 		let label = UILabel()
 		label.font = UIFont.preferredFont(forTextStyle: .subheadline).bold()
-		label.isUserInteractionEnabled = true
 		label.numberOfLines = 1
 		label.textAlignment = .center
 		label.adjustsFontForContentSizeCategory = false
-		let tap = UITapGestureRecognizer(target: self, action: #selector(showFeedInspector(_:)))
-		label.addGestureRecognizer(tap)
-		let pointerInteraction = UIPointerInteraction(delegate: nil)
-		label.addInteraction(pointerInteraction)
 		label.text = " " // Placeholder avoids iOS 26 UINavigationBar crash.
 		label.sizeToFit()
 		return label
@@ -123,10 +117,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		label.font = .systemFont(ofSize: 12)
 		label.textColor = .systemGray
 		label.textAlignment = .center
-		label.isUserInteractionEnabled = true
 		label.adjustsFontForContentSizeCategory = false
-		let tap = UITapGestureRecognizer(target: self, action: #selector(showFeedInspector(_:)))
-		label.addGestureRecognizer(tap)
 		label.text = " " // Placeholder avoids iOS 26 UINavigationBar crash.
 		label.sizeToFit()
 		return label
@@ -296,7 +287,6 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		navigationItem.title = text
 		if let label = navigationItem.titleView as? UILabel {
 			label.text = text
-			label.isUserInteractionEnabled = ((coordinator?.timelineFeed as? PseudoFeed) == nil)
 			label.sizeToFit()
 		}
 	}
@@ -304,7 +294,6 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	func updateNavigationBarSubtitle(_ text: String) {
 		if #available(iOS 26, *), let label = navigationItem.subtitleView as? UILabel {
 			label.text = text
-			label.isUserInteractionEnabled = ((coordinator?.timelineFeed as? PseudoFeed) == nil)
 			label.sizeToFit()
 		}
 	}
@@ -449,11 +438,6 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		coordinator?.navigateToDetail()
 	}
 
-	@objc func showFeedInspector(_ sender: Any?) {
-		assert(coordinator != nil)
-		coordinator?.showFeedInspector()
-	}
-
 	// MARK: - IBActions
 
 	@objc func openInBrowser(_ sender: Any?) {
@@ -549,17 +533,6 @@ extension MainTimelineModernViewController: UICollectionViewDelegate {
 				markActions.append(action)
 			}
 			menuElements.append(UIMenu(title: "", options: .displayInline, children: markActions))
-
-			var secondaryActions = [UIAction]()
-			if let action = self.discloseFeedAction(article) {
-				secondaryActions.append(action)
-			}
-			if let action = self.markAllInFeedAsReadAction(article, indexPath: firstIndex) {
-				secondaryActions.append(action)
-			}
-			if !secondaryActions.isEmpty {
-				menuElements.append(UIMenu(title: "", options: .displayInline, children: secondaryActions))
-			}
 
 			var copyActions = [UIAction]()
 			if let action = self.copyArticleURLAction(article) {
@@ -770,14 +743,6 @@ private extension MainTimelineModernViewController {
 					}
 
 					if let action = self.markBelowAsReadAlertAction(article, indexPath: indexPath, completion: completion) {
-						alert.addAction(action)
-					}
-
-					if let action = self.discloseFeedAlertAction(article, completion: completion) {
-						alert.addAction(action)
-					}
-
-					if let action = self.markAllInFeedAsReadAlertAction(article, indexPath: indexPath, completion: completion) {
 						alert.addAction(action)
 					}
 
@@ -1289,92 +1254,6 @@ extension MainTimelineModernViewController {
 		let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
 			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView, cancelCompletion: cancel) { [weak self] in
 				self?.markBelowAsRead(article)
-				completion(true)
-			}
-		}
-		return action
-	}
-
-	func timelineFeedIsEqualTo(_ feed: Feed) -> Bool {
-		assert(coordinator != nil)
-		return coordinator?.timelineFeedIsEqualTo(feed) ?? false
-	}
-
-	func discloseFeed(_ feed: Feed, animations: Animations = []) {
-		assert(coordinator != nil)
-		coordinator?.discloseFeed(feed, animations: animations)
-	}
-
-	func discloseFeedAction(_ article: Article) -> UIAction? {
-		guard let feed = article.feed,
-			!timelineFeedIsEqualTo(feed) else { return nil }
-
-		let title = NSLocalizedString("Go to Feed", comment: "Go to Feed")
-		let action = UIAction(title: title, image: Assets.Images.openInSidebar) { [weak self] _ in
-			self?.discloseFeed(feed, animations: [.scroll, .navigation])
-		}
-		return action
-	}
-
-	func discloseFeedAlertAction(_ article: Article, completion: @escaping (Bool) -> Void) -> UIAlertAction? {
-		guard let feed = article.feed,
-			!timelineFeedIsEqualTo(feed) else { return nil }
-
-		let title = NSLocalizedString("Go to Feed", comment: "Go to Feed")
-		let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-			self?.discloseFeed(feed, animations: [.scroll, .navigation])
-			completion(true)
-		}
-		return action
-	}
-
-	func markAllAsRead(_ articles: ArticleArray) {
-		assert(coordinator != nil)
-		coordinator?.markAllAsRead(articles)
-	}
-
-	func markAllInFeedAsReadAction(_ article: Article, indexPath: IndexPath) -> UIAction? {
-		guard let feed = article.feed else {
-			return nil
-		}
-
-		let fetchedArticles = feed.fetchArticles()
-		let articles = Array(fetchedArticles)
-		guard articles.canMarkAllAsRead(), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let localizedMenuText = NSLocalizedString("Mark All as Read in “%@”", comment: "Command")
-		let title = NSString.localizedStringWithFormat(localizedMenuText as NSString, feed.nameForDisplay) as String
-
-		let action = UIAction(title: title, image: Assets.Images.markAllAsRead) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-				self?.markAllAsRead(articles)
-			}
-		}
-		return action
-	}
-
-	func markAllInFeedAsReadAlertAction(_ article: Article, indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> UIAlertAction? {
-		guard let feed = article.feed else {
-			return nil
-		}
-
-		let fetchedArticles = feed.fetchArticles()
-		let articles = Array(fetchedArticles)
-		guard articles.canMarkAllAsRead(), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let localizedMenuText = NSLocalizedString("Mark All as Read in “%@”", comment: "Command")
-		let title = NSString.localizedStringWithFormat(localizedMenuText as NSString, feed.nameForDisplay) as String
-		let cancel = {
-			completion(true)
-		}
-
-		let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView, cancelCompletion: cancel) { [weak self] in
-				self?.markAllAsRead(articles)
 				completion(true)
 			}
 		}

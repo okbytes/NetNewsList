@@ -91,7 +91,7 @@ final class RootSplitViewController: UISplitViewController {
 			return
 		}
 		let articlesToMark = coordinator.articles
-		let title = NSLocalizedString("Mark All as Read", comment: "Command")
+		let title = NSLocalizedString("Archive All", comment: "Command")
 
 		let completion: () -> Void = { [weak self] in
 			guard let self else {
@@ -102,7 +102,7 @@ final class RootSplitViewController: UISplitViewController {
 			}
 		}
 
-		// Anchor to the Mark All as Read button (keyboard shortcut has no source view).
+		// Anchor to the Archive All button (keyboard shortcut has no source view).
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5370>
 		if let markAllAsReadButton = (viewController(for: .supplementary) as? MainTimelineModernViewController)?.markAllAsReadButton {
 			MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: markAllAsReadButton, completion: completion)
@@ -147,23 +147,15 @@ final class RootSplitViewController: UISplitViewController {
 		coordinator.showAddArticle()
 	}
 
-	@objc func addNewFolder(_ sender: Any?) {
-		coordinator.showAddFolder()
-	}
-
 	@objc func cleanUp(_ sender: Any?) {
-		coordinator.cleanUp(conditional: false)
-	}
-
-	@objc func toggleReadFeedsFilter(_ sender: Any?) {
-		coordinator.toggleReadFeedsFilter()
+		coordinator.cleanUp()
 	}
 
 	@objc func toggleReadArticlesFilter(_ sender: Any?) {
 		coordinator.toggleReadArticlesFilter()
 	}
 
-	@objc func refresh(_ sender: Any?) {
+	@objc func sync(_ sender: Any?) {
 		appDelegate.manualRefresh(errorHandler: ErrorHandler.present(self))
 	}
 

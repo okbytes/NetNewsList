@@ -138,39 +138,6 @@ import Images
 		readingArticle = nil
 	}
 
-	#if os(iOS)
-	static func cleanUp(_ account: Account) {
-		var ids = [String]()
-
-		if let folders = account.folders {
-			for folder in folders {
-				ids.append(identifier(for: folder))
-			}
-		}
-
-		for feed in account.flattenedFeeds() {
-			ids.append(contentsOf: identifiers(for: feed))
-		}
-
-		CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: ids)
-	}
-
-	static func cleanUp(_ folder: Folder) {
-		var ids = [String]()
-		ids.append(identifier(for: folder))
-
-		for feed in folder.flattenedFeeds() {
-			ids.append(contentsOf: identifiers(for: feed))
-		}
-
-		CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: ids)
-	}
-
-	static func cleanUp(_ feed: Feed) {
-		CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: identifiers(for: feed))
-	}
-	#endif
-
 	@objc func feedIconDidBecomeAvailable(_ note: Notification) {
 		guard let feed = note.userInfo?[UserInfoKey.feed] as? Feed, let activityFeedId = selectingActivity?.userInfo?[ArticlePathKey.feedID] as? String else {
 			return
@@ -305,26 +272,11 @@ import Images
 		activity.becomeCurrent()
 	}
 
-	static func identifier(for folder: Folder) -> String {
-		return "account_\(folder.account!.accountID)_folder_\(folder.nameForDisplay)"
-	}
-
 	static func identifier(for feed: Feed) -> String {
 		return "account_\(feed.account!.accountID)_feed_\(feed.feedID)"
 	}
 
 	static func identifier(for article: Article) -> String {
 		return "account_\(article.accountID)_feed_\(article.feedID)_article_\(article.articleID)"
-	}
-
-	static func identifiers(for feed: Feed) -> [String] {
-		var ids = [String]()
-		ids.append(identifier(for: feed))
-		let articles = feed.fetchArticles()
-		for article in articles {
-			ids.append(identifier(for: article))
-		}
-
-		return ids
 	}
 }

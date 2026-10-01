@@ -21,7 +21,6 @@ final class WebViewController: UIViewController {
 	private struct MessageName {
 		static let imageWasClicked = "imageWasClicked"
 		static let imageWasShown = "imageWasShown"
-		static let showFeedInspector = "showFeedInspector"
 		static let mediaSourceURLs = "mediaSourceURLs"
 	}
 
@@ -437,10 +436,6 @@ extension WebViewController: WKScriptMessageHandler {
 			clickedImageCompletion?()
 		case MessageName.imageWasClicked:
 			imageWasClicked(body: message.body as? String)
-		case MessageName.showFeedInspector:
-			if let feed = article?.feed {
-				coordinator.showFeedInspector(for: feed)
-			}
 		case MessageName.mediaSourceURLs:
 			mediaSourceURLs = Set((message.body as? [String]) ?? [])
 		default:
@@ -535,13 +530,11 @@ private extension WebViewController {
 				// Remove possible existing message handlers
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.imageWasClicked)
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.imageWasShown)
-				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.showFeedInspector)
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.mediaSourceURLs)
 
 				// Add handlers
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.imageWasClicked)
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.imageWasShown)
-				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.showFeedInspector)
 				webView.configuration.userContentController.add(WrapperScriptMessageHandler(self), name: MessageName.mediaSourceURLs)
 
 				self.renderPage(webView)

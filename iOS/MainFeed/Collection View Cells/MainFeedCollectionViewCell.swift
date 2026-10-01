@@ -42,21 +42,6 @@ final class MainFeedCollectionViewCell: UICollectionViewCell {
 		}
 	}
 
-	/// If the feed is contained in a folder, the indentation level is 1
-	/// and the cell's favicon leading constrain is increased. Otherwise,
-	/// it has the standard leading constraint.
-	///
-	/// On the storyboard, no leading constraint is set.
-	var indentationLevel: Int = 0 {
-		didSet {
-			if indentationLevel == 1 {
-				faviconLeadingConstraint?.constant = 32
-			} else {
-				faviconLeadingConstraint?.constant = 16
-			}
-		}
-	}
-
 	override var accessibilityLabel: String? {
 		get {
 			let name = feedTitle.text ?? ""
@@ -77,7 +62,8 @@ final class MainFeedCollectionViewCell: UICollectionViewCell {
 			feedTitle.isAccessibilityElement = false
 			unreadCountLabel.isAccessibilityElement = false
 			faviconView.isAccessibilityElement = false
-			faviconLeadingConstraint = faviconView.leadingAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.leadingAnchor)
+			// On the storyboard, no leading constraint is set.
+			faviconLeadingConstraint = faviconView.leadingAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.leadingAnchor, constant: 16)
 			faviconLeadingConstraint?.isActive = true
 		}
     }

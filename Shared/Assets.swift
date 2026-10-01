@@ -84,13 +84,9 @@ struct Assets {
 		static var disclosure: RSImage { RSImage(named: "disclosure")! }
 		static let deactivate = RSImage(symbol: "minus.circle")!
 		static let currentActivity = RSImage(symbol: "text.pad.header")!
-		static let edit = RSImage(symbol: "square.and.pencil")!
 		static let filter = RSImage(symbol: "line.3.horizontal.decrease")!
-		static let folderOutlinePlus = RSImage(symbol: "folder.badge.plus")!
 		static let info = RSImage(symbol: "info.circle")!
-		static let plus = RSImage(symbol: "plus")!
 		static let prevArticle = RSImage(symbol: "chevron.up")!
-		static let openInSidebar = RSImage(symbol: "arrow.turn.down.left")!
 		static let safari = RSImage(symbol: "safari")!
 		static let smartFeed = RSImage(symbol: "gear")!
 		static let trash = RSImage(symbol: "trash")!
