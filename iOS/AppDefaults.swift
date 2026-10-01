@@ -54,7 +54,6 @@ final class AppDefaults: Sendable {
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
 		static let firstRunDate = "firstRunDate"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
-		static let refreshClearsReadArticles = "refreshClearsReadArticles"
 		static let timelineNumberOfLines = "timelineNumberOfLines"
 		static let timelineIconDimension = "timelineIconSize"
 		static let timelineSortDirection = "timelineSortDirection"
@@ -119,15 +118,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setBool(for: Key.timelineGroupByFeed, newValue)
-		}
-	}
-
-	var refreshClearsReadArticles: Bool {
-		get {
-			return AppDefaults.bool(for: Key.refreshClearsReadArticles)
-		}
-		set {
-			AppDefaults.setBool(for: Key.refreshClearsReadArticles, newValue)
 		}
 	}
 
@@ -311,7 +301,6 @@ final class AppDefaults: Sendable {
 	@MainActor static func registerDefaults() {
 		let defaults: [String: Any] = [Key.userInterfaceColorPalette: UserInterfaceColorPalette.automatic.rawValue,
 										Key.timelineGroupByFeed: false,
-										Key.refreshClearsReadArticles: false,
 										Key.timelineNumberOfLines: 2,
 										Key.timelineIconDimension: IconSize.medium.rawValue,
 										Key.timelineSortDirection: ComparisonResult.orderedDescending.rawValue,
