@@ -12,7 +12,6 @@ import Articles
 
 @MainActor protocol TimelineContainerViewControllerDelegate: AnyObject {
 	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?, mode: TimelineSourceMode)
-	func timelineRequestedFeedSelection(_: TimelineContainerViewController, feed: Feed)
 	func timelineInvalidatedRestorationState(_: TimelineContainerViewController)
 }
 
@@ -202,10 +201,6 @@ extension TimelineContainerViewController: TimelineDelegate {
 
 	func timelineSelectionDidChange(_ timelineViewController: TimelineViewController, selectedArticles: [Article]?) {
 		delegate?.timelineSelectionDidChange(self, articles: selectedArticles, mode: mode(for: timelineViewController))
-	}
-
-	func timelineRequestedFeedSelection(_: TimelineViewController, feed: Feed) {
-		delegate?.timelineRequestedFeedSelection(self, feed: feed)
 	}
 
 	func timelineInvalidatedRestorationState(_: TimelineViewController) {

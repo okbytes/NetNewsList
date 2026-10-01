@@ -32,13 +32,13 @@
                                     <attributedString key="attributedTitle"/>
                                     <modifierMask key="keyEquivalentModifierMask"/>
                                 </menuItem>
-                                <menuItem title="Date" identifier="date" id="pMf-da-001">
+                                <menuItem title="Date Saved" identifier="date" id="pMf-da-001">
                                     <modifierMask key="keyEquivalentModifierMask"/>
                                     <connections>
                                         <action selector="sortArticlesByField:" target="-1" id="pMa-da-001"/>
                                     </connections>
                                 </menuItem>
-                                <menuItem title="Feed" identifier="feed" id="pMf-fe-002">
+                                <menuItem title="Site" identifier="feed" id="pMf-fe-002">
                                     <modifierMask key="keyEquivalentModifierMask"/>
                                     <connections>
                                         <action selector="sortArticlesByField:" target="-1" id="pMa-fe-002"/>

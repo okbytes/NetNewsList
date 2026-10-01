@@ -64,34 +64,6 @@ extension TimelineViewController {
 		markArticles(articles, starred: false)
 	}
 
-	@objc func selectFeedInSidebarFromContextualMenu(_ sender: Any?) {
-		guard let menuItem = sender as? NSMenuItem, let feed = menuItem.representedObject as? Feed else {
-			return
-		}
-		delegate?.timelineRequestedFeedSelection(self, feed: feed)
-	}
-
-	@objc func markAllInFeedAsRead(_ sender: Any?) {
-		guard let menuItem = sender as? NSMenuItem,
-			  let feed = menuItem.representedObject as? Feed else {
-			return
-		}
-
-		let unreadArticles = feed.fetchUnreadArticles()
-		guard !unreadArticles.isEmpty else {
-			return
-		}
-		guard let undoManager, let markReadCommand = MarkStatusCommand(
-			initialArticles: Array(unreadArticles),
-			markingRead: true,
-			undoManager: undoManager
-		) else {
-			return
-		}
-
-		runCommand(markReadCommand)
-	}
-
 	@objc func openInBrowserFromContextualMenu(_ sender: Any?) {
 
 		guard let menuItem = sender as? NSMenuItem, let urlString = menuItem.representedObject as? String else {
@@ -192,15 +164,6 @@ private extension TimelineViewController {
 
 		menu.addSeparatorIfNeeded()
 
-		if articles.count == 1, let feed = articles.first!.feed {
-			if !(representedObjects?.contains(where: { $0 as? Feed == feed }) ?? false) {
-				menu.addItem(selectFeedInSidebarMenuItem(feed))
-			}
-			if let markAllMenuItem = markAllAsReadMenuItem(feed) {
-				menu.addItem(markAllMenuItem)
-			}
-		}
-
 		if articles.count == 1, let link = articles.first!.preferredLink {
 			menu.addSeparatorIfNeeded()
 			menu.addItem(openInBrowserMenuItem(link))
@@ -258,11 +221,11 @@ private extension TimelineViewController {
 	}
 
 	func markReadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark as Read", comment: "Command"), #selector(markArticlesReadFromContextualMenu(_:)), articles)
+		menuItem(NSLocalizedString("Archive", comment: "Command"), #selector(markArticlesReadFromContextualMenu(_:)), articles)
 	}
 
 	func markUnreadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark as Unread", comment: "Command"), #selector(markArticlesUnreadFromContextualMenu(_:)), articles)
+		menuItem(NSLocalizedString("Move to Inbox", comment: "Command"), #selector(markArticlesUnreadFromContextualMenu(_:)), articles)
 	}
 
 	func markStarredMenuItem(_ articles: [Article]) -> NSMenuItem {
@@ -274,28 +237,11 @@ private extension TimelineViewController {
 	}
 
 	func markAboveReadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark Above as Read", comment: "Command"), #selector(markAboveArticlesReadFromContextualMenu(_:)), articles)
+		menuItem(NSLocalizedString("Archive Above", comment: "Command"), #selector(markAboveArticlesReadFromContextualMenu(_:)), articles)
 	}
 
 	func markBelowReadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark Below as Read", comment: "Command"), #selector(markBelowArticlesReadFromContextualMenu(_:)), articles)
-	}
-
-	func selectFeedInSidebarMenuItem(_ feed: Feed) -> NSMenuItem {
-		let localizedMenuText = NSLocalizedString("Select “%@” in Sidebar", comment: "Command")
-		let formattedMenuText = NSString.localizedStringWithFormat(localizedMenuText as NSString, feed.nameForDisplay)
-		return menuItem(formattedMenuText as String, #selector(selectFeedInSidebarFromContextualMenu(_:)), feed)
-	}
-
-	func markAllAsReadMenuItem(_ feed: Feed) -> NSMenuItem? {
-		guard feed.unreadCount > 0 else {
-			return nil
-		}
-
-		let localizedMenuText = NSLocalizedString("Mark All as Read in “%@”", comment: "Command")
-		let menuText = NSString.localizedStringWithFormat(localizedMenuText as NSString, feed.nameForDisplay) as String
-
-		return menuItem(menuText, #selector(markAllInFeedAsRead(_:)), feed)
+		menuItem(NSLocalizedString("Archive Below", comment: "Command"), #selector(markBelowArticlesReadFromContextualMenu(_:)), articles)
 	}
 
 	func openInBrowserMenuItem(_ urlString: String) -> NSMenuItem {

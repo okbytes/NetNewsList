@@ -15,7 +15,6 @@ import Images
 
 @MainActor protocol TimelineDelegate: AnyObject {
 	func timelineSelectionDidChange(_: TimelineViewController, selectedArticles: [Article]?)
-	func timelineRequestedFeedSelection(_: TimelineViewController, feed: Feed)
 	func timelineInvalidatedRestorationState(_: TimelineViewController)
 	func timelineRequestedSortChange(_: TimelineViewController, parameters: ArticleSortParameters)
 }
@@ -715,17 +714,12 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		}
 	}
 
+	/// Site favicons arrive one site at a time; the visible rows ask again.
 	@objc func faviconDidBecomeAvailable(_ note: Notification) {
-		guard showIcons, let faviconURL = note.userInfo?[FaviconDownloader.UserInfoKey.faviconURL] as? String else {
+		guard showIcons else {
 			return
 		}
-		let indexesToReload = tableView.indexesOfAvailableRowsPassingTest { (row) -> Bool in
-			guard let article = articles.articleAtRow(row), let feed = article.feed else {
-				return false
-			}
-			return FaviconDownloader.shared.cachedFaviconURL(for: feed) == faviconURL
-		}
-		if let indexesToReload = indexesToReload {
+		if let indexesToReload = tableView.indexesOfAvailableRowsPassingTest({ _ in true }) {
 			reloadCells(for: indexesToReload)
 		}
 	}
@@ -1032,7 +1026,7 @@ extension TimelineViewController: NSTableViewDelegate {
 	private func configureTimelineCell(_ cell: TimelineTableCellView, article: Article) {
 		cell.objectValue = article
 		let iconImage = article.iconImage()
-		cell.cellData = TimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.feed?.nameForDisplay, byline: article.byline(), iconImage: iconImage, showIcon: showIcons)
+		cell.cellData = TimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcons)
 	}
 
 	private func iconFor(_ article: Article) -> IconImage? {

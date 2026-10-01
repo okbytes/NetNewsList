@@ -241,8 +241,9 @@ private extension ArticleRenderer {
 			d["dateline_style"] = "articleDateline"
 		}
 
-		d["feed_link_title"] = article.feed?.nameForDisplay ?? ""
-		d["feed_link"] = article.feed?.homePageURL ?? ""
+		// The theme macros keep their feed names; they show the page’s site.
+		d["feed_link_title"] = article.siteHost ?? ""
+		d["feed_link"] = article.siteHomePageURL ?? ""
 
 		d["byline"] = byline()
 
@@ -269,7 +270,7 @@ private extension ArticleRenderer {
 		// This code assumes that multiple authors would never match the feed name so that
 		// if there feed owner has an article co-author all authors are given the byline.
 		if authors.count == 1, let author = authors.first {
-			if author.name == article?.feed?.nameForDisplay {
+			if author.name == article?.siteHost {
 				return ""
 			}
 		}

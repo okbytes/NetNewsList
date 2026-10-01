@@ -88,6 +88,25 @@ extension Article {
 		return datePublished ?? dateModified ?? status.dateArrived
 	}
 
+	/// The site a saved page came from: its host, without a leading “www.”.
+	/// Shown where NetNewsWire showed the feed name.
+	var siteHost: String? {
+		guard let host = preferredURL?.host(percentEncoded: false)?.lowercased(), !host.isEmpty else {
+			return nil
+		}
+		return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+	}
+
+	/// The site’s home page, for its favicon and the article header’s link.
+	var siteHomePageURL: String? {
+		guard let url = preferredURL, let scheme = url.scheme, let host = url.host(percentEncoded: false), !host.isEmpty else {
+			return nil
+		}
+		if let port = url.port {
+			return "\(scheme)://\(host):\(port)/"
+		}
+		return "\(scheme)://\(host)/"
+	}
 }
 
 @MainActor extension Article {

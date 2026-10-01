@@ -42,18 +42,17 @@ import Articles
 private extension ArticleSorter {
 
 	static func sortedByFeedName(articles: [Article], sortDirection: ComparisonResult, feedNameDirection: ComparisonResult, feedNameFor: (Article) -> String) -> [Article] {
-		// Group articles by feed ID so that two feeds with the same name remain in distinct groups.
-		let groupedArticles = Dictionary(grouping: articles, by: \.feedID)
-		let groupsWithNames = groupedArticles.map { (feedID: $0.key, name: feedNameFor($0.value[0]), articles: $0.value) }
-		return groupsWithNames
+		// Every saved article is in one feed, so articles are grouped by site name instead.
+		let groupedArticles = Dictionary(grouping: articles, by: feedNameFor)
+		return groupedArticles
 			.sorted { lhs, rhs in
-				switch lhs.name.localizedCaseInsensitiveCompare(rhs.name) {
+				switch lhs.key.localizedCaseInsensitiveCompare(rhs.key) {
 				case .orderedAscending: feedNameDirection == .orderedAscending
 				case .orderedDescending: feedNameDirection != .orderedAscending
-				case .orderedSame: lhs.feedID < rhs.feedID
+				case .orderedSame: lhs.key < rhs.key
 				}
 			}
-			.flatMap { sortedByDate(articles: $0.articles, sortDirection: sortDirection) }
+			.flatMap { sortedByDate(articles: $0.value, sortDirection: sortDirection) }
 	}
 
 	static func sortedByDate(articles: [Article], sortDirection: ComparisonResult) -> [Article] {
@@ -115,6 +114,6 @@ private extension ArticleSorter {
 @MainActor extension Article {
 
 	fileprivate var sortableFeedName: String {
-		feed?.nameForDisplay ?? ""
+		siteHost ?? ""
 	}
 }

@@ -28,7 +28,7 @@ struct ArticleRenderingSpecialCases {
 	}
 
 	@MainActor static func shouldDisableJavaScript(for article: Article) -> Bool {
-		shouldDisableJavaScript(urlStrings: [article.link, article.feed?.url, article.feed?.homePageURL])
+		shouldDisableJavaScript(urlStrings: [article.link, article.externalLink, article.siteHomePageURL])
 	}
 
 	static func filterHTMLIfNeeded(baseURL: String, html: String) -> String {

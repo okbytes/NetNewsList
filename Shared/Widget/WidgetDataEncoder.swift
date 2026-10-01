@@ -203,10 +203,10 @@ import Account
 
 		let feedIconPath = writeImageDataToSharedContainer(article.iconImage()?.image.dataRepresentation())
 
-		let pubDate = article.datePublished?.description ?? ""
+		let pubDate = article.logicalDatePublished.description
 
 		let latestArticle = LatestArticle(id: article.articleID,
-										  feedTitle: article.feed?.nameForDisplay ?? "",
+										  feedTitle: article.siteHost ?? "",
 										  articleTitle: articleTitle,
 										  articleSummary: article.summary,
 										  feedIconPath: feedIconPath,

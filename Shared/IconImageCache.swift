@@ -60,7 +60,6 @@ import Images
 
 	func prefetchImagesForArticles(_ articles: ArticleArray) {
 
-		var feedsSeen = Set<SidebarItemIdentifier>()
 		var authorsSeen = Set<String>()
 
 		for article in articles {
@@ -73,12 +72,8 @@ import Images
 				}
 			}
 
-			if let feed = article.feed, let feedID = feed.sidebarItemID, !feedsSeen.contains(feedID) {
-				feedsSeen.insert(feedID)
-				_ = FeedIconDownloader.shared.icon(for: feed)
-				_ = FaviconDownloader.shared.faviconAsIcon(for: feed)
-			}
 		}
+		SiteFaviconCache.shared.prefetch(articles)
 	}
 
 	func prefetchImagesForFeeds(_ feeds: [Feed]) {
@@ -92,10 +87,7 @@ import Images
 		if let iconImage = imageForAuthors(article.authors) {
 			return iconImage
 		}
-		guard let feed = article.feed else {
-			return nil
-		}
-		return imageForFeed(feed)
+		return SiteFaviconCache.shared.favicon(for: article)
 	}
 
 	func emptyCache() {

@@ -68,8 +68,8 @@ import Articles
 		completion = nil
     }
 
-	static private let markReadActionName = NSLocalizedString("Mark Read", comment: "command")
-	static private let markUnreadActionName = NSLocalizedString("Mark Unread", comment: "command")
+	static private let markReadActionName = NSLocalizedString("Archive", comment: "command")
+	static private let markUnreadActionName = NSLocalizedString("Move to Inbox", comment: "command")
 	static private let markStarredActionName = NSLocalizedString("Mark Starred", comment: "command")
 	static private let markUnstarredActionName = NSLocalizedString("Mark Unstarred", comment: "command")
 

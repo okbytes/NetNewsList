@@ -20,7 +20,7 @@ final class ContextMenuPreviewViewController: UIViewController {
 	override func viewDidLoad() {
         super.viewDidLoad()
 
-		blogNameLabel.text = article.feed?.nameForDisplay ?? ""
+		blogNameLabel.text = article.siteHost ?? ""
 		blogAuthorLabel.text = article.byline()
 		articleTitleLabel.text = article.title ?? ""
 

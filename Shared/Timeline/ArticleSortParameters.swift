@@ -19,9 +19,9 @@ enum ArticleSortKey: String, Sendable {
 	var localizedName: String {
 		switch self {
 		case .date:
-			NSLocalizedString("Date", comment: "Timeline column header")
+			NSLocalizedString("Date Saved", comment: "Timeline column header")
 		case .feed:
-			NSLocalizedString("Feed", comment: "Timeline column header")
+			NSLocalizedString("Site", comment: "Timeline column header")
 		case .title:
 			NSLocalizedString("Title", comment: "Timeline column header")
 		case .unread:

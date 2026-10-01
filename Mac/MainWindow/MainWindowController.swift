@@ -127,10 +127,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		return sidebarViewController?.selectedObjects
 	}
 
-	func selectFeedInSidebar(_ feed: Feed) {
-		sidebarViewController?.selectFeed(feed)
-	}
-
 	func handle(_ response: UNNotificationResponse) {
 		let userInfo = response.notification.request.content.userInfo
 		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any] else { return }
@@ -712,10 +708,6 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 		detailViewController?.setState(detailState, mode: mode)
 	}
 
-	func timelineRequestedFeedSelection(_: TimelineContainerViewController, feed: Feed) {
-		sidebarViewController?.selectFeed(feed)
-	}
-
 	func timelineInvalidatedRestorationState(_: TimelineContainerViewController) {
 		invalidateRestorableState()
 	}
@@ -847,7 +839,7 @@ extension MainWindowController: NSToolbarDelegate {
 			return NSTrackingSeparatorToolbarItem(identifier: .timelineTrackingSeparator, splitView: splitView, dividerIndex: 1)
 
 		case .markRead:
-			let title = NSLocalizedString("Mark Read", comment: "command")
+			let title = NSLocalizedString("Archive", comment: "command")
 			return buildToolbarButton(.markRead, title, Assets.Images.readClosed, "toggleRead:")
 
 		case .markStar:
@@ -1369,12 +1361,12 @@ private extension MainWindowController {
 			result = false
 		}
 
-		let commandName = markingRead ? NSLocalizedString("Mark as Read", comment: "Command") : NSLocalizedString("Mark as Unread", comment: "Command")
+		let commandName = markingRead ? NSLocalizedString("Archive", comment: "Command") : NSLocalizedString("Move to Inbox", comment: "Command")
 
 		if let toolbarItem = item as? NSToolbarItem {
 			toolbarItem.toolTip = commandName
 			// Text Only toolbar mode shows the label and menu form representation, so they need to track state too.
-			let shortName = markingRead ? NSLocalizedString("Mark Read", comment: "command") : NSLocalizedString("Mark Unread", comment: "command")
+			let shortName = markingRead ? NSLocalizedString("Archive", comment: "command") : NSLocalizedString("Move to Inbox", comment: "command")
 			toolbarItem.label = shortName
 			toolbarItem.menuFormRepresentation?.title = shortName
 		}

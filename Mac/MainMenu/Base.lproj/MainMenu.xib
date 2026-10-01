@@ -344,7 +344,7 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Sort Articles By" id="OlJ-93-6OP">
                                     <items>
-                                        <menuItem title="Date" identifier="date" id="sMf-da-001">
+                                        <menuItem title="Date Saved" identifier="date" id="sMf-da-001">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="sortArticlesByField:" target="-1" id="sMa-da-001"/>
@@ -474,7 +474,7 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Article" id="57V-gv-vEw">
                         <items>
-                            <menuItem title="Mark as Read" keyEquivalent="U" id="Fc9-c7-2AY">
+                            <menuItem title="Archive" keyEquivalent="U" id="Fc9-c7-2AY">
                                 <connections>
                                     <action selector="toggleRead:" target="-1" id="jLQ-ZF-xye"/>
                                 </connections>
@@ -484,13 +484,13 @@
                                     <action selector="markAllAsRead:" target="-1" id="154-2D-ONk"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mark Above as Read" keyEquivalent="k" id="p1o-EG-Uo8">
+                            <menuItem title="Archive Above" keyEquivalent="k" id="p1o-EG-Uo8">
                                 <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
                                 <connections>
                                     <action selector="markAboveArticlesAsRead:" target="-1" id="BJY-oR-uvr"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mark Below as Read" keyEquivalent="K" id="8lZ-XI-I4y">
+                            <menuItem title="Archive Below" keyEquivalent="K" id="8lZ-XI-I4y">
                                 <connections>
                                     <action selector="markBelowArticlesAsRead:" target="-1" id="Jnm-LF-mrf"/>
                                 </connections>

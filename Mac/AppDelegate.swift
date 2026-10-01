@@ -475,17 +475,6 @@ let appName = "NetNewsList"
 		errorLogWindowController!.showWindow(self)
 	}
 
-	@objc func selectFeedInSidebar(_ sender: Any?) {
-		guard let feed = sender as? Feed else {
-			return
-		}
-		guard let mainWindowController else {
-			return
-		}
-		mainWindowController.showWindow(self)
-		mainWindowController.selectFeedInSidebar(feed)
-	}
-
 	@IBAction func showActivityWindow(_ sender: Any?) {
 		if activityWindowController == nil {
 			activityWindowController = CurrentActivityWindowController()

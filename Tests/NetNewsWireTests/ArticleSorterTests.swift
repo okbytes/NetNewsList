@@ -209,10 +209,11 @@ import XCTest
 		XCTAssertEqual(sortedArticles.articleAtRow(4), article4)
 	}
 
-	func testGroupByFeedWithSameFeedNames() {
+	func testGroupBySiteKeepsOneGroupPerSiteName() {
 		let now = Date()
 
-		// Articles with the same feed name should be sorted by feed ID
+		// Saved articles all share one feed, so grouping is by site name: articles with the
+		// same site name form one group, in date order (then article ID).
 		let article1 = makeArticle(date: now, articleID: "1", feedID: "2")
 		let article2 = makeArticle(date: now, articleID: "2", feedID: "2")
 		let article3 = makeArticle(date: now, articleID: "3", feedID: "1")
@@ -221,15 +222,10 @@ import XCTest
 
 		let articles = [article1, article2, article3, article4, article5]
 		let sortedArticles = ArticleSorter.sortedByDate(articles: articles, sortDirection: .orderedAscending, groupByFeed: true) { _ in
-			"Phil's Feed"
+			"example.com"
 		}
 
-		XCTAssertEqual(sortedArticles.count, articles.count)
-		XCTAssertEqual(sortedArticles.articleAtRow(0), article3)
-		XCTAssertEqual(sortedArticles.articleAtRow(1), article5)
-		XCTAssertEqual(sortedArticles.articleAtRow(2), article1)
-		XCTAssertEqual(sortedArticles.articleAtRow(3), article2)
-		XCTAssertEqual(sortedArticles.articleAtRow(4), article4)
+		XCTAssertEqual(sortedArticles, [article1, article2, article3, article4, article5])
 	}
 
 	// MARK: sorted(by:) tests

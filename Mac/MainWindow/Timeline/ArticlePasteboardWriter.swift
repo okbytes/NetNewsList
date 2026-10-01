@@ -35,8 +35,8 @@ extension Article: @retroactive PasteboardWriterOwner {
 		self.renderedHTML = rendering.html
 
 		self.feedURL = article.feed?.url
-		self.feedNameForDisplay = article.feed?.nameForDisplay
-		self.feedHomePageURL = article.feed?.homePageURL
+		self.feedNameForDisplay = article.siteHost
+		self.feedHomePageURL = article.siteHomePageURL
 	}
 
 	// MARK: - NSPasteboardWriting
