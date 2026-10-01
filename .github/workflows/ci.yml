@@ -27,6 +27,16 @@ jobs:
       - name: Run SwiftLint
         run: swiftlint lint --strict --reporter github-actions-logging
 
+  extension-tests:
+    name: Browser Extension Tests
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run Node Tests
+        run: node --test chrome-extension/tests/*.test.mjs
+
   macos-tests:
     name: macOS Tests
     runs-on: macos-26

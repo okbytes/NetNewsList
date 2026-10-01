@@ -32,7 +32,6 @@ private extension UIViewController {
 		let title = NSLocalizedString("Account Error", comment: "Account Error")
 		let alertController = UIAlertController(title: title, message: error.localizedDescription, preferredStyle: .alert)
 
-
 		let dismissTitle = NSLocalizedString("OK", comment: "OK button")
 		let dismissAction = UIAlertAction(title: dismissTitle, style: .default) { _ in
 			dismiss?()

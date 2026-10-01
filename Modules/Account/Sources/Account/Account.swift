@@ -950,7 +950,6 @@ public enum FetchType {
 		await delegate.vacuumDatabases()
 	}
 
-
 	public func debugDropConditionalGetInfo() {
 #if DEBUG
 		for feed in flattenedFeeds() {

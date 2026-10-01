@@ -93,8 +93,8 @@ private extension AboutWindowController {
 		creditsTextView.textStorage?.addAttribute(.paragraphStyle, value: leadingParagraphStyle, range: fullRange)
 
 		// URL
-		let url = URL(string: "https://netnewswire.com/")!
-		let attributedString = NSMutableAttributedString(string: "netnewswire.com")
+		let url = URL(string: HelpURL.website.rawValue)!
+		let attributedString = NSMutableAttributedString(string: "github.com/okbytes/NetNewsList")
 		attributedString.addAttribute(.link, value: url, range: NSRange(location: 0, length: attributedString.length))
 		attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: NSRange(location: 0, length: attributedString.length))
 		attributedString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: attributedString.length))

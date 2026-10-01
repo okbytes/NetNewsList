@@ -10,15 +10,16 @@ import Foundation
 
 enum HelpURL: String {
 
-	case helpHome = "https://netnewswire.com/help/"
-	case website = "https://netnewswire.com/"
-	case releaseNotes = "https://github.com/Ranchero-Software/NetNewsWire/releases/"
-	case howToSupportNetNewsWire = "https://github.com/Ranchero-Software/NetNewsWire/blob/main/Technotes/HowToSupportNetNewsWire.markdown"
-	case githubRepo = "https://github.com/Ranchero-Software/NetNewsWire"
-	case bugTracker = "https://github.com/Ranchero-Software/NetNewsWire/issues"
-	case discourse = "https://discourse.netnewswire.com/"
-	case technotes = "https://github.com/Ranchero-Software/NetNewsWire/tree/main/Technotes"
-	case privacyPolicy = "https://netnewswire.com/privacypolicy.html"
+	// NetNewsList has no website of its own; help lives with the code.
+	case helpHome = "https://github.com/okbytes/NetNewsList#readme"
+	case website = "https://github.com/okbytes/NetNewsList"
+	case releaseNotes = "https://github.com/okbytes/NetNewsList/commits/"
+	case howToSupportNetNewsWire = "https://netnewswire.com/"
+	case githubRepo = "https://github.com/okbytes/NetNewsList/tree/main"
+	case bugTracker = "https://github.com/okbytes/NetNewsList/issues"
+	case discourse = "https://github.com/okbytes/NetNewsList/discussions"
+	case technotes = "https://github.com/okbytes/NetNewsList/tree/main/Technotes/NetNewsList"
+	case privacyPolicy = "https://github.com/okbytes/NetNewsList/blob/main/Technotes/NetNewsList/Privacy.md"
 
 #if os(macOS)
 	@MainActor func open() {

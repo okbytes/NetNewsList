@@ -95,7 +95,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		let databaseFilePath = (dataFolder as NSString).appendingPathComponent("Sync.sqlite3")
 		self.syncDatabase = SyncDatabase(databasePath: databaseFilePath)
 
-
 		NotificationCenter.default.addObserver(self, selector: #selector(syncProgressDidChange(_:)), name: .progressInfoDidChange, object: syncProgress)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleCKAccountChanged(_:)), name: .CKAccountChanged, object: nil)
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")

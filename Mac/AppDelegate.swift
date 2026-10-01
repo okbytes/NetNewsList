@@ -427,7 +427,6 @@ let appName = "NetNewsList"
 		showAddArticleSheetOnWindow(window, urlString: urlString, title: title)
 	}
 
-
 	// MARK: - Dock Badge
 	@objc func updateDockBadge() {
 		Task { @MainActor in

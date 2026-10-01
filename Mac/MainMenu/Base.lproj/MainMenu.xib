@@ -626,7 +626,7 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Help" systemMenu="help" id="F2S-fz-NVQ">
                         <items>
-                            <menuItem title="NetNewsWire Help" keyEquivalent="?" id="FKE-Sm-Kum">
+                            <menuItem title="NetNewsList Help" keyEquivalent="?" id="FKE-Sm-Kum">
                                 <connections>
                                     <action selector="showHelp:" target="Voe-Tx-rLC" id="WJP-8V-s4K"/>
                                 </connections>
@@ -650,13 +650,13 @@
                                     <action selector="openWebsite:" target="-1" id="rmL-lt-p8g"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Release Notes" id="b5s-xg-B1w" userLabel="Release Notes">
+                            <menuItem title="Change Log" id="b5s-xg-B1w" userLabel="Release Notes">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="openReleaseNotes:" target="-1" id="7LS-uW-Yp0"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="How To Support NetNewsWire" id="kfC-NQ-g3E">
+                            <menuItem title="NetNewsWire, Which This Is Based On" id="kfC-NQ-g3E">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="openHowToSupport:" target="-1" id="SIw-Ug-A4D"/>
@@ -674,7 +674,7 @@
                                     <action selector="openBugTracker:" target="-1" id="fZQ-ng-gIm"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Discourse Forum" id="OKC-FV-V33">
+                            <menuItem title="Discussions" id="OKC-FV-V33">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="openDiscourse:" target="-1" id="pHL-0j-vVt"/>
@@ -688,7 +688,7 @@
         </menu>
         <menu id="lhO-wh-r8m">
             <items>
-                <menuItem title="Refresh" id="Ppm-uh-K5n">
+                <menuItem title="Sync Now" id="Ppm-uh-K5n">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
                         <action selector="refreshAll:" target="Voe-Tx-rLC" id="Mme-zS-KQN"/>
