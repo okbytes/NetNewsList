@@ -12,6 +12,9 @@ import UniformTypeIdentifiers
 struct SharedPage: Sendable {
 	let url: URL
 	let title: String?
+
+	/// The article as Safari showed it, extracted in the page by SafariExt.js.
+	var body: String? = nil
 }
 
 @MainActor enum SharedPageResolver {
@@ -28,7 +31,7 @@ struct SharedPage: Sendable {
 		   let results = (item as? NSDictionary)?[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary,
 		   let urlString = results["url"] as? String,
 		   let url = webURL(urlString) {
-			return SharedPage(url: url, title: nonEmpty(results["title"] as? String) ?? itemTitle)
+			return SharedPage(url: url, title: nonEmpty(results["title"] as? String) ?? itemTitle, body: nonEmpty(results["body"] as? String))
 		}
 
 		if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }),

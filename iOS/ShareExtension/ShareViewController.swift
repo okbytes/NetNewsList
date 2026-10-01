@@ -59,7 +59,7 @@ private extension ShareViewController {
 			return
 		}
 		do {
-			try SavedArticleInbox.add(SavedArticleRequest(url: page.url.absoluteString, title: page.title))
+			try SavedArticleInbox.add(SavedArticleRequest(url: page.url.absoluteString, title: page.title, body: page.body))
 			finish(NSLocalizedString("Saved to NetNewsList", comment: "Share extension: saved"), symbolName: "checkmark.circle", succeeded: true)
 		} catch {
 			Self.logger.error("ShareViewController: couldn’t save \(page.url.absoluteString, privacy: .public): \(error.localizedDescription, privacy: .public)")
