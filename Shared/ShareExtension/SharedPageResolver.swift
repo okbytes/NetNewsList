@@ -14,7 +14,7 @@ struct SharedPage: Sendable {
 	let title: String?
 
 	/// The article as Safari showed it, extracted in the page by SafariExt.js.
-	var body: String? = nil
+	var body: String?
 }
 
 @MainActor enum SharedPageResolver {

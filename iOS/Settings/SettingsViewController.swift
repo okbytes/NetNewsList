@@ -51,7 +51,6 @@ final class SettingsViewController: UITableViewController {
 		case about = 4
 	}
 
-
 	@IBOutlet var timelineSortOrderSwitch: UISwitch!
 	@IBOutlet var groupBySiteSwitch: UISwitch!
 	@IBOutlet var articleThemeDetailLabel: UILabel!
