@@ -34,9 +34,9 @@
                         </constraints>
                     </view>
                     <toolbarItems>
-                        <barButtonItem title="Toggle Read" image="circle" catalog="system" id="hy0-LS-MzE">
+                        <barButtonItem title="Archive" image="circle" catalog="system" id="hy0-LS-MzE">
                             <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Toggle Read"/>
+                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Archive"/>
                             </userDefinedRuntimeAttributes>
                             <connections>
                                 <action selector="toggleRead:" destination="JEX-9P-axG" id="A8V-r1-o9u"/>
@@ -146,7 +146,7 @@
                     <toolbarItems>
                         <barButtonItem title="Item" image="markAllAsRead" id="jGC-TX-BdL">
                             <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Mark All as Read"/>
+                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Archive All"/>
                             </userDefinedRuntimeAttributes>
                             <connections>
                                 <action selector="markAllAsRead:" destination="QJM-al-rDe" id="wU6-dU-tbq"/>

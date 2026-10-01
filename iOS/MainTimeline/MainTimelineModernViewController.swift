@@ -170,7 +170,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 
 		assert(collectionView?.refreshControl != nil)
 		collectionView?.refreshControl = UIRefreshControl()
-		collectionView?.refreshControl?.addTarget(self, action: #selector(refreshAccounts(_:)), for: .valueChanged)
+		collectionView?.refreshControl?.addTarget(self, action: #selector(sync(_:)), for: .valueChanged)
 
 		configureToolbar()
 		resetUI(resetScroll: true)
@@ -406,7 +406,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 
 	}
 
-	@objc func refreshAccounts(_ sender: Any) {
+	@objc func sync(_ sender: Any) {
 		collectionView?.refreshControl?.endRefreshing()
 
 		// This is a hack to make sure that an error dialog doesn't interfere with dismissing the refreshControl.
@@ -438,6 +438,13 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		coordinator?.navigateToDetail()
 	}
 
+	@objc func deleteArticles(_ sender: Any?) {
+		guard let currentArticle else {
+			return
+		}
+		confirmDelete(currentArticle)
+	}
+
 	// MARK: - IBActions
 
 	@objc func openInBrowser(_ sender: Any?) {
@@ -460,7 +467,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 			assertionFailure("Expected coordinator")
 			return
 		}
-		let title = NSLocalizedString("Mark All as Read", comment: "Command")
+		let title = NSLocalizedString("Archive All", comment: "Command")
 
 		let articlesToMark = coordinator.articles
 
@@ -554,6 +561,8 @@ extension MainTimelineModernViewController: UICollectionViewDelegate {
 			if let action = self.shareAction(article, indexPath: firstIndex) {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
+
+			menuElements.append(UIMenu(title: "", options: .displayInline, children: [self.deleteAction(article)]))
 
 			return UIMenu(title: "", children: menuElements)
 
@@ -768,6 +777,17 @@ private extension MainTimelineModernViewController {
 			moreAction.image = Assets.Images.more
 			moreAction.backgroundColor = UIColor.systemGray
 
+			// Deleting asks first. Cancel puts the row back.
+			let deleteAction = UIContextualAction(style: .destructive, title: NSLocalizedString("Delete", comment: "Delete button")) { [weak self] _, _, completion in
+				guard let self else {
+					completion(false)
+					return
+				}
+				self.confirmDelete(article, completion: completion)
+			}
+			deleteAction.image = Assets.Images.trash
+
+			actions.append(deleteAction)
 			actions.append(starAction)
 			actions.append(moreAction)
 
@@ -786,16 +806,16 @@ private extension MainTimelineModernViewController {
 
 			// Set up the read action
 			let readTitle = article.status.read ?
-				NSLocalizedString("Mark as Unread", comment: "Command") :
-				NSLocalizedString("Mark as Read", comment: "Command")
+				NSLocalizedString("Move to Inbox", comment: "Command") :
+				NSLocalizedString("Archive", comment: "Command")
 
 			let readAction = UIContextualAction(style: .normal, title: readTitle) { [weak self] _, _, completion in
 
 				// Post the accessibility announcement immediately so VoiceOver
 				// doesn't lag behind user actions.
 				let announcement = article.status.read ?
-					NSLocalizedString("Marked as Unread", comment: "Accessibility announcement") :
-					NSLocalizedString("Marked as Read", comment: "Accessibility announcement")
+					NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
+					NSLocalizedString("Archived", comment: "Accessibility announcement")
 				UIAccessibility.post(notification: .announcement, argument: announcement)
 
 				/// The call to `toggleRead` is delayed in order to allow
@@ -818,7 +838,7 @@ private extension MainTimelineModernViewController {
 		}
 
 		collectionView?.refreshControl = UIRefreshControl()
-		collectionView?.refreshControl?.addTarget(self, action: #selector(refreshAccounts(_:)), for: .valueChanged)
+		collectionView?.refreshControl?.addTarget(self, action: #selector(sync(_:)), for: .valueChanged)
 		collectionView?.contentInsetAdjustmentBehavior = .automatic
 
 		let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
@@ -1124,16 +1144,16 @@ extension MainTimelineModernViewController {
 		guard !article.status.read || article.isAvailableToMarkUnread else { return nil }
 
 		let title = article.status.read ?
-			NSLocalizedString("Mark as Unread", comment: "Command") :
-			NSLocalizedString("Mark as Read", comment: "Command")
+			NSLocalizedString("Move to Inbox", comment: "Command") :
+			NSLocalizedString("Archive", comment: "Command")
 		let image = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
 
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			// Post the accessibility announcement immediately so VoiceOver
 			// doesn't lag behind user actions.
 			let announcement = article.status.read ?
-				NSLocalizedString("Marked as Unread", comment: "Accessibility announcement") :
-				NSLocalizedString("Marked as Read", comment: "Accessibility announcement")
+				NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
+				NSLocalizedString("Archived", comment: "Accessibility announcement")
 			UIAccessibility.post(notification: .announcement, argument: announcement)
 
 			DispatchQueue.main.asyncAfter(wallDeadline: .now() + 1.0) {
@@ -1187,7 +1207,7 @@ extension MainTimelineModernViewController {
 			return nil
 		}
 
-		let title = NSLocalizedString("Mark Above as Read", comment: "Command")
+		let title = NSLocalizedString("Archive Above", comment: "Command")
 		let image = Assets.Images.markAboveAsRead
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
@@ -1212,7 +1232,7 @@ extension MainTimelineModernViewController {
 			return nil
 		}
 
-		let title = NSLocalizedString("Mark Below as Read", comment: "Command")
+		let title = NSLocalizedString("Archive Below", comment: "Command")
 		let image = Assets.Images.markBelowAsRead
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
@@ -1227,7 +1247,7 @@ extension MainTimelineModernViewController {
 			return nil
 		}
 
-		let title = NSLocalizedString("Mark Above as Read", comment: "Command")
+		let title = NSLocalizedString("Archive Above", comment: "Command")
 		let cancel = {
 			completion(true)
 		}
@@ -1246,7 +1266,7 @@ extension MainTimelineModernViewController {
 			return nil
 		}
 
-		let title = NSLocalizedString("Mark Below as Read", comment: "Command")
+		let title = NSLocalizedString("Archive Below", comment: "Command")
 		let cancel = {
 			completion(true)
 		}
@@ -1347,5 +1367,43 @@ extension MainTimelineModernViewController {
 			self?.shareDialogForTableCell(indexPath: indexPath, url: url, title: article.title)
 		}
 		return action
+	}
+}
+
+// MARK: Deleting
+
+extension MainTimelineModernViewController {
+
+	func deleteAction(_ article: Article) -> UIAction {
+		let title = NSLocalizedString("Delete", comment: "Delete button")
+		return UIAction(title: title, image: Assets.Images.trash, attributes: .destructive) { [weak self] _ in
+			self?.confirmDelete(article)
+		}
+	}
+
+	/// Deleting is permanent and reaches every device, so it always asks first.
+	/// The row leaves the timeline when the account posts `.AccountDidDeleteArticles`.
+	func confirmDelete(_ article: Article, completion: ((Bool) -> Void)? = nil) {
+		let name = ArticleStringFormatter.shared.truncatedTitle(article)
+		let title: String
+		if name.isEmpty {
+			title = NSLocalizedString("Delete this article?", comment: "Delete article alert")
+		} else {
+			title = String(format: NSLocalizedString("Delete “%@”?", comment: "Delete article alert"), name)
+		}
+		let message = NSLocalizedString("It’s removed from NetNewsList on all your devices. You can’t undo this.", comment: "Delete article alert")
+
+		let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel button"), style: .cancel) { _ in
+			completion?(false)
+		})
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Delete", comment: "Delete button"), style: .destructive) { _ in
+			completion?(true)
+			let articleIDs: Set<String> = [article.articleID]
+			Task { @MainActor in
+				await AccountManager.shared.defaultAccount.deleteArticles(articleIDs: articleIDs)
+			}
+		})
+		present(alertController, animated: true)
 	}
 }

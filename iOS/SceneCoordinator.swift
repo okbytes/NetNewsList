@@ -411,7 +411,7 @@ struct SidebarItemNode: Hashable, Sendable {
 			return
 		}
 
-		// Add Feed just presents a sheet — unlike the activities below, it doesn't navigate,
+		// Add Article just presents a sheet — unlike the activities below, it doesn't navigate,
 		// so it must not clear the current selection.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/4352>
 		if activityType == .addFeedIntent {
@@ -537,20 +537,20 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	/// Updates navigation bar subtitles in response to feed selection, unread count changes,
+	/// Updates navigation bar subtitles in response to list selection, unread count changes,
 	/// `progressInfoDidChange` notifications, and a timed refresh every
 	/// 60s.
 	///
 	/// Subtitles are handled differently on iPhone and iPad.
 	///
 	/// `MainFeedViewController`
-	/// - When refreshing: Feeds will display "Updating..." on both iPhone and iPad.
-	/// - When refreshed: Feeds will display "Updated <#relative_time#>" on both iPhone and iPad.
+	/// - While syncing: the sidebar displays "Syncing…" on both iPhone and iPad.
+	/// - After syncing: the sidebar displays "Synced <#relative_time#>" on both iPhone and iPad.
 	///
 	/// `MainTimelineViewController`
 	/// - Where the unread count for the timeline is > 0, this is displayed on both iPhone and iPad.
 	/// - If the timeline count is 0, the iPhone follows the same logic as `MainFeedViewController`
-	/// - Specific to iPad, if the unread count is 0, the iPad will not display a subtitle. The refresh text
+	/// - Specific to iPad, if the unread count is 0, the iPad will not display a subtitle. The sync text
 	/// will generally be visible in the sidebar and there's no need to display it twice.
 	///
 	/// - Parameter note: Optional `Notification`
@@ -563,10 +563,10 @@ struct SidebarItemNode: Hashable, Sendable {
 					let relativeDateTimeFormatter = RelativeDateTimeFormatter()
 					relativeDateTimeFormatter.dateTimeStyle = .named
 					let refreshed = relativeDateTimeFormatter.localizedString(for: accountLastArticleFetchEndTime, relativeTo: Date())
-					let localizedRefreshText = NSLocalizedString("Updated %@", comment: "Updated")
+					let localizedRefreshText = NSLocalizedString("Synced %@", comment: "Synced")
 					let refreshText = NSString.localizedStringWithFormat(localizedRefreshText as NSString, refreshed) as String
 
-					// Update Feeds with Updated text
+					// Show the Synced text in the sidebar
 					if #available(iOS 26, *) {
 						self.mainFeedCollectionViewController?.navigationItem.subtitle = refreshText
 					}
@@ -577,7 +577,7 @@ struct SidebarItemNode: Hashable, Sendable {
 						let unreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
 						self.mainTimelineViewController?.updateNavigationBarSubtitle(unreadCount)
 					} else {
-						// When unread count == 0, iPhone timeline displays Updated Just Now; iPad is blank
+						// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
 						if UIDevice.current.userInterfaceIdiom == .phone {
 							self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshText)
 						} else {
@@ -585,9 +585,9 @@ struct SidebarItemNode: Hashable, Sendable {
 						}
 					}
 				} else {
-					// Use 'Updated Just Now' while <60s have passed since refresh.
+					// Use 'Synced Just Now' while <60s have passed since the sync.
 					if #available(iOS 26, *) {
-						self.mainFeedCollectionViewController?.navigationItem.subtitle = NSLocalizedString("Updated Just Now", comment: "Updated Just Now")
+						self.mainFeedCollectionViewController?.navigationItem.subtitle = NSLocalizedString("Synced Just Now", comment: "Synced Just Now")
 					}
 
 					// If unread count > 0, add unread string to timeline
@@ -596,9 +596,9 @@ struct SidebarItemNode: Hashable, Sendable {
 						let refreshTextWithUnreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
 						self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshTextWithUnreadCount)
 					} else {
-						// When unread count == 0, iPhone timeline displays Updated Just Now; iPad is blank
+						// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
 						if UIDevice.current.userInterfaceIdiom == .phone {
-							self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Updated Just Now", comment: "Updated Just Now"))
+							self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Synced Just Now", comment: "Synced Just Now"))
 						} else {
 							self.mainTimelineViewController?.updateNavigationBarSubtitle("")
 						}
@@ -614,18 +614,18 @@ struct SidebarItemNode: Hashable, Sendable {
 					let refreshTextWithUnreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
 					self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshTextWithUnreadCount)
 				} else {
-					// When unread count == 0, iPhone timeline displays Updated Just Now; iPad is blank
+					// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
 					if UIDevice.current.userInterfaceIdiom == .phone {
-						self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Updated Just Now", comment: "Updated Just Now"))
+						self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Synced Just Now", comment: "Synced Just Now"))
 					} else {
 						self.mainTimelineViewController?.updateNavigationBarSubtitle("")
 					}
 				}
 			}
 		} else {
-			// Updating in progress, apply to both iPhone and iPad Feeds.
+			// Syncing in progress, apply to both iPhone and iPad sidebars.
 			if #available(iOS 26, *) {
-				self.mainFeedCollectionViewController?.navigationItem.subtitle = NSLocalizedString("Updating…", comment: "Updating…")
+				self.mainFeedCollectionViewController?.navigationItem.subtitle = NSLocalizedString("Syncing…", comment: "Syncing…")
 			}
 		}
 

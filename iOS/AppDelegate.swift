@@ -234,7 +234,7 @@ private extension AppDelegate {
 		let searchIcon = UIApplicationShortcutIcon(systemImageName: "magnifyingglass")
 		let searchItem = UIApplicationShortcutItem(type: "NetNewsList.ShowSearch", localizedTitle: searchTitle, localizedSubtitle: nil, icon: searchIcon, userInfo: nil)
 
-		let addTitle = NSLocalizedString("Add Feed", comment: "Add Feed")
+		let addTitle = NSLocalizedString("Add Article", comment: "Add Article")
 		let addIcon = UIApplicationShortcutIcon(systemImageName: "plus")
 		let addItem = UIApplicationShortcutItem(type: "NetNewsList.ShowAdd", localizedTitle: addTitle, localizedSubtitle: nil, icon: addIcon, userInfo: nil)
 
