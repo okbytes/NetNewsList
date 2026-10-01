@@ -29,6 +29,8 @@ public extension Notification.Name {
 	static let AccountRefreshDidBegin = Notification.Name(rawValue: "AccountRefreshDidBegin")
 	static let AccountRefreshDidFinish = Notification.Name(rawValue: "AccountRefreshDidFinish")
 	static let AccountDidDownloadArticles = Notification.Name(rawValue: "AccountDidDownloadArticles")
+	/// Articles were deleted here or on another device. userInfo[UserInfoKey.articleIDs] is the Set<String> of IDs.
+	static let AccountDidDeleteArticles = Notification.Name(rawValue: "AccountDidDeleteArticles")
 	static let AccountStateDidChange = Notification.Name(rawValue: "AccountStateDidChange")
 	static let StatusesDidChange = Notification.Name(rawValue: "StatusesDidChange")
 	/// Posted when a delegate enqueues one or more status changes for upstream send.
@@ -862,6 +864,10 @@ public enum FetchType {
 			return
 		}
 		await database.deleteAsync(articleIDs: articleIDs)
+		if let feed = readingListFeed {
+			updateUnreadCounts(feeds: [feed])
+		}
+		NotificationCenter.default.post(name: .AccountDidDeleteArticles, object: self, userInfo: [UserInfoKey.articleIDs: articleIDs])
 	}
 
 	/// Empty caches that can reasonably be emptied. Call when the app goes in the background, for instance.

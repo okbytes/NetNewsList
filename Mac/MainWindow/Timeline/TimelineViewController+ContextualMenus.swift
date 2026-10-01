@@ -121,6 +121,13 @@ extension TimelineViewController {
 		ExtractionCoordinator.shared.retry(articleIDs: Set(articles.map(\.articleID)), usesLivePage: true)
 	}
 
+	@objc func deleteArticlesFromContextualMenu(_ sender: Any?) {
+		guard let menuItem = sender as? NSMenuItem, let articles = menuItem.representedObject as? [Article], let window = view.window else {
+			return
+		}
+		ArticleDeletion.confirmAndDelete(articles, in: window)
+	}
+
 	@objc func performShareServiceFromContextualMenu(_ sender: Any?) {
 		guard let menuItem = sender as? NSMenuItem, let sharingCommandInfo = menuItem.representedObject as? SharingCommandInfo else {
 			return
@@ -217,6 +224,11 @@ private extension TimelineViewController {
 		shareButtonMenuItem.representedObject = articles
 		menu.addItem(shareButtonMenuItem)
 		shareButtonMenuItem.isEnabled = !articles.isEmpty
+
+		if !articles.isEmpty {
+			menu.addItem(.separator())
+			menu.addItem(menuItem(NSLocalizedString("Delete…", comment: "Command"), #selector(deleteArticlesFromContextualMenu(_:)), articles))
+		}
 
 		return menu
 	}

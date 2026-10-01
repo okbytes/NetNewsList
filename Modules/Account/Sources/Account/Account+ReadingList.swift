@@ -135,13 +135,6 @@ extension Account: ReadingListStore {
 		let articles = await fetchArticlesAsync(.articleIDs(articleIDs))
 		await cloudKitDelegate?.storeAndSendArticleChanges(new: nil, updated: nil, deleted: articles)
 		await delete(articleIDs: articleIDs)
-
-		var feeds = Set<Feed>()
-		if let feed = readingListFeed {
-			feeds.insert(feed)
-			updateUnreadCounts(feeds: feeds)
-		}
-		NotificationCenter.default.post(name: .AccountDidDownloadArticles, object: self, userInfo: [UserInfoKey.feeds: feeds])
 	}
 
 	/// Saved articles whose content has not been extracted yet.

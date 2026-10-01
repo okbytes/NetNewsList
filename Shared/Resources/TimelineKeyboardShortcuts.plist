@@ -3,36 +3,50 @@
 <plist version="1.0">
 <array>
 	<dict>
-		<key>title</key>
-		<string>Select Next Up</string>
-		<key>key</key>
-		<string>[uparrow]</string>
 		<key>action</key>
 		<string>selectNextUp:</string>
+		<key>key</key>
+		<string>[uparrow]</string>
+		<key>title</key>
+		<string>Select Next Up</string>
 	</dict>
 	<dict>
-		<key>title</key>
-		<string>Select Next Down</string>
-		<key>key</key>
-		<string>[downarrow]</string>
 		<key>action</key>
 		<string>selectNextDown:</string>
+		<key>key</key>
+		<string>[downarrow]</string>
+		<key>title</key>
+		<string>Select Next Down</string>
 	</dict>
 	<dict>
-		<key>title</key>
-		<string>Navigate to Feeds</string>
-		<key>key</key>
-		<string>[leftarrow]</string>
 		<key>action</key>
 		<string>navigateToSidebar:</string>
+		<key>key</key>
+		<string>[leftarrow]</string>
+		<key>title</key>
+		<string>Navigate to Feeds</string>
 	</dict>
 	<dict>
-		<key>title</key>
-		<string>Navigate to Detail</string>
-		<key>key</key>
-		<string>[rightarrow]</string>
 		<key>action</key>
 		<string>navigateToDetail:</string>
+		<key>key</key>
+		<string>[rightarrow]</string>
+		<key>title</key>
+		<string>Navigate to Detail</string>
+	</dict>
+	<dict>
+		<key>action</key>
+		<string>deleteArticles:</string>
+		<key>key</key>
+		<string>[delete]</string>
+		<key>title</key>
+		<string>Delete Article</string>
+	</dict>
+	<dict>
+		<key>action</key>
+		<string>deleteArticles:</string>
+		<key>key</key>
+		<string>[deletefunction]</string>
 	</dict>
 </array>
 </plist>

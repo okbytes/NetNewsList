@@ -246,6 +246,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		tableView.target = self
 		tableView.doubleAction = #selector(openArticleInBrowser(_:))
 		tableView.setDraggingSourceOperationMask(.copy, forLocal: false)
+		tableView.registerForDraggedTypes(DroppedWebPages.pasteboardTypes)
 		tableView.keyboardDelegate = keyboardDelegate
 		tableView.style = .inset
 
@@ -263,7 +264,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 			NotificationCenter.default.addObserver(self, selector: #selector(accountStateDidChange(_:)), name: .AccountStateDidChange, object: nil)
 			NotificationCenter.default.addObserver(self, selector: #selector(accountsDidChange(_:)), name: .UserDidAddAccount, object: nil)
 			NotificationCenter.default.addObserver(self, selector: #selector(userDidDeleteAccount(_:)), name: .UserDidDeleteAccount, object: nil)
-			NotificationCenter.default.addObserver(self, selector: #selector(handleSidebarDidAcceptDrop(_:)), name: .SidebarDidAcceptDrop, object: nil)
+			NotificationCenter.default.addObserver(self, selector: #selector(accountDidDeleteArticles(_:)), name: .AccountDidDeleteArticles, object: nil)
 			NotificationCenter.default.addObserver(self, selector: #selector(containerChildrenDidChange(_:)), name: .ChildrenDidChange, object: nil)
 			NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
 				Task { @MainActor in
@@ -759,10 +760,18 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		}
 	}
 
-	@objc func handleSidebarDidAcceptDrop(_ note: Notification) {
-		// Drops aren't undoable — without this, ⌘Z could silently undo an older, unrelated action.
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/3583>
+	/// Deleted articles leave the timeline at once. A fetch-and-merge would keep them.
+	@objc func accountDidDeleteArticles(_ note: Notification) {
+		guard let articleIDs = note.userInfo?[Account.UserInfoKey.articleIDs] as? Set<String>,
+			  articles.contains(where: { articleIDs.contains($0.articleID) }) else {
+			return
+		}
+		// Undo can't bring a deleted article back.
 		undoManager?.removeAllActions()
+		let remaining = Set(articles.filter { !articleIDs.contains($0.articleID) })
+		performBlockAndRestoreSelection {
+			replaceArticles(with: remaining)
+		}
 	}
 
 	@objc func containerChildrenDidChange(_ note: Notification) {
@@ -917,6 +926,19 @@ extension TimelineViewController: NSTableViewDataSource {
 
 	func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
 		return articles.articleAtRow(row) ?? nil
+	}
+
+	/// A web address dropped on the timeline is saved. Articles dragged within the timeline aren't.
+	func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+		guard (info.draggingSource as? NSTableView) !== tableView, !DroppedWebPages.pages(on: info.draggingPasteboard).isEmpty else {
+			return []
+		}
+		tableView.setDropRow(-1, dropOperation: .on)
+		return .copy
+	}
+
+	func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+		DroppedWebPages.save(DroppedWebPages.pages(on: info.draggingPasteboard))
 	}
 
 	func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> NSPasteboardWriting? {

@@ -76,9 +76,7 @@ let appName = "NetNewsList"
 	private lazy var preferencesWindowController = PreferencesWindowController()
 	private var aboutWindowController: AboutWindowController?
 	private var addArticleSheet: NSWindow?
-	private var addFolderWindowController: AddFolderWindowController?
 	private var keyboardShortcutsWindowController: WebViewWindowController?
-	private var inspectorWindowController: InspectorWindowController?
 	private var activityWindowController: CurrentActivityWindowController?
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
@@ -96,18 +94,12 @@ let appName = "NetNewsList"
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: AccountManager.shared)
-		NotificationCenter.default.addObserver(self, selector: #selector(inspectableObjectsDidChange(_:)), name: .InspectableObjectsDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeImportError(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWakeNotification(_:)), name: NSWorkspace.didWakeNotification, object: nil)
 	}
 
 	// MARK: - API
-
-	func showAddFolderSheetOnWindow(_ window: NSWindow) {
-		addFolderWindowController = AddFolderWindowController()
-		addFolderWindowController!.runSheetOnWindow(window)
-	}
 
 	func showAddArticleSheetOnWindow(_ window: NSWindow, urlString: String?, title: String?) {
 		let sheet = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: true)
@@ -183,9 +175,6 @@ let appName = "NetNewsList"
 		}
 
 		if !Platform.isRunningUnitTests {
-			if InspectorWindowController.shouldOpenAtStartup {
-				toggleInspectorWindow(self)
-			}
 			if CurrentActivityWindowController.shouldOpenAtStartup {
 				showActivityWindow(self)
 			}
@@ -321,15 +310,6 @@ let appName = "NetNewsList"
 		}
 	}
 
-	@objc func inspectableObjectsDidChange(_ note: Notification) {
-		MainActor.assumeIsolated {
-			guard let inspectorWindowController = inspectorWindowController, inspectorWindowController.isOpen else {
-				return
-			}
-			inspectorWindowController.objects = objectsForInspector()
-		}
-	}
-
 	func userDefaultsDidChange() {
 		updateColumnLayoutMenuItem()
 
@@ -404,7 +384,7 @@ let appName = "NetNewsList"
 			return !AccountManager.shared.refreshInProgress && !AccountManager.shared.activeAccounts.isEmpty
 		}
 
-		if item.action == #selector(showAddArticleWindow(_:)) || item.action == #selector(showAddFolderWindow(_:)) {
+		if item.action == #selector(showAddArticleWindow(_:)) {
 			return !isDisplayingSheet && !AccountManager.shared.activeAccounts.isEmpty
 		}
 
@@ -528,11 +508,6 @@ let appName = "NetNewsList"
 		addArticle(NSPasteboard.urlString(from: NSPasteboard.general)?.normalizedURL)
 	}
 
-	@IBAction func showAddFolderWindow(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		showAddFolderSheetOnWindow(windowController.window!)
-	}
-
 	@IBAction func showKeyboardShortcutsWindow(_ sender: Any?) {
 		if keyboardShortcutsWindowController == nil {
 
@@ -550,19 +525,6 @@ let appName = "NetNewsList"
 		}
 
 		keyboardShortcutsWindowController!.showWindow(self)
-	}
-
-	@IBAction func toggleInspectorWindow(_ sender: Any?) {
-		if inspectorWindowController == nil {
-			inspectorWindowController = InspectorWindowController()
-		}
-
-		if inspectorWindowController!.isOpen {
-			inspectorWindowController!.window!.performClose(self)
-		} else {
-			inspectorWindowController!.objects = objectsForInspector()
-			inspectorWindowController!.showWindow(self)
-		}
 	}
 
 	@IBAction func openWebsite(_ sender: Any?) {
@@ -687,13 +649,6 @@ extension AppDelegate {
 		ArticleStatusSyncTimer.shared.fireOldTimer()
 	}
 
-	func objectsForInspector() -> [Any]? {
-		guard let window = NSApplication.shared.mainWindow, let windowController = window.windowController as? MainWindowController else {
-			return nil
-		}
-		return windowController.selectedObjectsInSidebar()
-	}
-
 	func saveState() {
 		guard !Platform.isRunningUnitTests else {
 			return
@@ -701,7 +656,6 @@ extension AppDelegate {
 
 		mainWindowController?.saveStateToUserDefaults()
 
-		inspectorWindowController?.saveState()
 		activityWindowController?.saveState()
 		activityLogWindowController?.saveState()
 		errorLogWindowController?.saveState()

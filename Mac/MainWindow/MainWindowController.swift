@@ -127,10 +127,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		return sidebarViewController?.selectedObjects
 	}
 
-	func selectedContainerInSidebar() -> Container? {
-		sidebarViewController?.selectedContainer
-	}
-
 	func selectFeedInSidebar(_ feed: Feed) {
 		sidebarViewController?.selectFeed(feed)
 	}
@@ -251,7 +247,7 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	public func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 
-		if item.action == #selector(retrySavingPage(_:)) || item.action == #selector(retrySavingLivePage(_:)) {
+		if item.action == #selector(retrySavingPage(_:)) || item.action == #selector(retrySavingLivePage(_:)) || item.action == #selector(deleteArticles(_:)) || item.action == #selector(delete(_:)) {
 			return !(selectedArticles?.isEmpty ?? true)
 		}
 
@@ -309,10 +305,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 		if item.action == #selector(cleanUp(_:)) {
 			return validateCleanUp(item)
-		}
-
-		if item.action == #selector(toggleReadFeedsFilter(_:)) {
-			return validateToggleReadFeeds(item)
 		}
 
 		if item.action == #selector(toggleReadArticlesFilter(_:)) {
@@ -600,8 +592,17 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		timelineContainerViewController?.cleanUp()
 	}
 
-	@IBAction func toggleReadFeedsFilter(_ sender: Any?) {
-		sidebarViewController?.toggleReadFilter()
+	/// Deletes the selected articles here and on every other device, after asking.
+	@IBAction func deleteArticles(_ sender: Any?) {
+		guard let articles = selectedArticles, let window else {
+			return
+		}
+		ArticleDeletion.confirmAndDelete(articles, in: window)
+	}
+
+	/// Edit > Delete and the Delete key in the timeline.
+	@IBAction func delete(_ sender: Any?) {
+		deleteArticles(sender)
 	}
 
 	@IBAction func toggleReadArticlesFilter(_ sender: Any?) {
@@ -667,7 +668,6 @@ extension MainWindowController: SidebarDelegate {
 			forceSearchToEnd()
 		}
 		updateWindowTitle()
-		NotificationCenter.default.post(name: .InspectableObjectsDidChange, object: nil)
 	}
 
 	func unreadCount(for representedObject: AnyObject) -> Int {
@@ -792,10 +792,8 @@ extension MainWindowController: NSSearchFieldDelegate {
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {
-	static let newFeed = NSToolbarItem.Identifier("newFeed")
-	static let newFolder = NSToolbarItem.Identifier("newFolder")
+	static let addArticle = NSToolbarItem.Identifier("addArticle")
 	static let refresh = NSToolbarItem.Identifier("refresh")
-	static let newSidebarItemMenu = NSToolbarItem.Identifier("newSidebarItemMenu")
 	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
 	static let search = NSToolbarItem.Identifier("search")
 	static let markAllAsRead = NSToolbarItem.Identifier("markAllAsRead")
@@ -817,20 +815,15 @@ extension MainWindowController: NSToolbarDelegate {
 		switch itemIdentifier {
 
 		case .refresh:
-			let title = NSLocalizedString("Refresh", comment: "Refresh")
+			let title = NSLocalizedString("Sync Now", comment: "Sync Now")
 			return buildToolbarButton(.refresh, title, Assets.Images.refresh, "refreshAll:")
 
-		case .newSidebarItemMenu:
-			let toolbarItem = NSMenuToolbarItem(itemIdentifier: .newSidebarItemMenu)
-			toolbarItem.image = Assets.Images.addNewSidebarItem
-			let description = NSLocalizedString("Add Item", comment: "Add Item")
-			toolbarItem.toolTip = description
-			toolbarItem.label = description
-			toolbarItem.menu = buildNewSidebarItemMenu()
-			return toolbarItem
+		case .addArticle:
+			let title = NSLocalizedString("Add Article", comment: "Add Article")
+			return buildToolbarButton(.addArticle, title, Assets.Images.addNewSidebarItem, "showAddArticleWindow:")
 
 		case .markAllAsRead:
-			let title = NSLocalizedString("Mark All as Read", comment: "Command")
+			let title = NSLocalizedString("Archive All", comment: "Command")
 			return buildToolbarButton(.markAllAsRead, title, Assets.Images.markAllAsRead, "markAllAsRead:")
 
 		case .toggleReadArticlesFilter:
@@ -909,7 +902,7 @@ extension MainWindowController: NSToolbarDelegate {
 		[
 			NSToolbarItem.Identifier.toggleSidebar,
 			.refresh,
-			.newSidebarItemMenu,
+			.addArticle,
 			.sidebarTrackingSeparator,
 			.markAllAsRead,
 			.toggleReadArticlesFilter,
@@ -932,7 +925,7 @@ extension MainWindowController: NSToolbarDelegate {
 			NSToolbarItem.Identifier.toggleSidebar,
 			.flexibleSpace,
 			.refresh,
-			.newSidebarItemMenu,
+			.addArticle,
 			.sidebarTrackingSeparator,
 			.markAllAsRead,
 			.toggleReadArticlesFilter,
@@ -1471,15 +1464,6 @@ private extension MainWindowController {
 		return timelineContainerViewController?.isCleanUpAvailable ?? false
 	}
 
-	func validateToggleReadFeeds(_ item: NSValidatedUserInterfaceItem) -> Bool {
-		guard let menuItem = item as? NSMenuItem else { return false }
-
-		let showCommand = NSLocalizedString("Show Read Feeds", comment: "Command")
-		let hideCommand = NSLocalizedString("Hide Read Feeds", comment: "Command")
-		menuItem.title = sidebarViewController?.isReadFiltered ?? false ? showCommand : hideCommand
-		return true
-	}
-
 	func validateSortArticlesByField(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		guard let sortParameters = timelineContainerViewController?.sortParameters, let menuItem = item as? NSMenuItem, let identifier = menuItem.identifier, let key = ArticleSortKey(rawValue: identifier.rawValue) else {
 			return false
@@ -1648,22 +1632,6 @@ private extension MainWindowController {
 		// A menu form representation keeps view-based items working in the toolbar's Text Only mode and overflow menu.
 		toolbarItem.menuFormRepresentation = NSMenuItem(title: title, action: Selector((selector)), keyEquivalent: "")
 		return toolbarItem
-	}
-
-	func buildNewSidebarItemMenu() -> NSMenu {
-		let menu = NSMenu()
-
-		let newFeedItem = NSMenuItem()
-		newFeedItem.title = NSLocalizedString("Add Article…", comment: "Add Article")
-		newFeedItem.action = #selector(AppDelegate.showAddArticleWindow(_:))
-		menu.addItem(newFeedItem)
-
-		let newFolderFeedItem = NSMenuItem()
-		newFolderFeedItem.title = NSLocalizedString("New Folder…", comment: "New Folder")
-		newFolderFeedItem.action = #selector(AppDelegate.showAddFolderWindow(_:))
-		menu.addItem(newFolderFeedItem)
-
-		return menu
 	}
 
 	func updateArticleThemeMenu() {

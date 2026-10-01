@@ -391,6 +391,7 @@ struct SidebarItemNode: Hashable, Sendable {
 		NotificationCenter.default.addObserver(self, selector: #selector(userDidDeleteAccount(_:)), name: .UserDidDeleteAccount, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(userDidAddFeed(_:)), name: .UserDidAddFeed, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDeleteArticles(_:)), name: .AccountDidDeleteArticles, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeDownloadDidFail(_:)), name: .didFailToImportThemeWithError, object: nil)
@@ -668,6 +669,18 @@ struct SidebarItemNode: Hashable, Sendable {
 		if shouldFetchAndMergeArticles {
 			queueFetchAndMergeArticles()
 		}
+	}
+
+	/// Deleted articles leave the timeline at once. A fetch-and-merge would keep them.
+	@objc func accountDidDeleteArticles(_ note: Notification) {
+		guard let articleIDs = note.userInfo?[Account.UserInfoKey.articleIDs] as? Set<String>,
+			  articles.contains(where: { articleIDs.contains($0.articleID) }) else {
+			return
+		}
+		if let currentArticle, articleIDs.contains(currentArticle.articleID) {
+			selectArticle(nil)
+		}
+		replaceArticles(with: articles.filter { !articleIDs.contains($0.articleID) }, animated: true)
 	}
 
 	@objc func willEnterForeground(_ note: Notification) {

@@ -20,11 +20,11 @@
         </customObject>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
-                <menuItem title="NetNewsWire" id="1Xt-HY-uBw">
+                <menuItem title="NetNewsList" id="1Xt-HY-uBw">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="NetNewsWire" systemMenu="apple" id="uQy-DD-JDr">
+                    <menu key="submenu" title="NetNewsList" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
-                            <menuItem title="About NetNewsWire" id="5kV-Vb-QxS">
+                            <menuItem title="About NetNewsList" id="5kV-Vb-QxS">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="showCustomAboutPanel:" target="Voe-Tx-rLC" id="ZQV-QH-KmS"/>
@@ -48,7 +48,7 @@
                                 <menu key="submenu" title="Services" systemMenu="services" id="hz9-B4-Xy5"/>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="4je-JR-u6R"/>
-                            <menuItem title="Hide NetNewsWire" keyEquivalent="h" id="Olw-nP-bQN">
+                            <menuItem title="Hide NetNewsList" keyEquivalent="h" id="Olw-nP-bQN">
                                 <connections>
                                     <action selector="hide:" target="-1" id="PnN-Uc-m68"/>
                                 </connections>
@@ -66,7 +66,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="kCx-OE-vgT"/>
-                            <menuItem title="Quit NetNewsWire" keyEquivalent="q" id="4sb-4s-VLi">
+                            <menuItem title="Quit NetNewsList" keyEquivalent="q" id="4sb-4s-VLi">
                                 <connections>
                                     <action selector="terminate:" target="-1" id="Te7-pn-YzF"/>
                                 </connections>
@@ -83,11 +83,6 @@
                                     <action selector="showAddArticleWindow:" target="-1" id="jOz-hB-3zH"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="New Folder…" keyEquivalent="N" id="wkh-LX-Xp1">
-                                <connections>
-                                    <action selector="showAddFolderWindow:" target="-1" id="GIi-wc-uYk"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="m54-Is-iLE"/>
                             <menuItem title="New Window" keyEquivalent="n" id="pGg-Gc-PU2">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
@@ -96,7 +91,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="MFJ-WG-3fx"/>
-                            <menuItem title="Refresh" keyEquivalent="r" id="Veh-SV-KWy">
+                            <menuItem title="Sync Now" keyEquivalent="r" id="Veh-SV-KWy">
                                 <connections>
                                     <action selector="refreshAll:" target="-1" id="gIc-Zj-9tB"/>
                                 </connections>
@@ -355,7 +350,7 @@
                                                 <action selector="sortArticlesByField:" target="-1" id="sMa-da-001"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Feed" identifier="feed" id="sMf-fe-002">
+                                        <menuItem title="Site" identifier="feed" id="sMf-fe-002">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="sortArticlesByField:" target="-1" id="sMa-fe-002"/>
@@ -404,11 +399,6 @@
                             <menuItem title="Hide Read Articles" keyEquivalent="H" id="b10-sA-Yzi">
                                 <connections>
                                     <action selector="toggleReadArticlesFilter:" target="-1" id="YhV-0F-jrM"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Hide Read Feeds" keyEquivalent="F" id="E9K-zV-nLv">
-                                <connections>
-                                    <action selector="toggleReadFeedsFilter:" target="-1" id="5pI-YT-xai"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="Ocl-6H-m3k"/>
@@ -489,7 +479,7 @@
                                     <action selector="toggleRead:" target="-1" id="jLQ-ZF-xye"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mark All as Read" keyEquivalent="k" id="HdN-Ks-cwh">
+                            <menuItem title="Archive All" keyEquivalent="k" id="HdN-Ks-cwh">
                                 <connections>
                                     <action selector="markAllAsRead:" target="-1" id="154-2D-ONk"/>
                                 </connections>
@@ -536,6 +526,12 @@
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
                                     <action selector="openArticleInBrowser:" target="-1" id="Frq-Uo-DQs"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="dAr-sp-01a"/>
+                            <menuItem title="Delete Article…" keyEquivalent="" id="dAr-mn-01a">
+                                <connections>
+                                    <action selector="deleteArticles:" target="-1" id="dAr-ac-01a"/>
                                 </connections>
                             </menuItem>
                         </items>

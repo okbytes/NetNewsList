@@ -103,9 +103,18 @@ import Articles
 		}
 
 		let saved = try await account.saveArticle(url: "https://example.com/post", title: nil, content: nil)
+		let deletion = DeletedArticleIDs()
+		let observer = NotificationCenter.default.addObserver(forName: .AccountDidDeleteArticles, object: account, queue: nil) { note in
+			deletion.articleIDs = note.userInfo?[Account.UserInfoKey.articleIDs] as? Set<String>
+		}
+		defer {
+			NotificationCenter.default.removeObserver(observer)
+		}
 		await account.deleteArticles(articleIDs: [saved.articleID])
 
 		#expect(await account.fetchArticlesAsync(.articleIDs([saved.articleID])).isEmpty)
+		// Timelines remove deleted articles when told; their merge would otherwise keep them.
+		#expect(deletion.articleIDs == [saved.articleID])
 	}
 
 	@Test func invalidURLIsRejected() async {
@@ -118,4 +127,8 @@ import Articles
 			try await account.saveArticle(url: "ftp://example.com/file", title: nil, content: nil)
 		}
 	}
+}
+
+private final class DeletedArticleIDs: @unchecked Sendable {
+	var articleIDs: Set<String>?
 }
