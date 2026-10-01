@@ -12,8 +12,6 @@ enum WidgetDeepLink {
 
 	case unread
 	case unreadArticle(id: String)
-	case today
-	case todayArticle(id: String)
 	case starred
 	case starredArticle(id: String)
 	case icon
@@ -24,12 +22,6 @@ enum WidgetDeepLink {
 			return URL(string: "nnw://showunread")!
 		case .unreadArticle(let articleID):
 			var url = URLComponents(url: WidgetDeepLink.unread.url, resolvingAgainstBaseURL: false)!
-			url.queryItems = [URLQueryItem(name: "id", value: articleID)]
-			return url.url!
-		case .today:
-			return URL(string: "nnw://showtoday")!
-		case .todayArticle(let articleID):
-			var url = URLComponents(url: WidgetDeepLink.today.url, resolvingAgainstBaseURL: false)!
 			url.queryItems = [URLQueryItem(name: "id", value: articleID)]
 			return url.url!
 		case .starred:

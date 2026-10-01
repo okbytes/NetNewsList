@@ -167,16 +167,20 @@ final class RootSplitViewController: UISplitViewController {
 		appDelegate.manualRefresh(errorHandler: ErrorHandler.present(self))
 	}
 
-	@objc func goToToday(_ sender: Any?) {
-		coordinator.selectTodayFeed()
-	}
-
 	@objc func goToAllUnread(_ sender: Any?) {
 		coordinator.selectAllUnreadFeed()
 	}
 
 	@objc func goToStarred(_ sender: Any?) {
 		coordinator.selectStarredFeed()
+	}
+
+	@objc func goToArchive(_ sender: Any?) {
+		coordinator.selectArchiveFeed()
+	}
+
+	@objc func goToAllArticles(_ sender: Any?) {
+		coordinator.selectAllArticlesFeed()
 	}
 
 	@objc func goToSettings(_ sender: Any?) {

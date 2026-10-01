@@ -94,7 +94,7 @@ public enum SidebarItemIdentifier: CustomStringConvertible, Hashable, Equatable,
 			}
 			self = .folder(accountID, folderName)
 		default:
-			assertionFailure("Expected valid SidebarItemIdentifier.userInfo but got \(userInfo)")
+			// Saved window state can name sidebar items that no longer exist.
 			return nil
 		}
 	}

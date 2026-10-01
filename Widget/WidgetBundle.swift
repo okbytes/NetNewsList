@@ -30,25 +30,6 @@ struct UnreadWidget: Widget {
 	}
 }
 
-struct TodayWidget: Widget {
-	let kind: String = "NetNewsList.TodayWidget"
-
-	var body: some WidgetConfiguration {
-
-		return StaticConfiguration(kind: kind, provider: Provider(), content: { entry in
-			TodayWidgetView(entry: entry)
-				.frame(maxHeight: .infinity, alignment: .top)
-				.containerBackground(for: .widget) {
-					Color.clear
-				}
-				.clipped()
-		})
-		.configurationDisplayName(Text("label.text.today", comment: "Today"))
-		.description(Text("label.text.today-widget-description", comment: "A description of the Today widget."))
-		.supportedFamilies([.systemMedium, .systemLarge])
-	}
-}
-
 struct StarredWidget: Widget {
 	let kind: String = "NetNewsList.StarredWidget"
 
@@ -93,7 +74,6 @@ struct NetNewsWireWidgets: WidgetBundle {
 	@WidgetBundleBuilder
 	var body: some Widget {
 		UnreadWidget()
-		TodayWidget()
 		StarredWidget()
 		LockScreenSummaryWidget()
 	}

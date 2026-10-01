@@ -1364,10 +1364,6 @@ private extension TimelineViewController {
 		return representedObjects?.contains(where: { $0 is PseudoFeed}) ?? false
 	}
 
-	func representedObjectsContainsTodayFeed() -> Bool {
-		return representedObjects?.contains(where: { $0 === SmartFeedsController.shared.todayFeed }) ?? false
-	}
-
 	func representedObjectsContainAnyFolder() -> Bool {
 		return representedObjects?.contains(where: { $0 is Folder }) ?? false
 	}

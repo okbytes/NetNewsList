@@ -141,14 +141,17 @@ private extension KeyboardManager {
 		let nextUnreadTitle = NSLocalizedString("Next Unread", comment: "Next Unread")
 		keys.append(KeyboardManager.createKeyCommand(title: nextUnreadTitle, action: "nextUnread:", input: "/", modifiers: [.command]))
 
-		let goToTodayTitle = NSLocalizedString("Go To Today", comment: "Go To Today")
-		keys.append(KeyboardManager.createKeyCommand(title: goToTodayTitle, action: "goToToday:", input: "1", modifiers: [.command]))
-
-		let goToAllUnreadTitle = NSLocalizedString("Go To All Unread", comment: "Go To All Unread")
-		keys.append(KeyboardManager.createKeyCommand(title: goToAllUnreadTitle, action: "goToAllUnread:", input: "2", modifiers: [.command]))
+		let goToInboxTitle = NSLocalizedString("Go To Inbox", comment: "Go To Inbox")
+		keys.append(KeyboardManager.createKeyCommand(title: goToInboxTitle, action: "goToAllUnread:", input: "1", modifiers: [.command]))
 
 		let goToStarredTitle = NSLocalizedString("Go To Starred", comment: "Go To Starred")
-		keys.append(KeyboardManager.createKeyCommand(title: goToStarredTitle, action: "goToStarred:", input: "3", modifiers: [.command]))
+		keys.append(KeyboardManager.createKeyCommand(title: goToStarredTitle, action: "goToStarred:", input: "2", modifiers: [.command]))
+
+		let goToArchiveTitle = NSLocalizedString("Go To Archive", comment: "Go To Archive")
+		keys.append(KeyboardManager.createKeyCommand(title: goToArchiveTitle, action: "goToArchive:", input: "3", modifiers: [.command]))
+
+		let goToAllTitle = NSLocalizedString("Go To All", comment: "Go To All")
+		keys.append(KeyboardManager.createKeyCommand(title: goToAllTitle, action: "goToAllArticles:", input: "4", modifiers: [.command]))
 
 		let gotoSettings = NSLocalizedString("Go To Settings", comment: "Go To Settings")
 			keys.append(KeyboardManager.createKeyCommand(title: gotoSettings, action: "goToSettings:", input: ",", modifiers: [.command]))

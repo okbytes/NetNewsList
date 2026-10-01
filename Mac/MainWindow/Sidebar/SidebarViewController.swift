@@ -338,18 +338,23 @@ extension Notification.Name {
 		Browser.open(homePageURL, invertPreference: NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false)
 	}
 
-	@IBAction func gotoToday(_ sender: Any?) {
-		selectFeed(SmartFeedsController.shared.todayFeed)
-		focus()
-	}
-
-	@IBAction func gotoAllUnread(_ sender: Any?) {
+	@IBAction func gotoInbox(_ sender: Any?) {
 		selectFeed(SmartFeedsController.shared.unreadFeed)
 		focus()
 	}
 
 	@IBAction func gotoStarred(_ sender: Any?) {
 		selectFeed(SmartFeedsController.shared.starredFeed)
+		focus()
+	}
+
+	@IBAction func gotoArchive(_ sender: Any?) {
+		selectFeed(SmartFeedsController.shared.archiveFeed)
+		focus()
+	}
+
+	@IBAction func gotoAllArticles(_ sender: Any?) {
+		selectFeed(SmartFeedsController.shared.allArticlesFeed)
 		focus()
 	}
 
@@ -895,13 +900,6 @@ private extension SidebarViewController {
 	func nodeShouldGetUnreadCountFromTimeline(_ node: Node) -> Bool {
 		// Only if it’s selected and it’s the only node selected.
 		return selectedNodes.count == 1 && selectedNodes.first! === node
-	}
-
-	func nodeRepresentsTodayFeed(_ node: Node) -> Bool {
-		guard let smartFeed = node.representedObject as? SmartFeed else {
-			return false
-		}
-		return smartFeed === SmartFeedsController.shared.todayFeed
 	}
 
 	func cellForRowView(_ rowView: NSTableRowView) -> SidebarCell? {

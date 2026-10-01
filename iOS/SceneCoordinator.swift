@@ -1113,17 +1113,24 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func selectTodayFeed(completion: (() -> Void)? = nil) {
-		markExpanded(SmartFeedsController.shared)
-		self.ensureFeedIsAvailableToSelect(SmartFeedsController.shared.todayFeed) {
-			self.selectFeed(SmartFeedsController.shared.todayFeed, animations: [.navigation, .scroll], completion: completion)
-		}
-	}
-
 	func selectAllUnreadFeed(completion: (() -> Void)? = nil) {
 		markExpanded(SmartFeedsController.shared)
 		self.ensureFeedIsAvailableToSelect(SmartFeedsController.shared.unreadFeed) {
 			self.selectFeed(SmartFeedsController.shared.unreadFeed, animations: [.navigation, .scroll], completion: completion)
+		}
+	}
+
+	func selectArchiveFeed(completion: (() -> Void)? = nil) {
+		markExpanded(SmartFeedsController.shared)
+		self.ensureFeedIsAvailableToSelect(SmartFeedsController.shared.archiveFeed) {
+			self.selectFeed(SmartFeedsController.shared.archiveFeed, animations: [.navigation, .scroll], completion: completion)
+		}
+	}
+
+	func selectAllArticlesFeed(completion: (() -> Void)? = nil) {
+		markExpanded(SmartFeedsController.shared)
+		self.ensureFeedIsAvailableToSelect(SmartFeedsController.shared.allArticlesFeed) {
+			self.selectFeed(SmartFeedsController.shared.allArticlesFeed, animations: [.navigation, .scroll], completion: completion)
 		}
 	}
 

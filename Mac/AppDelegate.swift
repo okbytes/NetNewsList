@@ -601,19 +601,24 @@ let appName = "NetNewsList"
 		HelpURL.privacyPolicy.open()
 	}
 
-	@IBAction func gotoToday(_ sender: Any?) {
+	@IBAction func gotoInbox(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
-		windowController.gotoToday(sender)
-	}
-
-	@IBAction func gotoAllUnread(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		windowController.gotoAllUnread(sender)
+		windowController.gotoInbox(sender)
 	}
 
 	@IBAction func gotoStarred(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
 		windowController.gotoStarred(sender)
+	}
+
+	@IBAction func gotoArchive(_ sender: Any?) {
+		let windowController = createAndShowMainWindowIfNecessary()
+		windowController.gotoArchive(sender)
+	}
+
+	@IBAction func gotoAllArticles(_ sender: Any?) {
+		let windowController = createAndShowMainWindowIfNecessary()
+		windowController.gotoAllArticles(sender)
 	}
 
 	@IBAction func showCustomAboutPanel(_ sender: Any?) {

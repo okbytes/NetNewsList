@@ -538,16 +538,20 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		sidebarViewController?.outlineView.selectNextRow(sender)
 	}
 
-	@IBAction func gotoToday(_ sender: Any?) {
-		sidebarViewController?.gotoToday(sender)
-	}
-
-	@IBAction func gotoAllUnread(_ sender: Any?) {
-		sidebarViewController?.gotoAllUnread(sender)
+	@IBAction func gotoInbox(_ sender: Any?) {
+		sidebarViewController?.gotoInbox(sender)
 	}
 
 	@IBAction func gotoStarred(_ sender: Any?) {
 		sidebarViewController?.gotoStarred(sender)
+	}
+
+	@IBAction func gotoArchive(_ sender: Any?) {
+		sidebarViewController?.gotoArchive(sender)
+	}
+
+	@IBAction func gotoAllArticles(_ sender: Any?) {
+		sidebarViewController?.gotoAllArticles(sender)
 	}
 
 	@IBAction func toolbarShowShareMenu(_ sender: Any?) {

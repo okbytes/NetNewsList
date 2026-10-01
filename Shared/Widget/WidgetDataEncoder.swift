@@ -104,12 +104,6 @@ import Account
 				Self.logger.debug("WidgetDataEncoder: Reloading Unread widget")
 			}
 
-			if existingData.todayArticles != newData.todayArticles || existingData.totalTodayUnreadCount != newData.totalTodayUnreadCount {
-				WidgetCenter.shared.reloadTimelines(ofKind: "NetNewsList.TodayWidget")
-				shouldRefreshSummary = true
-				Self.logger.debug("WidgetDataEncoder: Reloading Today widget")
-			}
-
 			if existingData.starredArticles != newData.starredArticles {
 				WidgetCenter.shared.reloadTimelines(ofKind: "NetNewsList.StarredWidget")
 				shouldRefreshSummary = true
@@ -134,20 +128,12 @@ import Account
 		let fetchedStarredArticles = await AccountManager.shared.fetchArticlesAsync(.starred(fetchLimit))
 		let starredArticles = sortedLatestArticles(fetchedStarredArticles)
 
-		let fetchedTodayArticles = await AccountManager.shared.fetchArticlesAsync(.today(fetchLimit))
-		let todayArticles = sortedLatestArticles(fetchedTodayArticles)
-
-		let totalTodayCount = await AccountManager.shared.fetchCountForTodayArticlesAsync()
-		let totalTodayUnreadCount = await AccountManager.shared.fetchUnreadCountForTodayAsync()
 		let totalStarredCount = await AccountManager.shared.fetchCountForStarredArticlesAsync()
 
 		let latestData = WidgetData(totalUnreadCount: SmartFeedsController.shared.unreadFeed.unreadCount,
-									totalTodayCount: totalTodayCount,
-									totalTodayUnreadCount: totalTodayUnreadCount,
 									totalStarredCount: totalStarredCount,
 									unreadArticles: unreadArticles,
 									starredArticles: starredArticles,
-									todayArticles: todayArticles,
 									lastUpdateTime: Date.now)
 
 		return latestData

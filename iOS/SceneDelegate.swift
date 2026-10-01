@@ -146,25 +146,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 				return
 			}
 
-			// Show Today View or Article
-			if urlString.contains(WidgetDeepLink.today.url.absoluteString) {
-				guard let comps = URLComponents(string: urlString ) else { return  }
-				let id = comps.queryItems?.first(where: { $0.name == "id" })?.value
-				if id != nil {
-					if AccountManager.shared.isSuspended {
-						AccountManager.shared.resumeAll()
-					}
-					self.coordinator.selectTodayFeed {
-						DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-							self.coordinator.selectArticleInCurrentFeed(id!)
-						}
-					}
-				} else {
-					self.coordinator.selectTodayFeed()
-				}
-				return
-			}
-
 			// Show Starred View or Article
 			if urlString.contains(WidgetDeepLink.starred.url.absoluteString) {
 				guard let comps = URLComponents(string: urlString ) else { return  }
