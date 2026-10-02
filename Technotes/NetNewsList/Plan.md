@@ -2,6 +2,8 @@
 
 This is the roadmap for turning this NetNewsWire fork into NetNewsList, a personal, iCloud-only, offline-first reading list. It is written for the one developer who owns the fork. Every file:line reference below was checked against the repository at the time of writing; when a line number drifts, the surrounding function name is given so it can be found again.
 
+> **Status (2026-10-01).** PR1–PR12 and follow-up 1 (Safari capture) are done on branch `claude/vibrant-brahmagupta-5dbncv`, built and unit-tested on both platforms but not yet tried on devices. What each PR changed, and how it differed from this plan, is in the **Progress** notes at the end of section 5; the last one, "merge and wrap-up", lists what is still open. The user's own to-dos are in `TODO-Brett.md`; how the finished app works is in `ReadingList.md`.
+
 ## 1. Summary
 
 **What NetNewsList is.** A manually curated reading list with the NetNewsWire three-pane UX (sidebar, timeline, detail), article rendering and themes, keyboard navigation, read/unread, starred and full-text search. Articles are added by URL from the share sheet (Mac and iOS), a Chrome extension (Mac), a `netnewslist://add` URL scheme, paste, and Shortcuts. At save time the app fetches the page, extracts the readable body and stores it, so the article is readable offline on the iPhone and survives the page disappearing. The only store and sync mechanism is the user's private CloudKit database. No third-party servers, no RSS.

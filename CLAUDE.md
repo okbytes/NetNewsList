@@ -2,67 +2,61 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build and Development Commands
+## What this is
 
-### Building and Testing
-- **Full build and test**: `./buildscripts/build_and_test.sh` - Builds both macOS and iOS targets and runs all tests
-- **Quiet build and test**: `./buildscripts/quiet_build_and_test.sh` - Same as above with less verbose output
-- **Manual Xcode builds**:
-  - macOS: `xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destination "platform=macOS,arch=arm64" build`
-  - iOS: `xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=iPhone 17" build`
+NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked from NetNewsWire. Pages are saved by URL, extracted with Readability.js at save time, synced through the user's private CloudKit database, and read offline in NetNewsWire's three-pane UI. There are no feeds, no other accounts and no servers.
 
-### Testing
-- Run all tests: Use the `NetNewsWire.xctestplan` which includes tests from all modules
-- Individual test runs follow same xcodebuild pattern with `test` action instead of `build`
+**Start here when picking the work up:**
+1. `Technotes/NetNewsList/ReadingList.md`: how saving, extraction, sync and offline images work, and the traps. Read it before changing sync, retention, account, extraction or ingress code.
+2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
+3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer extension setup).
 
-### Setup
-- First-time setup: Run `./setup.sh` to configure development environment and code signing
-- Manual setup: Create `SharedXcodeSettings/DeveloperSettings.xcconfig` in parent directory
+**Branch:** all NetNewsList work is on `claude/vibrant-brahmagupta-5dbncv` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). `main` is still upstream NetNewsWire; no PR has been opened.
 
-## Project Architecture
+## Build and test
 
-### High-Level Structure
-NetNewsWire is a multi-platform RSS reader with separate targets for macOS and iOS, organized as a modular architecture with shared business logic.
+Unsigned builds and tests use the CI xcconfigs. Every build is warnings-as-errors, so a clean build means zero warnings.
 
-### Key Modules (in /Modules)
-- **RSCore**: Core utilities, extensions, and shared infrastructure
-- **RSParser**: Feed parsing (RSS, Atom, JSON Feed, RSS-in-JSON)
-- **RSWeb**: HTTP networking, downloading, caching, and web services
-- **RSDatabase**: SQLite database abstraction layer using FMDB
-- **Account**: Account management (Local, Feedbin, Feedly, NewsBlur, Reader API, CloudKit)
-- **Articles**: Article and author data models
-- **ArticlesDatabase**: Article storage and search functionality
-- **SyncDatabase**: Cross-device synchronization state management
-- **Secrets**: Secure credential and API key management
+```bash
+# Mac app and Mac test plan (includes module tests: Account, ArticlesDatabase, Extraction, …)
+xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destination "platform=macOS,arch=arm64" \
+  -xcconfig .github/macos-ci-no-signing.xcconfig build
+xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
+  -destination "platform=macOS,arch=arm64" -xcconfig .github/macos-ci-no-signing.xcconfig
 
-### Platform-Specific Code
-- **Mac/**: macOS-specific UI (AppKit), preferences, main window management
-- **iOS/**: iOS-specific UI (UIKit), settings, navigation
-- **Shared/**: Cross-platform business logic, article rendering, smart feeds
+# iOS app and iOS test plan (use a simulator that isn't the user's booted one; "iPhone Air" has been free)
+xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=iPhone Air" \
+  -xcconfig .github/ios-ci-no-signing.xcconfig build
+xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
+  -destination "platform=iOS Simulator,name=iPhone Air" -xcconfig .github/ios-ci-no-signing.xcconfig
 
-### Key Architectural Patterns
-- **Account System**: Pluggable account delegates for different sync services
-- **Feed Management**: Hierarchical folder/feed organization with OPML import/export
-- **Article Rendering**: Template-based HTML rendering with custom CSS themes
-- **Smart Feeds**: Virtual feeds (Today, All Unread, Starred) implemented as PseudoFeed protocol
-- **Timeline/Detail**: Classic three-pane interface (sidebar, timeline, detail)
+# Extraction module alone (fast), browser extension, lint
+(cd Modules/Extraction && xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
+node --test chrome-extension/tests/*.test.mjs
+swiftlint lint --strict
+```
 
-### Extension Points
-- Share extensions for both platforms
-- Safari extension for feed subscription
-- Widget support for iOS
-- AppleScript support on macOS
-- Intent extensions for Siri shortcuts
+- Pass `-derivedDataPath <somewhere in the scratchpad>` to keep builds out of the user's Xcode DerivedData, and use a separate path for any parallel agent.
+- Don't run module tests with `swift test`: `AppConfig` force-unwraps `CFBundleExecutable` and crashes outside an app bundle. Use the test plans.
+- An unsigned process traps when it creates a `CKContainer`; CloudKit is never touched under unit tests (`Platform.isRunningUnitTests`). Don't launch the unsigned app expecting iCloud to work, and don't run the signed app without asking: it writes to the user's real iCloud data.
+- Real-page extraction can be checked without the app: `Tools/extract-page` (see its README).
+- `./buildscripts/make_safari_ext_js.sh` regenerates `Shared/ShareExtension/SafariExt.js` from the vendored Readability.js and DOMPurify; rerun it after updating them.
 
-### Development Notes
-- Uses Xcode project with Swift Package Manager for module dependencies
-- Requires `xcbeautify` for formatted build output in scripts
-- API keys are managed through buildscripts/updateSecrets.sh (runs during builds)
-- Some features disabled in development builds due to private API keys
-- Code signing configured through SharedXcodeSettings for development
-- Documentation and technical notes are located in the `Technotes/` folder
+## Project structure
 
-## Code Formatting
+- `Modules/`: local Swift packages (RSCore, RSParser, RSWeb, RSDatabase, RSTree, Articles, ArticlesDatabase, SyncDatabase, Account, CloudKitSync, Images, HTMLMetadata, ActivityLog, ErrorLog, **Extraction**). Apps reference package products by name; new packages need `XCSwiftPackageProductDependency` and build-file entries in `project.pbxproj` (copy the `HTMLMetadata` or `Extraction` entries).
+- `Shared/`: code for both apps, including `Extraction/` (`ExtractionCoordinator`, `ExtractedContentFormatter`, `SavedArticleRequestProcessor`), `ArticleAssets/` (offline images), `AddArticle/`, `AppIntents/`, `ShareExtension/` (the files the share extensions compile), `SmartFeeds/` (Inbox, Starred, Archive, All).
+- `Mac/`, `iOS/`: platform UI. `chrome-extension/`: the Chromium extension (local and remote mode). `Technotes/NetNewsList/`: this project's docs.
+- The Xcode project uses **file-system-synchronized groups**: new files under `Mac/`, `iOS/`, `Shared/` join the app targets automatically; extension targets compile only the files listed in their `PBXFileSystemSynchronizedBuildFileExceptionSet`. Build settings live in `xcconfig/` only; a build phase fails the Mac build if `project.pbxproj` gains `buildSettings`. Xcode sometimes rewrites the project file while the user has it open; build on top of its version.
+- Identity: team `P4RDBS9676`, organization identifier `eitherslice`, bundle IDs `eitherslice.NetNewsList` and `eitherslice.NetNewsList.iOS` (`-DEBUG` suffix in Debug), container `iCloud.eitherslice.NetNewsList`, URL scheme `netnewslist://`. `PRODUCT_MODULE_NAME` is still `NetNewsWire` (tests use `@testable import NetNewsWire`).
+- The browser extension's CloudKit API token (Development) is in the git-ignored `chrome-extension/local-config.json`. Never commit it; the repository is public.
+
+## Working conventions
+
+- Commit messages are one plain sentence; no `Co-Authored-By` or other agent attribution lines in commits or PR descriptions.
+- After each piece of work, add or update a **Progress** note in `Plan.md` (what changed, deviations from the plan, what's left) so the next session can pick up from the files alone.
+
+## Code formatting
 
 Prefer idiomatic modern Swift.
 
@@ -76,8 +70,4 @@ Don’t do force unwrapping of optionals.
 
 ## Things to Know
 
-Just because unit tests pass doesn’t mean a given bug is fixed. It may not have a test. It may not even be testable — it may require manual testing.
-
-## NetNewsList Fork
-
-This repository is a fork that is being turned into NetNewsList, a personal, iCloud-only reading list. The roadmap, architecture decisions and the traps to avoid are in `Technotes/NetNewsList/Plan.md`; the file-by-file keep/adapt/delete inventory is in `Technotes/NetNewsList/CodebaseInventory.md`. Read the plan before changing sync, retention, or account code.
+Just because unit tests pass doesn’t mean a given bug is fixed. It may not have a test. It may not even be testable — it may require manual testing. Nothing in NetNewsList's UI has been run on a device by an agent; the user's checklist in `TODO-Brett.md` is the record of what has been verified by hand.
