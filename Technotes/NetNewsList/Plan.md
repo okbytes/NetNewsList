@@ -2,7 +2,7 @@
 
 This is the roadmap for turning this NetNewsWire fork into NetNewsList, a personal, iCloud-only, offline-first reading list. It is written for the one developer who owns the fork. Every file:line reference below was checked against the repository at the time of writing; when a line number drifts, the surrounding function name is given so it can be found again.
 
-> **Status (2026-10-01).** PR1–PR12 and follow-up 1 (Safari capture) are done on branch `claude/vibrant-brahmagupta-5dbncv`, built and unit-tested on both platforms but not yet tried on devices. What each PR changed, and how it differed from this plan, is in the **Progress** notes at the end of section 5; the last one, "merge and wrap-up", lists what is still open. The user's own to-dos are in `TODO-Brett.md`; how the finished app works is in `ReadingList.md`.
+> **Status (2026-10-01).** PR1–PR12 and follow-up 1 (Safari capture) are done on branch `netnewslist`, built and unit-tested on both platforms but not yet tried on devices. What each PR changed, and how it differed from this plan, is in the **Progress** notes at the end of section 5; the last one, "merge and wrap-up", lists what is still open. The user's own to-dos are in `TODO-Brett.md`; how the finished app works is in `ReadingList.md`.
 
 ## 1. Summary
 

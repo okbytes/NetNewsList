@@ -11,7 +11,7 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
 3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer extension setup).
 
-**Branch:** all NetNewsList work is on `claude/vibrant-brahmagupta-5dbncv` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). `main` is still upstream NetNewsWire; no PR has been opened.
+**Branch:** all NetNewsList work is on `netnewslist` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). `main` mirrors upstream NetNewsWire; to sync, fast-forward `main` to `upstream/main` and merge it into `netnewslist` (the last sync's Progress note in `Plan.md` says how its conflicts were resolved). No PR has been opened.
 
 ## Build and test
 
@@ -24,11 +24,11 @@ xcode-lock xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destin
 xcode-lock xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
   -destination "platform=macOS,arch=arm64" -xcconfig .github/macos-ci-no-signing.xcconfig
 
-# iOS app and iOS test plan (use a simulator that isn't the user's booted one; "iPhone Air" has been free)
-xcode-lock xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=iPhone Air" \
+# iOS app and iOS test plan (use a simulator that isn't the user's booted one; the "NetNewsList" simulator, an iPhone Air on iOS 27, is this project's)
+xcode-lock xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=NetNewsList" \
   -xcconfig .github/ios-ci-no-signing.xcconfig build
 xcode-lock xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
-  -destination "platform=iOS Simulator,name=iPhone Air" -xcconfig .github/ios-ci-no-signing.xcconfig
+  -destination "platform=iOS Simulator,name=NetNewsList" -xcconfig .github/ios-ci-no-signing.xcconfig
 
 # Extraction module alone (fast), browser extension, lint
 (cd Modules/Extraction && xcode-lock xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
