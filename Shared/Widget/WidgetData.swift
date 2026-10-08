@@ -14,6 +14,12 @@ struct WidgetData: Codable {
 	let unreadArticles: [LatestArticle]
 	let starredArticles: [LatestArticle]
 	let lastUpdateTime: Date
+	let unreadCountDisplay: UnreadCountDisplay?
+
+	/// Data written before this setting existed has no value, which means `.count`.
+	var effectiveUnreadCountDisplay: UnreadCountDisplay {
+		unreadCountDisplay ?? .count
+	}
 }
 
 struct LatestArticle: Codable, Identifiable, Hashable {

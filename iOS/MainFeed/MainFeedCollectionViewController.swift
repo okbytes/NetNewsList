@@ -31,7 +31,7 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 	private let keyboardManager = KeyboardManager(type: .sidebar)
 	override var keyCommands: [UIKeyCommand]? {
 
-		// If the first responder is the WKWebView (PreloadedWebView) we don't want to supply any keyboard
+		// If the first responder is the WKWebView (PreloadedWebView) we don’t want to supply any keyboard
 		// commands that the system is looking for by going up the responder chain. They will interfere with
 		// the WKWebViews built in hardware keyboard shortcuts, specifically the up and down arrow keys.
 		guard let current = UIResponder.currentFirstResponder, !(current is PreloadedWebView) else {
@@ -43,6 +43,19 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 
 	override var canBecomeFirstResponder: Bool {
 		return true
+	}
+
+	// The selected row is accent-colored only while the feeds list is first responder.
+	@discardableResult override func becomeFirstResponder() -> Bool {
+		let didBecomeFirstResponder = super.becomeFirstResponder()
+		updateVisibleCellConfigurations()
+		return didBecomeFirstResponder
+	}
+
+	@discardableResult override func resignFirstResponder() -> Bool {
+		let didResignFirstResponder = super.resignFirstResponder()
+		updateVisibleCellConfigurations()
+		return didResignFirstResponder
 	}
 
 	private let refreshProgressView = RefreshProgressView(frame: .zero)
@@ -166,6 +179,7 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 
 	func registerForNotifications() {
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		registerForTraitChanges([UITraitPreferredContentSizeCategory.self], target: self, action: #selector(preferredContentSizeCategoryDidChange))
 	}
 
@@ -257,7 +271,7 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 			completions.append(completion)
 		}
 
-		// A newer full snapshot supersedes a queued one. The superseded update's
+		// A newer full snapshot supersedes a queued one. The superseded update’s
 		// completions still run — after a snapshot at least as new as the one they requested.
 		if update.isFull, let index = queuedSidebarUpdates.firstIndex(where: { $0.update.isFull }) {
 			completions = queuedSidebarUpdates[index].completions + completions
@@ -347,7 +361,7 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 		becomeFirstResponder()
 	}
 
-	// Fires on every tap — even on the already-selected list, which doesn't get didSelectItemAt.
+	// Fires on every tap — even on the already-selected list, which doesn’t get didSelectItemAt.
 	override func collectionView(_ collectionView: UICollectionView, performPrimaryActionForItemAt indexPath: IndexPath) {
 		becomeFirstResponder()
 		coordinator.selectSidebarItem(indexPath: indexPath, animations: [.navigation, .select, .scroll])
@@ -420,6 +434,19 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 					collectionView.deselectItem(at: indexPath, animated: false)
 				}
 			}
+		}
+	}
+
+	func splitViewStateDidChange() {
+		updateVisibleCellConfigurations()
+	}
+
+	private func updateVisibleCellConfigurations() {
+		guard isViewLoaded, let collectionView else {
+			return
+		}
+		for cell in collectionView.visibleCells {
+			cell.setNeedsUpdateConfiguration()
 		}
 	}
 
@@ -517,12 +544,17 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 		reconfigureItems(nodesToReconfigure)
 	}
 
+	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
+		// Only realized cells are reconfigured. Others pick up the setting when dequeued.
+		reconfigureItems(currentSidebarSnapshot.itemIdentifiers)
+	}
+
 	// MARK: - Actions
 
 	@objc func sync(_ sender: Any) {
 		collectionView.refreshControl?.endRefreshing()
 
-		// This is a hack to make sure that an error dialog doesn't interfere with dismissing the refreshControl.
+		// This is a hack to make sure that an error dialog doesn’t interfere with dismissing the refreshControl.
 		// If the error dialog appears too closely to the call to endRefreshing, then the refreshControl never disappears.
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 			appDelegate.manualRefresh(errorHandler: ErrorHandler.present(self))
@@ -549,7 +581,7 @@ private extension MainFeedCollectionViewController {
 		return UIAction(title: title, image: Assets.Images.markAllAsRead) { [weak self] _ in
 			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
 				let articles = sidebarItem.fetchUnreadArticles()
-				self?.coordinator.markAllAsRead(Array(articles))
+				self?.coordinator.markAllAsRead(Array(articles), in: sidebarItem)
 			}
 		}
 	}

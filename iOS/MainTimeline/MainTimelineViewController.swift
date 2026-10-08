@@ -1,5 +1,5 @@
 //
-//  MainTimelineModernViewController.swift
+//  MainTimelineViewController.swift
 //  NetNewsWire-iOS
 //
 //  Created by Stuart Breckenridge on 25/01/2026.
@@ -16,7 +16,7 @@ import Account
 import Articles
 import Images
 
-final class MainTimelineModernViewController: UIViewController, UndoableCommandRunner {
+final class MainTimelineViewController: UIViewController, UndoableCommandRunner {
 
 	// MARK: Private Variables
 	private var numberOfTextLines = 0
@@ -127,7 +127,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	weak var coordinator: SceneCoordinator?
 	var undoableCommands = [UndoableCommand]()
 	override var keyCommands: [UIKeyCommand]? {
-		// If the first responder is the WKWebView (PreloadedWebView) we don't want to supply any keyboard
+		// If the first responder is the WKWebView (PreloadedWebView) we don’t want to supply any keyboard
 		// commands that the system is looking for by going up the responder chain. They will interfere with
 		// the WKWebViews built in hardware keyboard shortcuts, specifically the up and down arrow keys.
 		guard let current = UIResponder.currentFirstResponder, !(current is PreloadedWebView) else { return nil }
@@ -138,10 +138,23 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		true
 	}
 
+	// The selected row is accent-colored only while the timeline is first responder.
+	@discardableResult override func becomeFirstResponder() -> Bool {
+		let didBecomeFirstResponder = super.becomeFirstResponder()
+		updateVisibleCellConfigurations()
+		return didBecomeFirstResponder
+	}
+
+	@discardableResult override func resignFirstResponder() -> Bool {
+		let didResignFirstResponder = super.resignFirstResponder()
+		updateVisibleCellConfigurations()
+		return didResignFirstResponder
+	}
+
 	// MARK: Private Constants
 	private let searchController = UISearchController(searchResultsController: nil)
 	private let keyboardManager = KeyboardManager(type: .timeline)
-	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "MainTimelineModernViewController")
+	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "MainTimelineViewController")
 
 	// MARK: Constants
 	private let scrollPositionQueue = CoalescingQueue(name: "Timeline Scroll Position", interval: 0.3, maxInterval: 1.0)
@@ -204,7 +217,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	override func viewWillAppear(_ animated: Bool) {
-		Self.logger.debug("MainTimelineModernViewController: viewWillAppear")
+		Self.logger.debug("MainTimelineViewController: viewWillAppear")
 
 		super.viewWillAppear(animated)
 		self.navigationController?.isToolbarHidden = false
@@ -221,10 +234,13 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		updateNavigationBarTitle(coordinator?.timelineFeed?.nameForDisplay ?? "")
 		coordinator?.updateNavigationBarSubtitles(nil)
 		updateToolbarProgressView()
+
+		// Articles can change while this view is off screen, so always show what the model holds.
+		applyChanges(animated: false)
 	}
 
 	override func viewDidAppear(_ animated: Bool) {
-		Self.logger.debug("MainTimelineModernViewController: viewDidAppear")
+		Self.logger.debug("MainTimelineViewController: viewDidAppear")
 
 		super.viewDidAppear(animated)
 		isTimelineViewControllerPending = false
@@ -246,7 +262,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func deselectIfNecessary() {
-		Self.logger.debug("MainTimelineModernViewController: deselectIfNecessary")
+		Self.logger.debug("MainTimelineViewController: deselectIfNecessary")
 
 		guard traitCollection.userInterfaceIdiom == .phone else {
 			return
@@ -256,7 +272,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 		}
 
 		if coordinator.currentArticle != nil {
-			Self.logger.debug("MainTimelineModernViewController: deselectIfNecessary deselecting")
+			Self.logger.debug("MainTimelineViewController: deselectIfNecessary deselecting")
 			if let indexPath = collectionView?.indexPathsForSelectedItems?.first {
 				collectionView?.deselectItem(at: indexPath, animated: true)
 			}
@@ -265,18 +281,18 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func restoreSelectionIfNecessary(adjustScroll: Bool) {
-		Self.logger.debug("MainTimelineModernViewController: restoreSelectionIfNecessary")
+		Self.logger.debug("MainTimelineViewController: restoreSelectionIfNecessary")
 		guard let collectionView else {
 			return
 		}
 		if let article = currentArticle, let dataSource, let indexPath = dataSource.indexPath(for: article) {
 			if adjustScroll {
-				Self.logger.debug("MainTimelineModernViewController: restoreSelectionIfNecessary selecting item and adjusting scroll")
+				Self.logger.debug("MainTimelineViewController: restoreSelectionIfNecessary selecting item and adjusting scroll")
 				collectionView.selectItemAndScrollIfNotVisible(at: indexPath, animations: [])
 			} else {
 				let indexPaths = collectionView.indexPathsForSelectedItems ?? []
 				if !indexPaths.contains(indexPath) {
-					Self.logger.debug("MainTimelineModernViewController: restoreSelectionIfNecessary does not contain selected index path")
+					Self.logger.debug("MainTimelineViewController: restoreSelectionIfNecessary does not contain selected index path")
 					collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
 				}
 			}
@@ -299,7 +315,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func reinitializeArticles(resetScroll: Bool) {
-		Self.logger.debug("MainTimelineModernViewController: reinitializeArticles")
+		Self.logger.debug("MainTimelineViewController: reinitializeArticles")
 		guard isViewLoaded else {
 			return
 		}
@@ -308,7 +324,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func reloadArticles(animated: Bool) {
-		Self.logger.debug("MainTimelineModernViewController: reloadArticles")
+		Self.logger.debug("MainTimelineViewController: reloadArticles")
 		guard isViewLoaded else {
 			return
 		}
@@ -316,7 +332,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func updateArticleSelection(animations: Animations) {
-		Self.logger.debug("MainTimelineModernViewController: updateArticleSelection")
+		Self.logger.debug("MainTimelineViewController: updateArticleSelection")
 		guard isViewLoaded, let collectionView, let dataSource else {
 			return
 		}
@@ -339,7 +355,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	@objc func updateUI() {
-		Self.logger.debug("MainTimelineModernViewController: updateUI")
+		Self.logger.debug("MainTimelineViewController: updateUI")
 
 		updateToolbar()
 	}
@@ -366,7 +382,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	func focus() {
-		Self.logger.debug("MainTimelineModernViewController: focus")
+		Self.logger.debug("MainTimelineViewController: focus")
 		becomeFirstResponder()
 	}
 
@@ -377,7 +393,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	@objc private func reloadVisibleCells() {
-		Self.logger.debug("MainTimelineModernViewController: reloadVisibleCells")
+		Self.logger.debug("MainTimelineViewController: reloadVisibleCells")
 		guard isViewLoaded, let collectionView, let dataSource else {
 			return
 		}
@@ -388,7 +404,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	}
 
 	private func reloadCells(_ articles: [Article]) {
-		Self.logger.debug("MainTimelineModernViewController: reloadCells")
+		Self.logger.debug("MainTimelineViewController: reloadCells")
 		guard !articles.isEmpty, let dataSource else {
 			return
 		}
@@ -409,7 +425,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 	@objc func sync(_ sender: Any) {
 		collectionView?.refreshControl?.endRefreshing()
 
-		// This is a hack to make sure that an error dialog doesn't interfere with dismissing the refreshControl.
+		// This is a hack to make sure that an error dialog doesn’t interfere with dismissing the refreshControl.
 		// If the error dialog appears too closely to the call to endRefreshing, then the refreshControl never disappears.
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 			appDelegate.manualRefresh(errorHandler: ErrorHandler.present(self))
@@ -510,7 +526,7 @@ final class MainTimelineModernViewController: UIViewController, UndoableCommandR
 
 // MARK: - UICollectionViewDelegate
 
-extension MainTimelineModernViewController: UICollectionViewDelegate {
+extension MainTimelineViewController: UICollectionViewDelegate {
 	func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
 		becomeFirstResponder()
 		if let dataSource {
@@ -617,7 +633,7 @@ extension MainTimelineModernViewController: UICollectionViewDelegate {
 
 // MARK: - Toolbar Progress View
 
-extension MainTimelineModernViewController {
+extension MainTimelineViewController {
 
 	func updateToolbarProgressView(for displayMode: UISplitViewController.DisplayMode? = nil) {
 		if #available(iOS 26, *) {
@@ -631,23 +647,27 @@ extension MainTimelineModernViewController {
 
 // MARK: - Split View State
 
-extension MainTimelineModernViewController {
+extension MainTimelineViewController {
 
 	/// The selection style — full-bleed gray when collapsed, rounded accent when
 	/// expanded — depends on the split view state, so visible cells need a refresh
 	/// when it changes.
 	func splitViewStateDidChange() {
-		guard let collectionView else {
+		updateVisibleCellConfigurations()
+	}
+}
+
+// MARK: Private API
+private extension MainTimelineViewController {
+
+	func updateVisibleCellConfigurations() {
+		guard isViewLoaded, let collectionView else {
 			return
 		}
 		for cell in collectionView.visibleCells {
 			cell.setNeedsUpdateConfiguration()
 		}
 	}
-}
-
-// MARK: Private API
-private extension MainTimelineModernViewController {
 
 	func addNotificationObservers() {
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
@@ -715,7 +735,7 @@ private extension MainTimelineModernViewController {
 			let starAction = UIContextualAction(style: .normal, title: starTitle) { [weak self] _, _, completion in
 
 				// Post the accessibility announcement immediately so VoiceOver
-				// doesn't lag behind user actions.
+				// doesn’t lag behind user actions.
 				let announcement = article.status.starred ?
 					NSLocalizedString("Unstarred", comment: "Accessibility announcement") :
 					NSLocalizedString("Starred", comment: "Starred")
@@ -724,7 +744,7 @@ private extension MainTimelineModernViewController {
 				/// The call to `toggleStar` is delayed in order to allow
 				/// the swipe animation to complete. Calling `toggleStar` with no
 				/// delay results UICollectionView internal inconsistency: unexpected
-				/// removal of the current swipe occurrence's mask view error.
+				/// removal of the current swipe occurrence’s mask view error.
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
 					self?.toggleStar(article)
 				}
@@ -812,7 +832,7 @@ private extension MainTimelineModernViewController {
 			let readAction = UIContextualAction(style: .normal, title: readTitle) { [weak self] _, _, completion in
 
 				// Post the accessibility announcement immediately so VoiceOver
-				// doesn't lag behind user actions.
+				// doesn’t lag behind user actions.
 				let announcement = article.status.read ?
 					NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
 					NSLocalizedString("Archived", comment: "Accessibility announcement")
@@ -821,7 +841,7 @@ private extension MainTimelineModernViewController {
 				/// The call to `toggleRead` is delayed in order to allow
 				/// the swipe animation to complete. Calling `toggleRead` with no
 				/// delay results UICollectionView internal inconsistency: unexpected
-				/// removal of the current swipe occurrence's mask view error.
+				/// removal of the current swipe occurrence’s mask view error.
 				DispatchQueue.main.asyncAfter(wallDeadline: .now() + 0.85) {
 					self?.toggleRead(article)
 				}
@@ -978,7 +998,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	func applyChanges(animated: Bool, completion: (() -> Void)? = nil) {
-		Self.logger.debug("MainTimelineModernViewController: applyChanges")
+		Self.logger.debug("MainTimelineViewController: applyChanges")
 		guard let dataSource else {
 			return
 		}
@@ -996,14 +1016,14 @@ private extension MainTimelineModernViewController {
 }
 
 // MARK: - Notifications API
-private extension MainTimelineModernViewController {
+private extension MainTimelineViewController {
 	@objc dynamic func unreadCountDidChange(_ notification: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: unreadCountDidChange")
+		Self.logger.debug("MainTimelineViewController: unreadCountDidChange")
 		queueUpdateUI()
 	}
 
 	@objc func statusesDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: statusesDidChange")
+		Self.logger.debug("MainTimelineViewController: statusesDidChange")
 
 		guard isViewLoaded, let collectionView, let dataSource else {
 			return
@@ -1022,7 +1042,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func feedIconDidBecomeAvailable(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: feedIconDidBecomeAvailable")
+		Self.logger.debug("MainTimelineViewController: feedIconDidBecomeAvailable")
 
 		guard isViewLoaded else {
 			return
@@ -1031,7 +1051,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func avatarDidBecomeAvailable(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: avatarDidBecomeAvailable")
+		Self.logger.debug("MainTimelineViewController: avatarDidBecomeAvailable")
 
 		guard isViewLoaded else {
 			return
@@ -1040,7 +1060,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func faviconDidBecomeAvailable(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: faviconDidBecomeAvailable")
+		Self.logger.debug("MainTimelineViewController: faviconDidBecomeAvailable")
 
 		guard isViewLoaded else {
 			return
@@ -1049,7 +1069,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func timelineIconSizeDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: timelineIconSizeDidChange")
+		Self.logger.debug("MainTimelineViewController: timelineIconSizeDidChange")
 		if iconSize != AppDefaults.shared.timelineIconSize {
 			iconSize = AppDefaults.shared.timelineIconSize
 			reloadVisibleCells()
@@ -1057,7 +1077,7 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func timelineNumberOfLinesDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: timelineNumberOfLinesDidChange")
+		Self.logger.debug("MainTimelineViewController: timelineNumberOfLinesDidChange")
 		if numberOfTextLines != AppDefaults.shared.timelineNumberOfLines {
 			numberOfTextLines = AppDefaults.shared.timelineNumberOfLines
 			reloadVisibleCells()
@@ -1065,17 +1085,17 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func contentSizeCategoryDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: contentSizeCategoryDidChange")
+		Self.logger.debug("MainTimelineViewController: contentSizeCategoryDidChange")
 		reloadVisibleCells()
 	}
 
 	@objc func displayNameDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: displayNameDidChange")
+		Self.logger.debug("MainTimelineViewController: displayNameDidChange")
 		updateNavigationBarTitle(timelineFeed?.nameForDisplay ?? "")
 	}
 
 	@objc func willEnterForeground(_ note: Notification) {
-		Self.logger.debug("MainTimelineModernViewController: willEnterForeground")
+		Self.logger.debug("MainTimelineViewController: willEnterForeground")
 		queueUpdateUI()
 	}
 
@@ -1093,13 +1113,13 @@ private extension MainTimelineModernViewController {
 	}
 
 	@objc func scrollPositionDidChange() {
-		Self.logger.debug("MainTimelineModernViewController: scrollPositionDidChange")
+		Self.logger.debug("MainTimelineViewController: scrollPositionDidChange")
 		timelineMiddleIndexPath = collectionView?.middleVisibleRow()
 	}
 
 }
 
-extension MainTimelineModernViewController: UISearchControllerDelegate {
+extension MainTimelineViewController: UISearchControllerDelegate {
 
 	func willPresentSearchController(_ searchController: UISearchController) {
 		coordinator?.beginSearching()
@@ -1117,7 +1137,7 @@ extension MainTimelineModernViewController: UISearchControllerDelegate {
 	}
 }
 
-extension MainTimelineModernViewController: UISearchResultsUpdating {
+extension MainTimelineViewController: UISearchResultsUpdating {
 
 	func updateSearchResults(for searchController: UISearchController) {
 		let searchScope = SearchScope(rawValue: searchController.searchBar.selectedScopeButtonIndex)!
@@ -1126,7 +1146,7 @@ extension MainTimelineModernViewController: UISearchResultsUpdating {
 
 }
 
-extension MainTimelineModernViewController: UISearchBarDelegate {
+extension MainTimelineViewController: UISearchBarDelegate {
 	func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
 		let searchScope = SearchScope(rawValue: selectedScope)!
 		searchArticles(searchBar.text!, searchScope)
@@ -1134,7 +1154,7 @@ extension MainTimelineModernViewController: UISearchBarDelegate {
 }
 
 // MARK: Article Actions
-extension MainTimelineModernViewController {
+extension MainTimelineViewController {
 	func toggleRead(_ article: Article) {
 		assert(coordinator != nil)
 		coordinator?.toggleRead(article)
@@ -1150,7 +1170,7 @@ extension MainTimelineModernViewController {
 
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			// Post the accessibility announcement immediately so VoiceOver
-			// doesn't lag behind user actions.
+			// doesn’t lag behind user actions.
 			let announcement = article.status.read ?
 				NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
 				NSLocalizedString("Archived", comment: "Accessibility announcement")
@@ -1178,7 +1198,7 @@ extension MainTimelineModernViewController {
 
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			// Post the accessibility announcement immediately so VoiceOver
-			// doesn't lag behind user actions.
+			// doesn’t lag behind user actions.
 			let announcement = article.status.starred ?
 				NSLocalizedString("Unstarred", comment: "Accessibility announcement") :
 				NSLocalizedString("Starred", comment: "Starred")
@@ -1372,7 +1392,7 @@ extension MainTimelineModernViewController {
 
 // MARK: Deleting
 
-extension MainTimelineModernViewController {
+extension MainTimelineViewController {
 
 	func deleteAction(_ article: Article) -> UIAction {
 		let title = NSLocalizedString("Delete", comment: "Delete button")

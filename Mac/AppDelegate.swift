@@ -94,6 +94,7 @@ let appName = "NetNewsList"
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: AccountManager.shared)
+		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeImportError(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWakeNotification(_:)), name: NSWorkspace.didWakeNotification, object: nil)
@@ -201,6 +202,9 @@ let appName = "NetNewsList"
 		// Silent CloudKit pushes don’t need notification permission.
 		NSApplication.shared.registerForRemoteNotifications()
 
+		// Badging the Dock icon needs this permission — it’s not just for alerts.
+		UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { _, _ in }
+
 		UNUserNotificationCenter.current().delegate = self
 
 		#if DEBUG
@@ -298,6 +302,10 @@ let appName = "NetNewsList"
 	@objc func unreadCountDidChange(_ note: Notification) {
 		assert(note.object is AccountManager)
 		unreadCount = AccountManager.shared.unreadCount
+	}
+
+	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
+		updateDockBadge()
 	}
 
 	@objc func feedSettingDidChange(_ note: Notification) {
@@ -430,8 +438,7 @@ let appName = "NetNewsList"
 	// MARK: - Dock Badge
 	@objc func updateDockBadge() {
 		Task { @MainActor in
-			let label = unreadCount > 0 ? "\(unreadCount)" : ""
-			NSApplication.shared.dockTile.badgeLabel = label
+			NSApplication.shared.dockTile.badgeLabel = AppDefaults.shared.unreadCountDisplay.text(for: unreadCount) ?? ""
 		}
 	}
 

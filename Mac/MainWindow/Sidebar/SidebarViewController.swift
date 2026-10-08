@@ -67,6 +67,7 @@ extension Notification.Name {
 		outlineView.registerForDraggedTypes(DroppedWebPages.pasteboardTypes)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		DistributedNotificationCenter.default().addObserver(self, selector: #selector(appleSideBarDefaultIconSizeChanged(_:)), name: .appleSideBarDefaultIconSizeChanged, object: nil)
 
 		outlineView.reloadData()
@@ -104,6 +105,12 @@ extension Notification.Name {
 			configureUnreadCountForCellsForRepresentedObjects(timelineViewController.representedObjects)
 		} else {
 			configureUnreadCountForCellsForRepresentedObjects([representedObject as AnyObject])
+		}
+	}
+
+	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
+		outlineView.enumerateAvailableRowViews { rowView, _ in
+			(rowView.view(atColumn: 0) as? SidebarCell)?.updateUnreadCountView()
 		}
 	}
 
@@ -328,6 +335,7 @@ private extension SidebarViewController {
 		cell.cellAppearance = SidebarCellAppearance(rowSizeStyle: outlineView.effectiveRowSizeStyle)
 		cell.name = nameFor(node)
 		configureUnreadCount(cell, node)
+		cell.updateUnreadCountView() // A reused cell may predate a display setting change
 		cell.iconImage = (node.representedObject as? SmallIconProvider)?.smallIcon
 		cell.shouldShowImage = node.representedObject is SmallIconProvider
 	}

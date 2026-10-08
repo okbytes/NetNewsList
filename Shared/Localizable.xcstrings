@@ -454,6 +454,9 @@
     "Here" : {
       "comment" : "Here"
     },
+    "Hide" : {
+      "comment" : "Hide"
+    },
     "Hide Read Articles" : {
       "comment" : "Command"
     },
@@ -811,6 +814,12 @@
     },
     "Share…" : {
       "comment" : "Share…"
+    },
+    "Show" : {
+      "comment" : "Show"
+    },
+    "Show dot" : {
+      "comment" : "Unread Counts setting: show a dot instead of the number of unread articles"
     },
     "Show Feed Article" : {
       "comment" : "Show Feed Article"

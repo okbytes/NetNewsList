@@ -1,7 +1,7 @@
 #include "./NetNewsWire_version.xcconfig"
 
 // High Level Settings common to both the Mac application and any extensions we bundle with it
-MARKETING_VERSION = 7.1.4
+MARKETING_VERSION = 7.2b2
 
 // Team-ID-prefixed so macOS does not ask for app group access on every launch.
 APP_GROUP_ID = $(DEVELOPMENT_TEAM).$(ORGANIZATION_IDENTIFIER).NetNewsList$(APP_GROUP_SUFFIX)

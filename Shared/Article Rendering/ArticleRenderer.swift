@@ -115,7 +115,8 @@ import Account
 			// Some pages embed a full HTML document as the content —
 			// render just the body fragment.
 			// <https://github.com/Ranchero-Software/NetNewsWire/issues/3008>
-			let body = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(article?.body ?? "")
+			let articleBody = ArticleRenderingSpecialCases.extractBodyFragmentIfNeeded(article?.body ?? "")
+			let body = ArticleRenderingSpecialCases.insertParagraphTagsIfNeeded(articleBody, feedURLString: article?.feed?.url)
 			if let article {
 				// Images load from the local store, so they show offline.
 				self.body = ArticleImageRewriter.rewrite(body, articleID: article.articleID, baseURL: article.baseURL)
@@ -168,7 +169,7 @@ private extension ArticleRenderer {
 	}
 
 	private var loadingHTML: String {
-		let body = "<h3 class='systemMessage'>Loading...</h3>"
+		let body = "<h3 class='systemMessage'>Loading…</h3>"
 		return body
 	}
 
@@ -354,6 +355,6 @@ private extension ArticleRenderer {
 		guard let url = urlComponents!.url, url.scheme == "http" || url.scheme == "https" else {
 			return nil
 		}
-		return url
+		return ArticleRenderingSpecialCases.baseURLForRendering(url)
 	}
 }
