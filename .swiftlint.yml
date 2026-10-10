@@ -39,6 +39,7 @@ excluded:
   - ".swiftpm"
   - ".claude"
   - Modules/*/.build/
+  - Tools/*/.build/
   - Modules/Account/Tests/
   - Widget/Resources/Localized.swift
   - Shared/Extensions/NSAttributedString+NetNewsWire.swift
