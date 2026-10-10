@@ -9,7 +9,19 @@ import Testing
 
 @Suite(.serialized) @MainActor struct ReadabilityWebExtractorTests {
 
+	private static var didStartWebKit = false
+
 	private let extractor = ReadabilityWebExtractor()
+
+	init() async {
+		// On a CI simulator the first web view in the process can take longer than the extractor's
+		// timeout to start. One throwaway extraction per run absorbs that, whatever its result.
+		guard !Self.didStartWebKit, let url = URL(string: "https://example.com/") else {
+			return
+		}
+		Self.didStartWebKit = true
+		_ = try? await ReadabilityWebExtractor().extract(html: "<p>Warm-up</p>", url: url)
+	}
 
 	private func extract(_ fixture: String, url: String) async throws -> ExtractedPage {
 		let fileURL = try #require(Bundle.module.url(forResource: fixture, withExtension: "html", subdirectory: "Fixtures"))
