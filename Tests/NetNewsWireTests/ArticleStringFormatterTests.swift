@@ -113,6 +113,15 @@ import Testing
 		#expect(attributed.string == "")
 	}
 
+	@Test("A saved page without a title shows its address, with a font: the Mac timeline's sizer traps without one")
+	func attributedTruncatedTitleFallsBackToAddressWithFont() {
+		let article = makeArticle(title: nil, url: "https://example.com/page?a=1&b=2")
+		let formatter = ArticleStringFormatter()
+		let attributed = formatter.attributedTruncatedTitle(article)
+		#expect(attributed.string == "example.com/page?a=1&b=2")
+		#expect(attributed.attribute(.font, at: 0, effectiveRange: nil) != nil)
+	}
+
 	@Test("Warm-cache hits must return the same instance — callers mutate only via mutableCopy()")
 	func attributedTruncatedTitleReturnsCachedInstance() {
 		let article = makeArticle(title: "Cached")
@@ -214,7 +223,8 @@ import Testing
 	articleID: String = "article1",
 	accountID: String = "account1",
 	title: String? = "Untitled",
-	contentHTML: String? = nil
+	contentHTML: String? = nil,
+	url: String? = nil
 ) -> Article {
 	let status = ArticleStatus(articleID: articleID, read: false, starred: false, dateArrived: Date())
 	return Article(
@@ -226,7 +236,7 @@ import Testing
 		contentHTML: contentHTML,
 		contentText: nil,
 		markdown: nil,
-		url: nil,
+		url: url,
 		externalURL: nil,
 		summary: nil,
 		imageURL: nil,

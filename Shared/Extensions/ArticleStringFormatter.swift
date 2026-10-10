@@ -108,7 +108,8 @@ import RSParser
 
 	func attributedTruncatedTitle(_ article: Article) -> NSAttributedString {
 		guard let rawTitle = article.title, !rawTitle.isEmpty else {
-			return NSAttributedString(string: truncatedTitle(article))
+			// Built like a real title so it carries a font: the Mac timeline's sizer requires one.
+			return NSAttributedString(simpleHTML: truncatedTitle(article, forHTML: true))
 		}
 
 		if let cached = attributedTitleCache[rawTitle] {
