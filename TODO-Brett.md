@@ -35,6 +35,8 @@ The extension's remote mode writes iCloud records itself, and Claude couldn't ve
 
 ## 4. Before a TestFlight or App Store build
 
+Not needed while the apps are installed from Xcode: those builds use CloudKit's Development environment, and that is where your data lives. Never click "Reset Development Environment" in CloudKit Console; it deletes everything saved.
+
 - [ ] CloudKit Console: deploy the Development schema to Production.
 - [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), and switch the extension's options to Production with it.
 - [ ] Repeat sections 1 and 3 on the TestFlight build.

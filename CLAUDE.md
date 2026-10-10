@@ -11,7 +11,7 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
 3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer extension setup).
 
-**Branch:** all NetNewsList work is on `netnewslist` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). `main` mirrors upstream NetNewsWire; to sync, fast-forward `main` to `upstream/main` and merge it into `netnewslist` (the last sync's Progress note in `Plan.md` says how its conflicts were resolved). No PR has been opened.
+**Branch:** NetNewsList work lands on `main` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). Upstream NetNewsWire is the `upstream` remote; to sync, merge `upstream/main` into `main` (the 2026-10-07 sync's Progress note in `Plan.md` says how its conflicts were resolved). GitHub lists the repository as a fork of Ranchero-Software/NetNewsWire, so pass `--repo okbytes/NetNewsList` to `gh pr create` or the PR goes upstream.
 
 ## Build and test
 
