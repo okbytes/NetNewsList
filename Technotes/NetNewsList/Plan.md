@@ -325,7 +325,7 @@ Still open:
 - Not run: delete across devices, relaunching twice, share extensions, Shortcuts, the browser extension, offline images, a real iPhone.
 - The browser extension's field types and the missing content-less-record test (TODO-Brett §2): the CloudKit folder is readable now, so the next session can do both.
 
-Later the same night: `scripts/run-device.sh` (adapted from Verbatim's, plus `-allowProvisioningDeviceRegistration`) installed the Debug build on the user's iPhone, and the user enabled GitHub Actions on the fork, so CI runs on pushes to `main`.
+Later the same night: `scripts/run-device.sh` (adapted from Verbatim's, plus `-allowProvisioningDeviceRegistration`) installed the Debug build on the user's iPhone, and the user enabled GitHub Actions on the fork, so CI runs on pushes to `main`. The first runs failed only in iOS Simulator Tests: `ReadabilityWebExtractorTests` timed out (20 s) on a just-booted simulator and on the first web view in the test process. CI now waits for the simulator with `simctl bootstatus`, and the suite runs one throwaway extraction before its first test; all four jobs pass (run 38091770846).
 
 Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_and_test.sh`; they build the extension and widget targets as dependencies); `git diff` the pbxproj after any Xcode UI action; delete a nib's `.xcstrings` with the nib; remove test-plan entries (`NetNewsWire.xctestplan`, `NetNewsWire-CI.xctestplan`, `NetNewsWire-iOS.xctestplan`) when a module goes; commit small. Effort assumes one experienced developer with AI help.
 
