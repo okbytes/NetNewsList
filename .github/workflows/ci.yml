@@ -102,13 +102,23 @@ jobs:
           build_log="${RUNNER_TEMP}/NetNewsWire-iOS-build.log"
           rm -rf "$result_bundle"
 
+          # Boot the newest iPhone 17 and wait until it has finished starting up. On a simulator
+          # that has only just booted, WebKit can take longer than the extractor's 20-second timeout.
+          udid=$(xcrun simctl list devices available --json | /usr/bin/python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if ".iOS-" in r), key=lambda r: [int(p) for p in r.rsplit(".iOS-", 1)[1].split("-")])
+          udid = next((d["udid"] for r in reversed(runtimes) for d in devices[r] if d["name"] == "iPhone 17"), None)
+          sys.exit("No available iPhone 17 simulator") if udid is None else print(udid)')
+          xcrun simctl bootstatus "$udid" -b
+
           set -o pipefail
           xcodebuild \
             -project NetNewsWire.xcodeproj \
             -scheme NetNewsWire-iOS \
             -testPlan NetNewsWire-iOS \
             -xcconfig .github/ios-ci-no-signing.xcconfig \
-            -destination "platform=iOS Simulator,name=iPhone 17" \
+            -destination "platform=iOS Simulator,id=$udid" \
             -resultBundlePath "$result_bundle" \
             test 2>&1 | tee "$build_log" | xcbeautify --renderer github-actions
 
