@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build, install, and launch the iOS app on an iPhone using the project's existing signing.
-# Adapted from Verbatim's scripts/run-device.sh and scripts/lib/workflow.sh; this project has no
+# Adapted from Verbatim's scripts/mine.sh and scripts/lib/workflow.sh; this project has no
 # other scripts that would share the library, so the parts it needs live here.
 
 set -euo pipefail
@@ -18,7 +18,7 @@ RUN_STARTED=$SECONDS
 
 usage() {
     printf '%s\n' \
-        'Usage: scripts/run-device.sh [iPhone UDID] [--no-build] [--console]' \
+        'Usage: scripts/mine.sh [iPhone UDID] [--no-build] [--console]' \
         'Connect and unlock your paired iPhone; a single available iPhone is selected automatically.' \
         'With multiple iPhones, pass an Identifier from: xcrun devicectl list devices' \
         'Uses existing Xcode signing; installs in place without deleting app data. A build for a device' \

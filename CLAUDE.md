@@ -39,7 +39,7 @@ swiftlint lint --strict
 - Pass `-derivedDataPath <somewhere in the scratchpad>` to keep builds out of the user's Xcode DerivedData, and use a separate path for any parallel agent.
 - Don't run module tests with `swift test`: `AppConfig` force-unwraps `CFBundleExecutable` and crashes outside an app bundle. Use the test plans.
 - An unsigned process traps when it creates a `CKContainer`; CloudKit is never touched under unit tests (`Platform.isRunningUnitTests`). Don't launch the unsigned app expecting iCloud to work, and don't run the signed app without asking: it writes to the user's real iCloud data.
-- `scripts/run-device.sh` builds the signed Debug iOS app into Xcode's default DerivedData, installs it on the paired iPhone in place and launches it (`--help` for options); rerunning it after a new signing certificate keeps the app launching. Don't run it without asking: it replaces the build on the user's phone, which syncs with their real iCloud data.
+- `scripts/mine.sh` builds the signed Debug iOS app into Xcode's default DerivedData, installs it on the paired iPhone in place and launches it (`--help` for options); rerunning it after a new signing certificate keeps the app launching. Don't run it without asking: it replaces the build on the user's phone, which syncs with their real iCloud data.
 - Real-page extraction can be checked without the app: `Tools/extract-page` (see its README).
 - `./buildscripts/make_safari_ext_js.sh` regenerates `Shared/ShareExtension/SafariExt.js` from the vendored Readability.js and DOMPurify; rerun it after updating them.
 
