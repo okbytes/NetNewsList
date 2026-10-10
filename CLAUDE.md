@@ -19,28 +19,26 @@ Unsigned builds and tests use the CI xcconfigs. Every build is warnings-as-error
 
 ```bash
 # Mac app and Mac test plan (includes module tests: Account, ArticlesDatabase, Extraction, …)
-xcode-lock xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destination "platform=macOS,arch=arm64" \
+xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destination "platform=macOS,arch=arm64" \
   -xcconfig .github/macos-ci-no-signing.xcconfig build
-xcode-lock xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
+xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
   -destination "platform=macOS,arch=arm64" -xcconfig .github/macos-ci-no-signing.xcconfig
 
 # iOS app and iOS test plan (use a simulator that isn't the user's booted one; the "NetNewsList" simulator, an iPhone Air on iOS 27, is this project's)
-xcode-lock xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=NetNewsList" \
+xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=NetNewsList" \
   -xcconfig .github/ios-ci-no-signing.xcconfig build
-xcode-lock xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
+xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
   -destination "platform=iOS Simulator,name=NetNewsList" -xcconfig .github/ios-ci-no-signing.xcconfig
 
 # Extraction module alone (fast), browser extension, lint
-(cd Modules/Extraction && xcode-lock xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
+(cd Modules/Extraction && xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
 node --test chrome-extension/tests/*.test.mjs
 swiftlint lint --strict
 ```
 
-- `xcode-lock` (`~/.local/bin`, from chezmoi) makes builds from other projects take turns, so parallel agents don't overload the Mac. Keep it in front of every `xcodebuild`; if it says it's waiting, another project is building, so wait.
 - Pass `-derivedDataPath <somewhere in the scratchpad>` to keep builds out of the user's Xcode DerivedData, and use a separate path for any parallel agent.
 - Don't run module tests with `swift test`: `AppConfig` force-unwraps `CFBundleExecutable` and crashes outside an app bundle. Use the test plans.
 - An unsigned process traps when it creates a `CKContainer`; CloudKit is never touched under unit tests (`Platform.isRunningUnitTests`). Don't launch the unsigned app expecting iCloud to work, and don't run the signed app without asking: it writes to the user's real iCloud data.
-- `scripts/renew-signing.sh` builds the signed iOS app into the default DerivedData and installs it on the iPhone without launching it; `renew-apps` (`~/.local/bin`, from chezmoi) runs it once a year after a new signing certificate. Don't run it without asking: it replaces the build on the user's phone.
 - Real-page extraction can be checked without the app: `Tools/extract-page` (see its README).
 - `./buildscripts/make_safari_ext_js.sh` regenerates `Shared/ShareExtension/SafariExt.js` from the vendored Readability.js and DOMPurify; rerun it after updating them.
 
