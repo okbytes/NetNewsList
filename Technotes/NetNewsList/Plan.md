@@ -323,7 +323,9 @@ Still open:
 - The simulator never received a CloudKit push; the Mac received one about 75 s after the change. Archive and star changes go out on the 2-minute timer, and after a quiet check the Mac backs off to 30 minutes, so a missed push can delay a change on an open Mac by up to half an hour. Check pushes on a real iPhone.
 - A Starred list on screen doesn't add an article whose star arrives from iCloud until the list is selected again (upstream behavior).
 - Not run: delete across devices, relaunching twice, share extensions, Shortcuts, the browser extension, offline images, a real iPhone.
-- GitHub has not run CI on this fork: Actions on a fork stay off until enabled once in the repository's Actions tab.
+- The browser extension's field types and the missing content-less-record test (TODO-Brett §2): the CloudKit folder is readable now, so the next session can do both.
+
+Later the same night: `scripts/run-device.sh` (adapted from Verbatim's, plus `-allowProvisioningDeviceRegistration`) installed the Debug build on the user's iPhone, and the user enabled GitHub Actions on the fork, so CI runs on pushes to `main`.
 
 Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_and_test.sh`; they build the extension and widget targets as dependencies); `git diff` the pbxproj after any Xcode UI action; delete a nib's `.xcstrings` with the nib; remove test-plan entries (`NetNewsWire.xctestplan`, `NetNewsWire-CI.xctestplan`, `NetNewsWire-iOS.xctestplan`) when a module goes; commit small. Effort assumes one experienced developer with AI help.
 

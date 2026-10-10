@@ -4,9 +4,9 @@ Things only you can do. Everything else is tracked in `Technotes/NetNewsList/Pla
 
 ## 1. Try it on your devices
 
-Build both schemes from Xcode first (clean build, ⇧⌘K, once: the share extensions changed). Nothing below has been run on a device yet; it is all build- and unit-test-verified only.
+Your iPhone has the current build (installed 2026-10-10 with `scripts/run-device.sh`; rerun it after pulling changes). On the Mac, run the NetNewsWire scheme from Xcode (clean build, ⇧⌘K, once: the share extensions changed). Claude checked iCloud sync between the Mac app and the simulator on 2026-10-10 (Plan.md, "first two-device run"); nothing else below has been tried on a device.
 
-- [ ] **iCloud sync (PR5–6).** Claude ran most of this with the Mac app and the simulator on 2026-10-10 (Plan.md, "first two-device run"); still to do on the real iPhone: the whole item, plus delete and the two relaunches, which Claude didn't run. Save a page on the Mac (⌘N). It appears on the iPhone within about a minute while the app is open. Archive it on the iPhone and the Mac's Inbox count drops; star it on the Mac and it shows in Starred on the iPhone. Save the same URL again with `/` or `?utm_source=x` added: still one row. Quit and relaunch both apps twice: nothing disappears. In CloudKit Console (Development), the Articles zone has `s|…` and `a|…` records and the Account zone has one Reading List feed record.
+- [ ] **iCloud sync (PR5–6).** On the real iPhone: the whole item, especially delete and the two relaunches, which Claude didn't run. Also note how long a page saved on the Mac takes to appear while the iPhone app stays open (the simulator never got iCloud pushes). Save a page on the Mac (⌘N). It appears on the iPhone within about a minute while the app is open. Archive it on the iPhone and the Mac's Inbox count drops; star it on the Mac and it shows in Starred on the iPhone. Save the same URL again with `/` or `?utm_source=x` added: still one row. Quit and relaunch both apps twice: nothing disappears. In CloudKit Console (Development), the Articles zone has `s|…` and `a|…` records and the Account zone has one Reading List feed record.
 - [ ] **Extraction (PR7).** Save 6–8 varied pages (news, blog, docs, a very long page, a JavaScript-heavy site). Each goes from "Saving the page…" to full text. On the one that fails, right-click → Retry with Live Page. Show Original (⌘⇧R, globe button) works on the Mac and opens the in-app browser on the iPhone. The very long page's `Article` record in CloudKit Console has `contentHTMLAsset`.
 - [ ] **Saving from elsewhere (PR8).** Share → NetNewsList from Safari on both platforms. Share from iPhone Safari with the app force-quit, then open the app: it's saved and reaches the Mac. Shortcuts has "Save to NetNewsList" on both platforms; a Shortcut passing "Get Article using Safari Reader" as Body arrives already filled in. The same URL saved twice never makes a second row.
 - [ ] **Safari capture.** Share a page you're signed in to (a paywalled article you subscribe to) from Safari: the saved copy has the full text.
@@ -17,7 +17,7 @@ Build both schemes from Xcode first (clean build, ⇧⌘K, once: the share exten
 
 ## 2. Confirm the browser extension's iCloud field types
 
-The extension's remote mode writes iCloud records itself, and Claude couldn't verify the field types against the app's code (its permission check blocked reading `Modules/Account/Sources/Account/CloudKit`). Either check them or let Claude read that folder.
+The extension's remote mode writes iCloud records itself, and Claude couldn't verify the field types against the app's code (its permission check blocked reading `Modules/Account/Sources/Account/CloudKit`). Claude could read that folder on 2026-10-10, so the next session can do this; or check them yourself.
 
 - [ ] In CloudKit Console → Development → Schema → Record Types:
   - `ArticleStatus`: `read`, `starred`, `webFeedExternalID` are **String**.
@@ -45,6 +45,6 @@ Not needed while the apps are installed from Xcode: those builds use CloudKit's 
 
 - [ ] Opening an article archives it (selecting marks it read, and read is Archive). Keep that, or archive only when you say so?
 - [ ] Both apps ask for notification permission at launch, only to badge the app icon with the Inbox count. Keep the badge, or drop it and the prompt?
-- [ ] GitHub → okbytes/NetNewsList → Actions: enable workflows once (forks start with them off), so CI runs on pushes to `main`.
+- [ ] The `run-device.sh` scripts in verbatim, scanner-ios and browser-ios can't install on a phone that isn't registered with your team yet (they lack `-allowProvisioningDeviceRegistration`, which workout-ios and this repo pass). Want Claude to add it there?
 - [ ] Should pages that come back nearly empty (JavaScript-built sites) automatically retry with the live page? Today it's manual (Retry with Live Page) because the live page runs the site's own scripts.
 - [ ] Optional cleanups Claude left alone: removing the leftover feed-notifications setting, purging stale strings (best done from Xcode), deleting the unused RSS/Atom parsers (needs an audit), and removing the Account zone from iCloud (only after sync has been stable for a while).
