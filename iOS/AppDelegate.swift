@@ -53,7 +53,6 @@ import Images
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(accountRefreshDidFinish(_:)), name: .AccountRefreshDidFinish, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 	}
 
@@ -141,10 +140,6 @@ import Images
 		}
 	}
 
-	@objc func accountRefreshDidFinish(_ note: Notification) {
-		AppDefaults.shared.lastRefresh = Date()
-	}
-
 	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
 		updateBadge()
 	}
@@ -181,15 +176,10 @@ import Images
 		SavedArticleRequestProcessor.shared.resume()
 		ArticleStatusSyncTimer.shared.update()
 
-		if let lastRefresh = AppDefaults.shared.lastRefresh {
-			if Date() > lastRefresh.addingTimeInterval(15 * 60) {
-				AccountManager.shared.refreshAllWithoutWaiting(errorHandler: ErrorHandler.log)
-			} else {
-				AccountManager.shared.syncArticleStatusAllWithoutWaiting()
-			}
-		} else {
-			AccountManager.shared.refreshAllWithoutWaiting(errorHandler: ErrorHandler.log)
-		}
+		// Always a full refresh: pages saved on another device must show up when the app opens,
+		// even if their push never arrived. With change tokens it's two small iCloud requests,
+		// and a status-only sync would be skipped during the quiet-period backoff.
+		AccountManager.shared.refreshAllWithoutWaiting(errorHandler: ErrorHandler.log)
 	}
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {

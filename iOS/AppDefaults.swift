@@ -60,7 +60,6 @@ final class AppDefaults: Sendable {
 		static let articleFullscreenAvailable = "articleFullscreenAvailable"
 		static let articleFullscreenEnabled = "articleFullscreenEnabled"
 		static let confirmMarkAllAsRead = "confirmMarkAllAsRead"
-		static let lastRefresh = "lastRefresh"
 		static let useSystemBrowser = "useSystemBrowser"
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
@@ -204,15 +203,6 @@ final class AppDefaults: Sendable {
 			} else {
 				UserDefaults.standard.removeObject(forKey: Key.sidebarWidth)
 			}
-		}
-	}
-
-	var lastRefresh: Date? {
-		get {
-			return AppDefaults.date(for: Key.lastRefresh)
-		}
-		set {
-			AppDefaults.setDate(for: Key.lastRefresh, newValue)
 		}
 	}
 
