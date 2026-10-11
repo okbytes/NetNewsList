@@ -19,13 +19,11 @@ import RSCore
 	let numberOfLinesForTitle: Int
 	let summaryRect: NSRect
 	let textRect: NSRect
-	let unreadIndicatorRect: NSRect
-	let starRect: NSRect
 	let iconImageRect: NSRect
 	let separatorRect: NSRect
 	let paddingBottom: CGFloat
 
-	init(width: CGFloat, height: CGFloat, feedNameRect: NSRect, dateRect: NSRect, titleRect: NSRect, numberOfLinesForTitle: Int, summaryRect: NSRect, textRect: NSRect, unreadIndicatorRect: NSRect, starRect: NSRect, iconImageRect: NSRect, separatorRect: NSRect, paddingBottom: CGFloat) {
+	init(width: CGFloat, height: CGFloat, feedNameRect: NSRect, dateRect: NSRect, titleRect: NSRect, numberOfLinesForTitle: Int, summaryRect: NSRect, textRect: NSRect, iconImageRect: NSRect, separatorRect: NSRect, paddingBottom: CGFloat) {
 
 		self.width = width
 		self.feedNameRect = feedNameRect
@@ -34,8 +32,6 @@ import RSCore
 		self.numberOfLinesForTitle = numberOfLinesForTitle
 		self.summaryRect = summaryRect
 		self.textRect = textRect
-		self.unreadIndicatorRect = unreadIndicatorRect
-		self.starRect = starRect
 		self.iconImageRect = iconImageRect
 		self.separatorRect = separatorRect
 		self.paddingBottom = paddingBottom
@@ -43,7 +39,7 @@ import RSCore
 		if height > 0.1 {
 			self.height = height
 		} else {
-			self.height = [feedNameRect, dateRect, titleRect, summaryRect, textRect, unreadIndicatorRect, iconImageRect].maxY() + paddingBottom
+			self.height = [feedNameRect, dateRect, titleRect, summaryRect, textRect, iconImageRect].maxY() + paddingBottom
 		}
 	}
 
@@ -71,13 +67,11 @@ import RSCore
 
 		textBoxRect.size.height = ceil([titleRect, summaryRect, textRect, dateRect, feedNameRect].maxY() - textBoxRect.origin.y)
 		let iconImageRect = TimelineCellLayout.rectForIcon(cellData, appearance, showIcon, textBoxRect, width, height)
-		let unreadIndicatorRect = TimelineCellLayout.rectForUnreadIndicator(appearance, textBoxRect)
-		let starRect = TimelineCellLayout.rectForStar(appearance, unreadIndicatorRect)
 		let separatorRect = TimelineCellLayout.rectForSeparator(cellData, appearance, showIcon ? iconImageRect : titleRect, width, height)
 
 		let paddingBottom = appearance.cellPadding.bottom
 
-		self.init(width: width, height: height, feedNameRect: feedNameRect, dateRect: dateRect, titleRect: titleRect, numberOfLinesForTitle: numberOfLinesForTitle, summaryRect: summaryRect, textRect: textRect, unreadIndicatorRect: unreadIndicatorRect, starRect: starRect, iconImageRect: iconImageRect, separatorRect: separatorRect, paddingBottom: paddingBottom)
+		self.init(width: width, height: height, feedNameRect: feedNameRect, dateRect: dateRect, titleRect: titleRect, numberOfLinesForTitle: numberOfLinesForTitle, summaryRect: summaryRect, textRect: textRect, iconImageRect: iconImageRect, separatorRect: separatorRect, paddingBottom: paddingBottom)
 	}
 
 	static func height(for width: CGFloat, cellData: TimelineCellData, appearance: TimelineCellAppearance) -> CGFloat {
@@ -96,7 +90,7 @@ import RSCore
 		// Returned height is a placeholder. Not needed when this is calculated.
 
 		let iconSpace = showIcon ? appearance.iconSize.width + appearance.iconMarginRight : 0.0
-		let textBoxOriginX = appearance.cellPadding.left + appearance.unreadCircleDimension + appearance.unreadCircleMarginRight + iconSpace
+		let textBoxOriginX = appearance.cellPadding.left + iconSpace
 		let textBoxMaxX = floor(width - appearance.cellPadding.right)
 		let textBoxWidth = floor(textBoxMaxX - textBoxOriginX)
 		let textBoxRect = NSRect(x: textBoxOriginX, y: appearance.cellPadding.top, width: textBoxWidth, height: 1000000)
@@ -184,28 +178,6 @@ import RSCore
 		return r
 	}
 
-	static func rectForUnreadIndicator(_ appearance: TimelineCellAppearance, _ titleRect: NSRect) -> NSRect {
-
-		var r = NSRect.zero
-		r.size = NSSize(width: appearance.unreadCircleDimension, height: appearance.unreadCircleDimension)
-		r.origin.x = appearance.cellPadding.left
-		r.origin.y = titleRect.minY + 6
-//		r = RSRectCenteredVerticallyInRect(r, titleRect)
-//		r.origin.y += 1
-
-		return r
-	}
-
-	static func rectForStar(_ appearance: TimelineCellAppearance, _ unreadIndicatorRect: NSRect) -> NSRect {
-
-		var r = NSRect.zero
-		r.size.width = appearance.starDimension
-		r.size.height = appearance.starDimension
-		r.origin.x = floor(unreadIndicatorRect.origin.x - ((appearance.starDimension - appearance.unreadCircleDimension) / 2.0))
-		r.origin.y = unreadIndicatorRect.origin.y - 4.0
-		return r
-	}
-
 	static func rectForIcon(_ cellData: TimelineCellData, _ appearance: TimelineCellAppearance, _ showIcon: Bool, _ textBoxRect: NSRect, _ width: CGFloat, _ height: CGFloat) -> NSRect {
 
 		var r = NSRect.zero
@@ -213,7 +185,7 @@ import RSCore
 			return r
 		}
 		r.size = appearance.iconSize
-		r.origin.x = appearance.cellPadding.left + appearance.unreadCircleDimension + appearance.unreadCircleMarginRight
+		r.origin.x = appearance.cellPadding.left
 		r.origin.y = textBoxRect.origin.y + appearance.iconAdjustmentTop
 
 		return r

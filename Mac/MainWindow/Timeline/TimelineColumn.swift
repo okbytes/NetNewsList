@@ -10,13 +10,10 @@ import AppKit
 
 /// The columns of the timeline in column layout, in default order.
 enum TimelineColumn: String, CaseIterable {
-	case unread
-	case starred
 	case feed
 	case title
 	case date
 
-	private static let statusColumnWidth: CGFloat = 22.0
 	private static let titleColumnWidth: CGFloat = 400.0
 	private static let titleColumnMinimumWidth: CGFloat = 100.0
 	private static let feedColumnWidth: CGFloat = 180.0
@@ -35,10 +32,6 @@ enum TimelineColumn: String, CaseIterable {
 
 	var sortKey: ArticleSortKey {
 		switch self {
-		case .unread:
-			.unread
-		case .starred:
-			.starred
 		case .title:
 			.title
 		case .feed:
@@ -48,44 +41,12 @@ enum TimelineColumn: String, CaseIterable {
 		}
 	}
 
-	/// The status columns have no header text — just a tooltip.
-	var headerTitle: String {
-		switch self {
-		case .unread, .starred:
-			""
-		case .title, .feed, .date:
-			sortKey.localizedName
-		}
-	}
-
-	/// Only the status columns need one — their headers have no text.
-	var headerToolTip: String? {
-		switch self {
-		case .unread:
-			NSLocalizedString("Unread", comment: "Unread")
-		case .starred:
-			NSLocalizedString("Starred", comment: "Starred")
-		case .title, .feed, .date:
-			nil
-		}
-	}
-
 	@MainActor func makeTableColumn() -> NSTableColumn {
 		let column = NSTableColumn(identifier: identifier)
-		column.headerCell = TimelineColumnHeaderCell(textCell: headerTitle)
-		column.headerToolTip = headerToolTip
-		// The status columns have no header text, so the tooltip doubles as the accessible name.
-		if let headerToolTip {
-			column.headerCell.setAccessibilityLabel(headerToolTip)
-		}
+		column.headerCell = TimelineColumnHeaderCell(textCell: sortKey.localizedName)
 		column.sortDescriptorPrototype = NSSortDescriptor(key: sortKey.rawValue, ascending: sortKey.sortsAscendingFirst)
 
 		switch self {
-		case .unread, .starred:
-			column.width = Self.statusColumnWidth
-			column.minWidth = Self.statusColumnWidth
-			column.maxWidth = Self.statusColumnWidth
-			column.resizingMask = []
 		case .title:
 			column.width = Self.titleColumnWidth
 			column.minWidth = Self.titleColumnMinimumWidth

@@ -271,7 +271,8 @@ final class AppDefaults: Sendable {
 			Key.sidebarFontSize: FontSize.medium.rawValue,
 			Key.timelineFontSize: FontSize.medium.rawValue,
 			Key.detailFontSize: FontSize.medium.rawValue,
-			Key.timelineSortDirection: ComparisonResult.orderedDescending.rawValue,
+			// Oldest first, so the Queue reads in the order pages were saved.
+			Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 			Key.timelineGroupByFeed: false,
 			Key.useColumnLayout: false,
 			"NSScrollViewShouldScrollUnderTitlebar": false,

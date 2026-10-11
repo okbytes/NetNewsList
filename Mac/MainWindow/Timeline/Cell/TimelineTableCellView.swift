@@ -14,13 +14,10 @@ final class TimelineTableCellView: NSTableCellView {
 	private let titleView = TimelineTableCellView.multiLineTextField()
 	private let summaryView = TimelineTableCellView.multiLineTextField()
 	private let textView = TimelineTableCellView.multiLineTextField()
-	private let unreadIndicatorView = UnreadIndicatorView(frame: NSRect.zero)
 	private let dateView = TimelineTableCellView.singleLineTextField()
 	private let feedNameView = TimelineTableCellView.singleLineTextField()
 
 	private lazy var iconView = IconView()
-
-	private var starView = TimelineTableCellView.imageView(with: Assets.Images.timelineStar, scaling: .scaleNone)
 
 	private lazy var textFields = {
 		return [self.dateView, self.feedNameView, self.titleView, self.summaryView, self.textView]
@@ -39,20 +36,6 @@ final class TimelineTableCellView: NSTableCellView {
 	var cellData: TimelineCellData! {
 		didSet {
 			updateSubviews()
-		}
-	}
-
-	var isEmphasized: Bool = false {
-		didSet {
-			unreadIndicatorView.isEmphasized = isEmphasized
-			updateStarView()
-		}
-	}
-
-	var isSelected: Bool = false {
-		didSet {
-			unreadIndicatorView.isSelected = isSelected
-			updateStarView()
 		}
 	}
 
@@ -103,10 +86,8 @@ final class TimelineTableCellView: NSTableCellView {
 		setFrame(for: textView, rect: layoutRects.textRect)
 
 		dateView.setFrameIfNotEqual(layoutRects.dateRect)
-		unreadIndicatorView.setFrameIfNotEqual(layoutRects.unreadIndicatorRect)
 		feedNameView.setFrameIfNotEqual(layoutRects.feedNameRect)
 		iconView.setFrameIfNotEqual(layoutRects.iconImageRect)
-		starView.setFrameIfNotEqual(layoutRects.starRect)
 	}
 }
 
@@ -134,15 +115,6 @@ private extension TimelineTableCellView {
 		textField.cell?.truncatesLastVisibleLine = true
 		textField.allowsDefaultTighteningForTruncation = false
 		return textField
-	}
-
-	static func imageView(with image: NSImage?, scaling: NSImageScaling) -> NSImageView {
-
-		let imageView = image != nil ? NSImageView(image: image!) : NSImageView(frame: NSRect.zero)
-		imageView.animates = false
-		imageView.imageAlignment = .alignCenter
-		imageView.imageScaling = scaling
-		return imageView
 	}
 
 	func setFrame(for textField: NSTextField, rect: NSRect) {
@@ -183,11 +155,9 @@ private extension TimelineTableCellView {
 		addSubviewAtInit(titleView, hidden: false)
 		addSubviewAtInit(summaryView, hidden: true)
 		addSubviewAtInit(textView, hidden: true)
-		addSubviewAtInit(unreadIndicatorView, hidden: true)
 		addSubviewAtInit(dateView, hidden: false)
 		addSubviewAtInit(feedNameView, hidden: true)
 		addSubviewAtInit(iconView, hidden: true)
-		addSubviewAtInit(starView, hidden: true)
 
 		makeTextFieldColorsNormal()
 	}
@@ -252,15 +222,6 @@ private extension TimelineTableCellView {
 		}
 	}
 
-	func updateUnreadIndicator() {
-		showOrHideView(unreadIndicatorView, cellData.read || cellData.starred)
-	}
-
-	func updateStarView() {
-		starView.contentTintColor = (isSelected && isEmphasized) ? .white : Assets.Colors.star
-		showOrHideView(starView, !cellData.starred)
-	}
-
 	func updateIcon() {
 		guard let iconImage = cellData.iconImage, cellData.showIcon else {
 			makeIconEmpty()
@@ -294,22 +255,12 @@ private extension TimelineTableCellView {
 		}
 	}
 
-	func showOrHideView(_ view: NSView, _ shouldHide: Bool) {
-		if shouldHide {
-			hideView(view)
-		} else {
-			showView(view)
-		}
-	}
-
 	func updateSubviews() {
 		updateTitleView()
 		updateSummaryView()
 		updateTextView()
 		updateDateView()
 		updateFeedNameView()
-		updateUnreadIndicator()
-		updateStarView()
 		updateIcon()
 	}
 }

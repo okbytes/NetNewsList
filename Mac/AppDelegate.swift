@@ -95,7 +95,6 @@ let appName = "NetNewsList"
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: AccountManager.shared)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeImportError(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWakeNotification(_:)), name: NSWorkspace.didWakeNotification, object: nil)
@@ -305,10 +304,6 @@ let appName = "NetNewsList"
 		unreadCount = AccountManager.shared.unreadCount
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		updateDockBadge()
-	}
-
 	@objc func feedSettingDidChange(_ note: Notification) {
 		MainActor.assumeIsolated {
 			guard let feed = note.object as? Feed, let key = note.userInfo?[Feed.SettingUserInfoKey] as? Feed.SettingKey else {
@@ -441,9 +436,11 @@ let appName = "NetNewsList"
 	}
 
 	// MARK: - Dock Badge
+
+	/// The number of articles in the Queue, or nothing when it is empty.
 	@objc func updateDockBadge() {
 		Task { @MainActor in
-			NSApplication.shared.dockTile.badgeLabel = AppDefaults.shared.unreadCountDisplay.text(for: unreadCount) ?? ""
+			NSApplication.shared.dockTile.badgeLabel = unreadCount > 0 ? unreadCount.formatted() : ""
 		}
 	}
 

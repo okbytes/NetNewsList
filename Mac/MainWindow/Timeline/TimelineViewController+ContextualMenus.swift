@@ -42,28 +42,6 @@ extension TimelineViewController {
 		markArticles(articles, read: false)
 	}
 
-	@objc func markAboveArticlesReadFromContextualMenu(_ sender: Any?) {
-		guard let articles = articles(from: sender) else { return }
-		markAboveArticlesRead(articles)
-	}
-
-	@objc func markBelowArticlesReadFromContextualMenu(_ sender: Any?) {
-		guard let articles = articles(from: sender) else { return }
-		markBelowArticlesRead(articles)
-	}
-
-	@objc func markArticlesStarredFromContextualMenu(_ sender: Any?) {
-		guard let articles = articles(from: sender) else { return }
-		markArticles(articles, starred: true)
-	}
-
-	@objc func markArticlesUnstarredFromContextualMenu(_ sender: Any?) {
-		guard let articles = articles(from: sender) else {
-			return
-		}
-		markArticles(articles, starred: false)
-	}
-
 	@objc func openInBrowserFromContextualMenu(_ sender: Any?) {
 
 		guard let menuItem = sender as? NSMenuItem, let urlString = menuItem.representedObject as? String else {
@@ -114,10 +92,6 @@ private extension TimelineViewController {
 		markArticles(articles, statusKey: .read, flag: read)
 	}
 
-	func markArticles(_ articles: [Article], starred: Bool) {
-		markArticles(articles, statusKey: .starred, flag: starred)
-	}
-
 	func markArticles(_ articles: [Article], statusKey: ArticleStatus.Key, flag: Bool) {
 		guard let undoManager = undoManager, let markStatusCommand = MarkStatusCommand(initialArticles: articles, statusKey: statusKey, flag: flag, undoManager: undoManager) else {
 			return
@@ -148,18 +122,6 @@ private extension TimelineViewController {
 		}
 		if articles.anyArticleIsReadAndCanMarkUnread() {
 			menu.addItem(markUnreadMenuItem(articles))
-		}
-		if articles.anyArticleIsUnstarred() {
-			menu.addItem(markStarredMenuItem(articles))
-		}
-		if articles.anyArticleIsStarred() {
-			menu.addItem(markUnstarredMenuItem(articles))
-		}
-		if let first = articles.first, self.articles.articlesAbove(article: first).canMarkAllAsRead() {
-			menu.addItem(markAboveReadMenuItem(articles))
-		}
-		if let last = articles.last, self.articles.articlesBelow(article: last).canMarkAllAsRead() {
-			menu.addItem(markBelowReadMenuItem(articles))
 		}
 
 		menu.addSeparatorIfNeeded()
@@ -225,23 +187,7 @@ private extension TimelineViewController {
 	}
 
 	func markUnreadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Move to Inbox", comment: "Command"), #selector(markArticlesUnreadFromContextualMenu(_:)), articles)
-	}
-
-	func markStarredMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark as Starred", comment: "Command"), #selector(markArticlesStarredFromContextualMenu(_:)), articles)
-	}
-
-	func markUnstarredMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Mark as Unstarred", comment: "Command"), #selector(markArticlesUnstarredFromContextualMenu(_:)), articles)
-	}
-
-	func markAboveReadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Archive Above", comment: "Command"), #selector(markAboveArticlesReadFromContextualMenu(_:)), articles)
-	}
-
-	func markBelowReadMenuItem(_ articles: [Article]) -> NSMenuItem {
-		menuItem(NSLocalizedString("Archive Below", comment: "Command"), #selector(markBelowArticlesReadFromContextualMenu(_:)), articles)
+		menuItem(NSLocalizedString("Move to Queue", comment: "Command"), #selector(markArticlesUnreadFromContextualMenu(_:)), articles)
 	}
 
 	func openInBrowserMenuItem(_ urlString: String) -> NSMenuItem {

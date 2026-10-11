@@ -110,7 +110,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		NotificationCenter.default.addObserver(self, selector: #selector(refreshProgressDidChange(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(displayNameDidChange(_:)), name: .DisplayNameDidChange, object: nil)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(articleThemeNamesDidChangeNotification(_:)), name: .ArticleThemeNamesDidChangeNotification, object: nil)
@@ -190,10 +189,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		CoalescingQueue.standard.add(self, #selector(coalescedUpdateWindowTitle))
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		updateWindowTitle()
-	}
-
 	@objc func coalescedUpdateWindowTitle() {
 		updateWindowTitle()
 	}
@@ -268,28 +263,12 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return currentLink != nil
 		}
 
-		if item.action == #selector(nextUnread(_:)) {
-			return canGoToNextUnread(wrappingToTop: true)
-		}
-
 		if item.action == #selector(markAllAsRead(_:)) {
 			return canMarkAllAsRead()
 		}
 
 		if item.action == #selector(toggleRead(_:)) {
 			return validateToggleRead(item)
-		}
-
-		if item.action == #selector(toggleStarred(_:)) {
-			return validateToggleStarred(item)
-		}
-
-		if item.action == #selector(markAboveArticlesAsRead(_:)) {
-			return canMarkAboveArticlesAsRead()
-		}
-
-		if item.action == #selector(markBelowArticlesAsRead(_:)) {
-			return canMarkBelowArticlesAsRead()
 		}
 
 		if item.action == #selector(toggleShowOriginal(_:)) {
@@ -302,14 +281,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 		if item.action == #selector(moveFocusToSearchField(_:)) {
 			return currentSearchField != nil
-		}
-
-		if item.action == #selector(cleanUp(_:)) {
-			return validateCleanUp(item)
-		}
-
-		if item.action == #selector(toggleReadArticlesFilter(_:)) {
-			return validateToggleReadArticles(item)
 		}
 
 		if item.action == #selector(sortArticlesByField(_:)) {
@@ -329,18 +300,18 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	// MARK: - Actions
 
+	/// The space bar scrolls the article a page at a time and stops at the end.
+	/// The name is the action GlobalKeyboardShortcuts.plist gives the space bar.
 	@IBAction func scrollOrGoToNextUnread(_ sender: Any?) {
 		guard let detailViewController else {
 			return
 		}
 		Task { @MainActor in
-			let canScroll = await detailViewController.canScrollDown()
-			NSCursor.setHiddenUntilMouseMoves(true)
-			if canScroll {
-				detailViewController.scrollPageDown(sender)
-			} else {
-				nextUnread(sender)
+			guard await detailViewController.canScrollDown() else {
+				return
 			}
+			NSCursor.setHiddenUntilMouseMoves(true)
+			detailViewController.scrollPageDown(sender)
 		}
 	}
 
@@ -412,48 +383,12 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		}
 	}
 
-	@IBAction func nextUnread(_ sender: Any?) {
-		guard let timelineViewController = currentTimelineViewController, let sidebarViewController = sidebarViewController else {
-			return
-		}
-
-		// Flush coalesced unread-count updates so folder counts are current.
-		CoalescingQueue.standard.performCallsImmediately()
-
-		NSCursor.setHiddenUntilMouseMoves(true)
-
-		// TODO: handle search mode
-		if timelineViewController.canGoToNextUnread(wrappingToTop: false) {
-			goToNextUnreadInTimeline(wrappingToTop: false)
-		} else if sidebarViewController.canGoToNextUnread(wrappingToTop: true) {
-			sidebarViewController.goToNextUnread(wrappingToTop: true)
-
-			// If we ended up on the same timelineViewController, we may need to wrap
-			// around to the top of its contents.
-			if timelineViewController.canGoToNextUnread(wrappingToTop: true) {
-				goToNextUnreadInTimeline(wrappingToTop: true)
-			}
-		}
-	}
-
 	@IBAction func markAllAsRead(_ sender: Any?) {
 		currentTimelineViewController?.markAllAsRead()
 	}
 
 	@IBAction func toggleRead(_ sender: Any?) {
 		currentTimelineViewController?.toggleReadStatusForSelectedArticles()
-	}
-
-	@IBAction func markRead(_ sender: Any?) {
-		currentTimelineViewController?.markSelectedArticlesAsRead(sender)
-	}
-
-	@IBAction func markUnread(_ sender: Any?) {
-		currentTimelineViewController?.markSelectedArticlesAsUnread(sender)
-	}
-
-	@IBAction func toggleStarred(_ sender: Any?) {
-		currentTimelineViewController?.toggleStarredStatusForSelectedArticles()
 	}
 
 	/// Switches the detail view between the saved copy and the live page.
@@ -483,32 +418,8 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: true)
 	}
 
-	@IBAction func markAllAsReadAndGoToNextUnread(_ sender: Any?) {
-		currentTimelineViewController?.markAllAsRead {
-			self.nextUnread(sender)
-		}
-	}
-
-	@IBAction func markUnreadAndGoToNextUnread(_ sender: Any?) {
-		markUnread(sender)
-		nextUnread(sender)
-	}
-
-	@IBAction func markReadAndGoToNextUnread(_ sender: Any?) {
-		markUnread(sender)
-		nextUnread(sender)
-	}
-
 	@IBAction func markOlderArticlesAsRead(_ sender: Any?) {
 		currentTimelineViewController?.markOlderArticlesRead()
-	}
-
-	@IBAction func markAboveArticlesAsRead(_ sender: Any?) {
-		currentTimelineViewController?.markAboveArticlesRead()
-	}
-
-	@IBAction func markBelowArticlesAsRead(_ sender: Any?) {
-		currentTimelineViewController?.markBelowArticlesRead()
 	}
 
 	@IBAction func navigateToTimeline(_ sender: Any?) {
@@ -581,10 +492,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		window?.makeFirstResponder(searchField)
 	}
 
-	@IBAction func cleanUp(_ sender: Any?) {
-		timelineContainerViewController?.cleanUp()
-	}
-
 	/// Deletes the selected articles here and on every other device, after asking.
 	@IBAction func deleteArticles(_ sender: Any?) {
 		guard let articles = selectedArticles, let window else {
@@ -596,10 +503,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	/// Edit > Delete and the Delete key in the timeline.
 	@IBAction func delete(_ sender: Any?) {
 		deleteArticles(sender)
-	}
-
-	@IBAction func toggleReadArticlesFilter(_ sender: Any?) {
-		timelineContainerViewController?.toggleReadFilter()
 	}
 
 	@IBAction func sortArticlesByField(_ sender: NSMenuItem) {
@@ -786,15 +689,11 @@ extension NSToolbarItem.Identifier {
 	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
 	static let search = NSToolbarItem.Identifier("search")
 	static let markAllAsRead = NSToolbarItem.Identifier("markAllAsRead")
-	static let toggleReadArticlesFilter = NSToolbarItem.Identifier("toggleReadArticlesFilter")
-	static let nextUnread = NSToolbarItem.Identifier("nextUnread")
 	static let markRead = NSToolbarItem.Identifier("markRead")
-	static let markStar = NSToolbarItem.Identifier("markStar")
 	static let showOriginal = NSToolbarItem.Identifier("showOriginal")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
 	static let share = NSToolbarItem.Identifier("share")
 	static let articleThemeMenu = NSToolbarItem.Identifier("articleThemeMenu")
-	static let cleanUp = NSToolbarItem.Identifier("cleanUp")
 }
 
 extension MainWindowController: NSToolbarDelegate {
@@ -815,10 +714,6 @@ extension MainWindowController: NSToolbarDelegate {
 			let title = NSLocalizedString("Archive All", comment: "Command")
 			return buildToolbarButton(.markAllAsRead, title, Assets.Images.markAllAsRead, "markAllAsRead:")
 
-		case .toggleReadArticlesFilter:
-			let title = NSLocalizedString("Read Articles Filter", comment: "Read Articles Filter")
-			return buildToolbarButton(.toggleReadArticlesFilter, title, Assets.Images.filterInactive, "toggleReadArticlesFilter:")
-
 		case .timelineTrackingSeparator:
 			// Only the standard layout has a vertical divider between the timeline and the article view.
 			// Column layout gets a hidden placeholder so the identifier stays in the saved configuration
@@ -838,14 +733,6 @@ extension MainWindowController: NSToolbarDelegate {
 		case .markRead:
 			let title = NSLocalizedString("Archive", comment: "command")
 			return buildToolbarButton(.markRead, title, Assets.Images.readClosed, "toggleRead:")
-
-		case .markStar:
-			let title = NSLocalizedString("Star", comment: "Star")
-			return buildToolbarButton(.markStar, title, Assets.Images.starOpen, "toggleStarred:")
-
-		case .nextUnread:
-			let title = NSLocalizedString("Next Unread", comment: "Next Unread")
-			return buildToolbarButton(.nextUnread, title, Assets.Images.nextUnread, "nextUnread:")
 
 		case .showOriginal:
 			let title = NSLocalizedString("Show Original", comment: "Show Original")
@@ -876,10 +763,6 @@ extension MainWindowController: NSToolbarDelegate {
 			toolbarItem.label = description
 			return toolbarItem
 
-		case .cleanUp:
-			let title = NSLocalizedString("Clean Up", comment: "Clean Up button")
-			return buildToolbarButton(.cleanUp, title, Assets.Images.cleanUp, "cleanUp:")
-
 		default:
 			break
 		}
@@ -894,18 +777,14 @@ extension MainWindowController: NSToolbarDelegate {
 			.addArticle,
 			.sidebarTrackingSeparator,
 			.markAllAsRead,
-			.toggleReadArticlesFilter,
 			.timelineTrackingSeparator,
 			.flexibleSpace,
-			.nextUnread,
 			.markRead,
-			.markStar,
 			.showOriginal,
 			.openInBrowser,
 			.share,
 			.articleThemeMenu,
-			.search,
-			.cleanUp
+			.search
 		]
 	}
 
@@ -917,11 +796,8 @@ extension MainWindowController: NSToolbarDelegate {
 			.addArticle,
 			.sidebarTrackingSeparator,
 			.markAllAsRead,
-			.toggleReadArticlesFilter,
 			.timelineTrackingSeparator,
 			.markRead,
-			.markStar,
-			.nextUnread,
 			.showOriginal,
 			.share,
 			.openInBrowser,
@@ -1318,23 +1194,6 @@ private extension MainWindowController {
 		return false
 	}
 
-	func canGoToNextUnread(wrappingToTop wrapping: Bool = false) -> Bool {
-
-		guard let timelineViewController = currentTimelineViewController, let sidebarViewController = sidebarViewController else {
-			return false
-		}
-
-		// When the only unread article in the account is the one already selected, Next Unread has nowhere to go.
-		// This state persists on Mac when the selected article is marked read on selection and then manually marked unread again.
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5008>
-		if AccountManager.shared.unreadCount == 1, timelineViewController.selectedArticles.count == 1, let article = timelineViewController.selectedArticles.first, !article.status.read {
-			return false
-		}
-
-		// TODO: handle search mode
-		return timelineViewController.canGoToNextUnread(wrappingToTop: wrapping) || sidebarViewController.canGoToNextUnread(wrappingToTop: wrapping)
-	}
-
 	func canMarkAllAsRead() -> Bool {
 
 		return currentTimelineViewController?.canMarkAllAsRead() ?? false
@@ -1358,12 +1217,12 @@ private extension MainWindowController {
 			result = false
 		}
 
-		let commandName = markingRead ? NSLocalizedString("Archive", comment: "Command") : NSLocalizedString("Move to Inbox", comment: "Command")
+		let commandName = markingRead ? NSLocalizedString("Archive", comment: "Command") : NSLocalizedString("Move to Queue", comment: "Command")
 
 		if let toolbarItem = item as? NSToolbarItem {
 			toolbarItem.toolTip = commandName
 			// Text Only toolbar mode shows the label and menu form representation, so they need to track state too.
-			let shortName = markingRead ? NSLocalizedString("Archive", comment: "command") : NSLocalizedString("Move to Inbox", comment: "command")
+			let shortName = markingRead ? NSLocalizedString("Archive", comment: "command") : NSLocalizedString("Move to Queue", comment: "command")
 			toolbarItem.label = shortName
 			toolbarItem.menuFormRepresentation?.title = shortName
 		}
@@ -1394,63 +1253,12 @@ private extension MainWindowController {
 		return oneSelectedArticle?.preferredURL != nil
 	}
 
-	func canMarkAboveArticlesAsRead() -> Bool {
-		return currentTimelineViewController?.canMarkAboveArticlesAsRead() ?? false
-	}
-
-	func canMarkBelowArticlesAsRead() -> Bool {
-		return currentTimelineViewController?.canMarkBelowArticlesAsRead() ?? false
-	}
-
 	func canShowShareMenu() -> Bool {
 
 		guard let selectedArticles = selectedArticles else {
 			return false
 		}
 		return !selectedArticles.isEmpty
-	}
-
-	func validateToggleStarred(_ item: NSValidatedUserInterfaceItem) -> Bool {
-
-		let validationStatus = currentTimelineViewController?.markStarredCommandStatus() ?? .canDoNothing
-		let starring: Bool
-		let result: Bool
-
-		switch validationStatus {
-		case .canMark:
-			starring = true
-			result = true
-		case .canUnmark:
-			starring = false
-			result = true
-		case .canDoNothing:
-			starring = true
-			result = false
-		}
-
-		let commandName = starring ? NSLocalizedString("Mark as Starred", comment: "Command") : NSLocalizedString("Mark as Unstarred", comment: "Command")
-
-		if let toolbarItem = item as? NSToolbarItem {
-			toolbarItem.toolTip = commandName
-			// Text Only toolbar mode shows the label and menu form representation, so they need to track state too.
-			let shortName = starring ? NSLocalizedString("Star", comment: "Star") : NSLocalizedString("Unstar", comment: "Unstar")
-			toolbarItem.label = shortName
-			toolbarItem.menuFormRepresentation?.title = shortName
-		}
-
-		if let menuItem = item as? NSMenuItem {
-			menuItem.title = commandName
-		}
-
-		if let toolbarItem = item as? NSToolbarItem, let button = toolbarItem.view as? NSButton {
-			button.image = starring ? Assets.Images.starOpen : Assets.Images.starClosed
-		}
-
-		return result
-	}
-
-	func validateCleanUp(_ item: NSValidatedUserInterfaceItem) -> Bool {
-		return timelineContainerViewController?.isCleanUpAvailable ?? false
 	}
 
 	func validateSortArticlesByField(_ item: NSValidatedUserInterfaceItem) -> Bool {
@@ -1461,7 +1269,7 @@ private extension MainWindowController {
 		return true
 	}
 
-	/// The direction items are worded for the current field: Oldest/Newest for date, A to Z for text, Ascending/Descending for flags.
+	/// The direction items are worded for the current field: Oldest/Newest for date, A to Z for text.
 	func validateSortDirection(_ item: NSValidatedUserInterfaceItem, direction: ComparisonResult) -> Bool {
 		guard let sortParameters = timelineContainerViewController?.sortParameters, let menuItem = item as? NSMenuItem else {
 			return false
@@ -1471,57 +1279,7 @@ private extension MainWindowController {
 		return true
 	}
 
-	func validateToggleReadArticles(_ item: NSValidatedUserInterfaceItem) -> Bool {
-		let showCommand = NSLocalizedString("Show Read Articles", comment: "Command")
-		let hideCommand = NSLocalizedString("Hide Read Articles", comment: "Command")
-
-		guard let isReadFiltered = timelineContainerViewController?.isReadFiltered else {
-			(item as? NSMenuItem)?.title = hideCommand
-			if let toolbarItem = item as? NSToolbarItem, let button = toolbarItem.view as? NSButton {
-				toolbarItem.toolTip = hideCommand
-				button.image = Assets.Images.filterInactive
-			}
-			return false
-		}
-
-		if isReadFiltered {
-			(item as? NSMenuItem)?.title = showCommand
-			if let toolbarItem = item as? NSToolbarItem, let button = toolbarItem.view as? NSButton {
-				toolbarItem.toolTip = showCommand
-				button.image = Assets.Images.filterActive
-			}
-		} else {
-			(item as? NSMenuItem)?.title = hideCommand
-			if let toolbarItem = item as? NSToolbarItem, let button = toolbarItem.view as? NSButton {
-				toolbarItem.toolTip = hideCommand
-				button.image = Assets.Images.filterInactive
-			}
-		}
-
-		return true
-	}
-
 	// MARK: - Misc.
-
-	func goToNextUnreadInTimeline(wrappingToTop wrapping: Bool) {
-
-		guard let timelineViewController = currentTimelineViewController else {
-			return
-		}
-
-		if timelineViewController.canGoToNextUnread(wrappingToTop: wrapping) {
-			timelineViewController.goToNextUnread(wrappingToTop: wrapping)
-			makeTimelineViewFirstResponder()
-		}
-	}
-
-	func makeTimelineViewFirstResponder() {
-
-		guard let window = window, let timelineViewController = currentTimelineViewController else {
-			return
-		}
-		window.makeFirstResponderUnlessDescendantIsFirstResponder(timelineViewController.tableView)
-	}
 
 	func updateWindowTitle() {
 		guard timelineSourceMode != .search else {
@@ -1531,42 +1289,26 @@ private extension MainWindowController {
 			return
 		}
 
-		func setSubtitle(_ count: Int) {
-			guard AppDefaults.shared.unreadCountDisplay == .count else {
-				window?.subtitle = ""
-				return
-			}
-			let localizedLabel = NSLocalizedString("%d unread", comment: "Unread")
-			let formattedLabel = NSString.localizedStringWithFormat(localizedLabel as NSString, count)
-			window?.subtitle = formattedLabel as String
-		}
-
-		guard let selectedObjects = selectedObjectsInSidebar(), selectedObjects.count > 0 else {
+		let selectedObjects = selectedObjectsInSidebar() ?? []
+		switch selectedObjects.count {
+		case 0:
 			window?.title = appName
-			setSubtitle(AccountManager.shared.unreadCount)
-			return
-		}
-
-		guard selectedObjects.count == 1 else {
-			window?.title = NSLocalizedString("Multiple", comment: "Multiple")
-			let unreadCount = selectedObjects.reduce(0, { result, selectedObject in
-				if let unreadCountProvider = selectedObject as? UnreadCountProvider {
-					return result + unreadCountProvider.unreadCount
-				} else {
-					return result
-				}
-			})
-			setSubtitle(unreadCount)
-
-			return
-		}
-
-		if let displayNameProvider = currentFeedOrFolder as? DisplayNameProvider {
-			window?.title = displayNameProvider.nameForDisplay
-			if let unreadCountProvider = currentFeedOrFolder as? UnreadCountProvider {
-				setSubtitle(unreadCountProvider.unreadCount)
+		case 1:
+			if let displayNameProvider = selectedObjects.first as? DisplayNameProvider {
+				window?.title = displayNameProvider.nameForDisplay
 			}
+		default:
+			window?.title = NSLocalizedString("Multiple", comment: "Multiple")
 		}
+
+		// Only the Queue has a count. Archive is everything already read, so it has none.
+		let queue = SmartFeedsController.shared.unreadFeed
+		guard selectedObjects.contains(where: { $0 === queue }) else {
+			window?.subtitle = ""
+			return
+		}
+		let localizedLabel = NSLocalizedString("%d in Queue", comment: "Window subtitle: the number of articles in the Queue")
+		window?.subtitle = NSString.localizedStringWithFormat(localizedLabel as NSString, queue.unreadCount) as String
 	}
 
 	func restoreSplitViewState(from state: MainWindowState) {

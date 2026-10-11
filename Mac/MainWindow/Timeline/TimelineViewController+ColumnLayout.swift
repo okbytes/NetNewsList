@@ -30,11 +30,6 @@ extension TimelineViewController {
 		NSFont.systemFont(ofSize: AppDefaults.shared.actualFontSize(for: AppDefaults.shared.timelineFontSize))
 	}
 
-	// Unread rows are bold, like Mail.
-	var boldColumnFont: NSFont {
-		NSFont.boldSystemFont(ofSize: AppDefaults.shared.actualFontSize(for: AppDefaults.shared.timelineFontSize))
-	}
-
 	func columnRowHeight() -> CGFloat {
 		let font = columnFont
 		let lineHeight = ceil(font.ascender - font.descender + font.leading)
@@ -47,20 +42,9 @@ extension TimelineViewController {
 		}
 		let article = articles.articleAtRow(row)
 		let identifier = tableColumn.identifier
-		let isUnread = article.map { !$0.status.read } ?? false
-		let textFont = isUnread ? boldColumnFont : columnFont
+		let textFont = columnFont
 
 		switch column {
-		case .unread:
-			let cell = dequeueCell(TimelineUnreadColumnCellView.self, identifier: identifier)
-			cell.isUnread = isUnread
-			return cell
-
-		case .starred:
-			let cell = dequeueCell(TimelineStarColumnCellView.self, identifier: identifier)
-			cell.isStarred = article?.status.starred ?? false
-			return cell
-
 		case .title:
 			let cell = dequeueCell(TimelineTextColumnCellView.self, identifier: identifier)
 			cell.textField?.font = textFont

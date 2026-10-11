@@ -368,18 +368,6 @@
                                                 <action selector="sortArticlesByField:" target="-1" id="sMa-ti-003"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Unread" identifier="unread" id="sMf-un-004">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="sortArticlesByField:" target="-1" id="sMa-un-004"/>
-                                            </connections>
-                                        </menuItem>
-                                        <menuItem title="Starred" identifier="starred" id="sMf-st-005">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="sortArticlesByField:" target="-1" id="sMa-st-005"/>
-                                            </connections>
-                                        </menuItem>
                                         <menuItem isSeparatorItem="YES" id="sMs-ep-006"/>
                                         <menuItem title="Ascending" id="iii-kP-qoF">
                                             <modifierMask key="keyEquivalentModifierMask"/>
@@ -395,17 +383,6 @@
                                         </menuItem>
                                     </items>
                                 </menu>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="dZt-2W-gxf"/>
-                            <menuItem title="Clean Up Articles" keyEquivalent="'" id="J5h-uQ-57w">
-                                <connections>
-                                    <action selector="cleanUp:" target="-1" id="eNB-UA-e3a"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Hide Read Articles" keyEquivalent="H" id="b10-sA-Yzi">
-                                <connections>
-                                    <action selector="toggleReadArticlesFilter:" target="-1" id="YhV-0F-jrM"/>
-                                </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="Ocl-6H-m3k"/>
                             <menuItem title="Show Sidebar" keyEquivalent="s" id="kIP-vf-haE">
@@ -447,12 +424,6 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Go" id="NQW-Ph-lw2">
                         <items>
-                            <menuItem title="Next Unread" keyEquivalent="/" id="q3p-nE-m2k">
-                                <connections>
-                                    <action selector="nextUnread:" target="-1" id="rgH-ce-FV3"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="xbe-2a-mp4"/>
                             <menuItem title="Queue" keyEquivalent="1" id="L20-jv-7c9">
                                 <connections>
                                     <action selector="gotoQueue:" target="-1" id="GyO-dW-XCy"/>
@@ -478,23 +449,6 @@
                             <menuItem title="Archive All" keyEquivalent="k" id="HdN-Ks-cwh">
                                 <connections>
                                     <action selector="markAllAsRead:" target="-1" id="154-2D-ONk"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Archive Above" keyEquivalent="k" id="p1o-EG-Uo8">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
-                                <connections>
-                                    <action selector="markAboveArticlesAsRead:" target="-1" id="BJY-oR-uvr"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Archive Below" keyEquivalent="K" id="8lZ-XI-I4y">
-                                <connections>
-                                    <action selector="markBelowArticlesAsRead:" target="-1" id="Jnm-LF-mrf"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="gB0-WX-2Gd"/>
-                            <menuItem title="Mark as Starred" keyEquivalent="L" id="vvo-ZM-8kl">
-                                <connections>
-                                    <action selector="toggleStarred:" target="-1" id="vIK-kP-re7"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="qgr-Gl-Xhw"/>

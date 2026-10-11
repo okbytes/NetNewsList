@@ -12,24 +12,20 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 
 	static let supportsSecureCoding = true
 
-	let readArticlesFilterStateKeys: [[String: String]]
-	let readArticlesFilterStateValues: [Bool]
 	let selectedAccountID: String?
 	let selectedArticleID: String?
-	// Nil when the state was saved before sorting became per-window.
+	// Nil when the state was saved before sorting became per-window, or was sorted by a field that's gone.
 	let sortParameters: ArticleSortParameters?
 
-	init(readArticlesFilterStateKeys: [[String: String]], readArticlesFilterStateValues: [Bool], selectedAccountID: String? = nil, selectedArticleID: String? = nil, sortParameters: ArticleSortParameters? = nil) {
-		self.readArticlesFilterStateKeys = readArticlesFilterStateKeys
-		self.readArticlesFilterStateValues = readArticlesFilterStateValues
+	// State saved before the read filter was removed also has readArticlesFilterStateKeys and
+	// readArticlesFilterStateValues, which are ignored.
+	init(selectedAccountID: String? = nil, selectedArticleID: String? = nil, sortParameters: ArticleSortParameters? = nil) {
 		self.selectedAccountID = selectedAccountID
 		self.selectedArticleID = selectedArticleID
 		self.sortParameters = sortParameters
 	}
 
 	private struct Key {
-		static let readArticlesFilterStateKeys = "readArticlesFilterStateKeys"
-		static let readArticlesFilterStateValues = "readArticlesFilterStateValues"
 		static let selectedAccountID = "selectedAccountID"
 		static let selectedArticleID = "selectedArticleID"
 		static let sortKey = "sortKey"
@@ -39,12 +35,11 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 	}
 
 	required init?(coder: NSCoder) {
-		readArticlesFilterStateKeys = coder.decodeObject(of: [NSArray.self, NSDictionary.self, NSString.self], forKey: Key.readArticlesFilterStateKeys) as? [[String: String]] ?? []
-		readArticlesFilterStateValues = coder.decodeObject(of: [NSArray.self, NSNumber.self], forKey: Key.readArticlesFilterStateValues) as? [Bool] ?? []
 		selectedAccountID = coder.decodeObject(of: NSString.self, forKey: Key.selectedAccountID) as? String
 		selectedArticleID = coder.decodeObject(of: NSString.self, forKey: Key.selectedArticleID) as? String
 
-		if let rawSortKey = coder.decodeObject(of: NSString.self, forKey: Key.sortKey) as? String, let sortKey = ArticleSortKey(rawValue: rawSortKey) {
+		// Sorting by Unread or Starred is gone, so a window sorted that way starts over with the default sort.
+		if let rawSortKey = coder.decodeObject(of: NSString.self, forKey: Key.sortKey) as? String, let sortKey = ArticleSortKey(rawValue: rawSortKey), sortKey != .unread, sortKey != .starred {
 			// Anything other than ascending — including a missing key — means descending.
 			let direction: ComparisonResult = coder.decodeInteger(forKey: Key.sortDirection) == ComparisonResult.orderedAscending.rawValue ? .orderedAscending : .orderedDescending
 			if sortKey == .date && coder.decodeBool(forKey: Key.groupByFeed) {
@@ -59,8 +54,6 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 	}
 
 	func encode(with coder: NSCoder) {
-		coder.encode(readArticlesFilterStateKeys, forKey: Key.readArticlesFilterStateKeys)
-		coder.encode(readArticlesFilterStateValues, forKey: Key.readArticlesFilterStateValues)
 		coder.encode(selectedAccountID, forKey: Key.selectedAccountID)
 		coder.encode(selectedArticleID, forKey: Key.selectedArticleID)
 		if let sortParameters {
@@ -76,6 +69,6 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 		} else {
 			sort = "nil"
 		}
-		return "TimelineWindowState: filterKeys=\(readArticlesFilterStateKeys.count), filterValues=\(readArticlesFilterStateValues.count), accountID=\(selectedAccountID ?? "nil"), articleID=\(selectedArticleID ?? "nil"), sort=\(sort)"
+		return "TimelineWindowState: accountID=\(selectedAccountID ?? "nil"), articleID=\(selectedArticleID ?? "nil"), sort=\(sort)"
 	}
 }

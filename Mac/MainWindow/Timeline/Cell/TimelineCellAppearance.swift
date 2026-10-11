@@ -27,11 +27,6 @@ struct TimelineCellAppearance: Equatable {
 
 	let textOnlyFont: NSFont
 
-	let unreadCircleDimension: CGFloat = 8.0
-	let unreadCircleMarginRight: CGFloat = 8.0
-
-	let starDimension: CGFloat = 13.0
-
 	let drawsGrid = false
 
 	let iconSize = NSSize(width: 48, height: 48)
@@ -39,8 +34,6 @@ struct TimelineCellAppearance: Equatable {
 	let iconMarginRight: CGFloat = 8.0
 	let iconAdjustmentTop: CGFloat = 4.0
 	let iconCornerRadius: CGFloat = 4.0
-
-	let boxLeftMargin: CGFloat
 
 	init(showIcon: Bool, fontSize: FontSize) {
 
@@ -57,9 +50,6 @@ struct TimelineCellAppearance: Equatable {
 		self.showIcon = showIcon
 
 		cellPadding = NSEdgeInsets(top: 8.0, left: 4.0, bottom: 10.0, right: 4.0)
-
-		let margin = self.cellPadding.left + self.unreadCircleDimension + self.unreadCircleMarginRight
-		self.boxLeftMargin = margin
 	}
 }
 

@@ -18,7 +18,6 @@ import Articles
 final class TimelineContainerViewController: NSViewController {
 
 	@IBOutlet var viewOptionsPopUpButton: NSPopUpButton!
-	@IBOutlet var readFilteredButton: NSButton!
 	@IBOutlet var headerSeparator: NSBox!
 	@IBOutlet var containerViewTopToHeaderConstraint: NSLayoutConstraint!
 	@IBOutlet var containerView: TimelineContainerView!
@@ -30,7 +29,7 @@ final class TimelineContainerViewController: NSViewController {
 			}
 		}
 	}
-	// Column layout hides the sort/filter header, and this pins the timeline to the top instead.
+	// Column layout hides the sort header, and this pins the timeline to the top instead.
 	private lazy var containerViewTopToViewConstraint = containerView.topAnchor.constraint(equalTo: view.topAnchor)
 
 	var currentTimelineViewController: TimelineViewController? {
@@ -62,16 +61,6 @@ final class TimelineContainerViewController: NSViewController {
 	}
 
 	weak var delegate: TimelineContainerViewControllerDelegate?
-
-	var isReadFiltered: Bool? {
-		guard let currentTimelineViewController = currentTimelineViewController, mode(for: currentTimelineViewController) == .regular else { return nil }
-		return regularTimelineViewController.isReadFiltered
-	}
-
-	var isCleanUpAvailable: Bool {
-		guard let currentTimelineViewController = currentTimelineViewController, mode(for: currentTimelineViewController) == .regular else { return false }
-		return regularTimelineViewController.isCleanUpAvailable
-	}
 
 	lazy var regularTimelineViewController = {
 		let viewController = TimelineViewController(delegate: self)
@@ -134,7 +123,6 @@ final class TimelineContainerViewController: NSViewController {
 
 	func setRepresentedObjects(_ objects: [AnyObject]?, mode: TimelineSourceMode) {
 		timelineViewController(for: mode).representedObjects = objects
-		updateReadFilterButton()
 	}
 
 	func showTimeline(for mode: TimelineSourceMode) {
@@ -166,15 +154,6 @@ final class TimelineContainerViewController: NSViewController {
 		return true
 	}
 
-	func cleanUp() {
-		regularTimelineViewController.cleanUp()
-	}
-
-	func toggleReadFilter() {
-		regularTimelineViewController.toggleReadFilter()
-		updateReadFilterButton()
-	}
-
 	// MARK: State Restoration
 
 	func restoreState(from state: TimelineWindowState?) {
@@ -185,7 +164,6 @@ final class TimelineContainerViewController: NSViewController {
 			sortParameters = savedSortParameters
 		}
 		regularTimelineViewController.restoreState(from: state)
-		updateReadFilterButton()
 	}
 
 	/// Restore state using legacy state restoration data.
@@ -193,7 +171,6 @@ final class TimelineContainerViewController: NSViewController {
 	/// TODO: Delete for NetNewsWire 7.
 	func restoreLegacyState(from state: [AnyHashable: Any]) {
 		regularTimelineViewController.restoreLegacyState(from: state)
-		updateReadFilterButton()
 	}
 }
 
@@ -267,32 +244,5 @@ private extension TimelineContainerViewController {
 		headerSeparator.isHidden = isHeaderHidden
 		containerViewTopToHeaderConstraint.isActive = !isHeaderHidden
 		containerViewTopToViewConstraint.isActive = isHeaderHidden
-		updateReadFilterButton()
 	}
-
-	func updateReadFilterButton() {
-		guard layout == .standard else {
-			readFilteredButton.isHidden = true
-			return
-		}
-
-		guard currentTimelineViewController == regularTimelineViewController else {
-			readFilteredButton.isHidden = true
-			return
-		}
-
-		guard let isReadFiltered = regularTimelineViewController.isReadFiltered else {
-			readFilteredButton.isHidden = true
-			return
-		}
-
-		readFilteredButton.isHidden = false
-
-		if isReadFiltered {
-			readFilteredButton.image = Assets.Images.filterActive
-		} else {
-			readFilteredButton.image = Assets.Images.filterInactive
-		}
-	}
-
 }

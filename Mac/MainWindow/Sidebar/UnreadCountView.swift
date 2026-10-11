@@ -52,13 +52,9 @@ final class UnreadCountView: NSView {
 			needsDisplay = true
 		}
 	}
-	/// Text for the unread count, or nil when nothing should be drawn.
+	/// Text for the count, or nil when there's nothing to count.
 	var unreadCountText: String? {
-		AppDefaults.shared.unreadCountDisplay.text(for: unreadCount)
-	}
-
-	private var showsDot: Bool {
-		AppDefaults.shared.unreadCountDisplay.showsDot(for: unreadCount)
+		unreadCount > 0 ? unreadCount.formatted() : nil
 	}
 
 	var isSelected: Bool = false {
@@ -88,11 +84,7 @@ final class UnreadCountView: NSView {
 	override var intrinsicContentSize: NSSize {
 		if !intrinsicContentSizeIsValid {
 			var size = NSSize.zero
-			if showsDot {
-				// Same height as a count, so the row lays out the same either way.
-				size.width = UnreadIndicatorView.unreadCircleDimension + Appearance.padding.left + Appearance.padding.right
-				size.height = textSize(Self.digitForHeight).height + Appearance.padding.top + Appearance.padding.bottom
-			} else if let unreadCountText {
+			if let unreadCountText {
 				size = textSize(unreadCountText)
 				size.width += (Appearance.padding.left + Appearance.padding.right)
 				size.height += (Appearance.padding.top + Appearance.padding.bottom)
@@ -135,23 +127,7 @@ final class UnreadCountView: NSView {
 		return r
 	}
 
-	private static let digitForHeight = "0"
-
-	/// Drawn without the pill.
-	private func drawDot() {
-		let dimension = UnreadIndicatorView.unreadCircleDimension
-		let r = NSRect(x: (bounds.maxX - Appearance.padding.right) - dimension, y: bounds.midY - (dimension / 2.0), width: dimension, height: dimension)
-		let color = isSelected ? NSColor.white : NSColor.secondaryLabelColor
-		color.setFill()
-		NSBezierPath(ovalIn: r).fill()
-	}
-
 	override func draw(_ dirtyRect: NSRect) {
-		if showsDot {
-			drawDot()
-			return
-		}
-
 		let path = NSBezierPath(roundedRect: bounds, xRadius: Appearance.cornerRadius, yRadius: Appearance.cornerRadius)
 		Appearance.backgroundColor.setFill()
 		path.fill()

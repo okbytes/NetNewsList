@@ -23,7 +23,7 @@ extension Notification.Name {
 	func sidebarInvalidatedRestorationState(_: SidebarViewController)
 }
 
-/// The sidebar: the fixed lists Inbox, Starred, Archive and All. A web address
+/// The sidebar: the fixed lists Queue and Archive. A web address
 /// dropped on it is saved.
 @objc final class SidebarViewController: NSViewController, NSOutlineViewDelegate, NSMenuDelegate, UndoableCommandRunner {
 
@@ -35,7 +35,7 @@ extension Notification.Name {
 
 	var windowState: SidebarWindowState {
 		let selectedFeeds = selectedSidebarItems.compactMap { $0.sidebarItemID?.userInfo as? [String: String] }
-		return SidebarWindowState(isReadFiltered: false, expandedContainers: [], selectedFeeds: selectedFeeds)
+		return SidebarWindowState(expandedContainers: [], selectedFeeds: selectedFeeds)
 	}
 
 	let treeControllerDelegate = SidebarTreeControllerDelegate()
@@ -67,7 +67,6 @@ extension Notification.Name {
 		outlineView.registerForDraggedTypes(DroppedWebPages.pasteboardTypes)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		DistributedNotificationCenter.default().addObserver(self, selector: #selector(appleSideBarDefaultIconSizeChanged(_:)), name: .appleSideBarDefaultIconSizeChanged, object: nil)
 
 		outlineView.reloadData()
@@ -108,12 +107,6 @@ extension Notification.Name {
 		}
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		outlineView.enumerateAvailableRowViews { rowView, _ in
-			(rowView.view(atColumn: 0) as? SidebarCell)?.updateUnreadCountView()
-		}
-	}
-
 	@objc func appleSideBarDefaultIconSizeChanged(_ note: Notification) {
 		// The outline view doesn't have the new row style size set yet when we get
 		// this notification, so give it half a second to catch up.
@@ -137,20 +130,6 @@ extension Notification.Name {
 	}
 
 	// MARK: - Navigation
-
-	func canGoToNextUnread(wrappingToTop wrapping: Bool = false) -> Bool {
-		nextSelectableRowWithUnreadArticle(wrappingToTop: wrapping) != nil
-	}
-
-	func goToNextUnread(wrappingToTop wrapping: Bool = false) {
-		guard let row = nextSelectableRowWithUnreadArticle(wrappingToTop: wrapping) else {
-			assertionFailure("goToNextUnread called before checking if there is a next unread.")
-			return
-		}
-		NSCursor.setHiddenUntilMouseMoves(true)
-		outlineView.selectRowIndexes(IndexSet([row]), byExtendingSelection: false)
-		outlineView.scrollTo(row: row)
-	}
 
 	func focus() {
 		if splitViewItem?.isCollapsed == true {
@@ -299,39 +278,10 @@ private extension SidebarViewController {
 		return outlineView.item(atRow: row) as? Node
 	}
 
-	func rowHasAtLeastOneUnreadArticle(_ row: Int) -> Bool {
-		guard let unreadCountProvider = nodeForRow(row)?.representedObject as? UnreadCountProvider else {
-			return false
-		}
-		return unreadCountProvider.unreadCount > 0
-	}
-
-	func rowIsGroupItem(_ row: Int) -> Bool {
-		guard let node = nodeForRow(row) else {
-			return false
-		}
-		return outlineView.isGroupItem(node)
-	}
-
-	func nextSelectableRowWithUnreadArticle(wrappingToTop wrapping: Bool = false) -> Int? {
-		let numberOfRows = outlineView.numberOfRows
-		let startRow = outlineView.selectedRow + 1
-
-		let orderedRows: [Int]
-		if startRow == numberOfRows {
-			// The last row is selected, so start at the beginning if wrapping is allowed.
-			orderedRows = wrapping ? Array(0..<numberOfRows) : []
-		} else {
-			orderedRows = Array(startRow..<numberOfRows) + (wrapping ? Array(0..<startRow) : [])
-		}
-		return orderedRows.first { rowHasAtLeastOneUnreadArticle($0) && !rowIsGroupItem($0) }
-	}
-
 	func configure(_ cell: SidebarCell, _ node: Node) {
 		cell.cellAppearance = SidebarCellAppearance(rowSizeStyle: outlineView.effectiveRowSizeStyle)
 		cell.name = nameFor(node)
 		configureUnreadCount(cell, node)
-		cell.updateUnreadCountView() // A reused cell may predate a display setting change
 		cell.iconImage = (node.representedObject as? SmallIconProvider)?.smallIcon
 		cell.shouldShowImage = node.representedObject is SmallIconProvider
 	}

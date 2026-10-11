@@ -16,15 +16,8 @@ final class TimelineTableRowView: NSTableRowView {
 		return true
 	}
 
-	override var isEmphasized: Bool {
-		didSet {
-			cellView?.isEmphasized = isEmphasized
-		}
-	}
-
 	override var isSelected: Bool {
 		didSet {
-			cellView?.isSelected = isSelected
 			separator?.isHidden = isSelected
 		}
 	}
@@ -60,7 +53,7 @@ final class TimelineTableRowView: NSTableRowView {
 		separator!.layer?.backgroundColor = Assets.Colors.timelineSeparator.cgColor
 		addSubview(separator!)
 		NSLayoutConstraint.activate([
-			separator!.leadingAnchor.constraint(equalTo: cellView.leadingAnchor, constant: 20),
+			separator!.leadingAnchor.constraint(equalTo: cellView.leadingAnchor, constant: 4),
 			separator!.trailingAnchor.constraint(equalTo: cellView.trailingAnchor, constant: -4),
 			separator!.heightAnchor.constraint(equalToConstant: 1),
 			separator!.bottomAnchor.constraint(equalTo: bottomAnchor, constant: 0)

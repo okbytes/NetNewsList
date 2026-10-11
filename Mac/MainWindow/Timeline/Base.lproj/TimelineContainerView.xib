@@ -10,7 +10,6 @@
                 <outlet property="containerView" destination="Zpk-pq-9nW" id="Kye-yX-Wyn"/>
                 <outlet property="containerViewTopToHeaderConstraint" destination="KCa-8b-a6y" id="hdr-cn-st1"/>
                 <outlet property="headerSeparator" destination="7p6-pA-iw6" id="hdr-se-p01"/>
-                <outlet property="readFilteredButton" destination="iA5-go-AO0" id="kQg-2g-zNZ"/>
                 <outlet property="view" destination="Dnl-L5-xFP" id="T2c-wM-9Hq"/>
                 <outlet property="viewOptionsPopUpButton" destination="lSU-OC-sEC" id="Z8V-rm-n2m"/>
             </connections>
@@ -50,18 +49,6 @@
                                         <action selector="sortArticlesByField:" target="-1" id="pMa-ti-003"/>
                                     </connections>
                                 </menuItem>
-                                <menuItem title="Unread" identifier="unread" id="pMf-un-004">
-                                    <modifierMask key="keyEquivalentModifierMask"/>
-                                    <connections>
-                                        <action selector="sortArticlesByField:" target="-1" id="pMa-un-004"/>
-                                    </connections>
-                                </menuItem>
-                                <menuItem title="Starred" identifier="starred" id="pMf-st-005">
-                                    <modifierMask key="keyEquivalentModifierMask"/>
-                                    <connections>
-                                        <action selector="sortArticlesByField:" target="-1" id="pMa-st-005"/>
-                                    </connections>
-                                </menuItem>
                                 <menuItem isSeparatorItem="YES" id="xQP-gm-iO9"/>
                                 <menuItem title="Ascending" id="sOF-Ez-vIL">
                                     <modifierMask key="keyEquivalentModifierMask"/>
@@ -82,17 +69,6 @@
                         <constraint firstAttribute="height" constant="18" id="DoO-KI-ena"/>
                     </constraints>
                 </popUpButton>
-                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="iA5-go-AO0">
-                    <rect key="frame" x="350" y="180" width="13" height="13"/>
-                    <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="filterInactive" imagePosition="overlaps" alignment="center" imageScaling="proportionallyDown" inset="2" id="j7d-36-DO5">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <color key="contentTintColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                    <connections>
-                        <action selector="toggleReadArticlesFilter:" target="-1" id="tcC-72-Npk"/>
-                    </connections>
-                </button>
                 <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="7p6-pA-iw6">
                     <rect key="frame" x="0.0" y="195" width="375" height="5"/>
                 </box>
@@ -102,21 +78,15 @@
             </subviews>
             <constraints>
                 <constraint firstAttribute="trailing" secondItem="Zpk-pq-9nW" secondAttribute="trailing" id="67d-pI-I9C"/>
-                <constraint firstAttribute="trailing" secondItem="iA5-go-AO0" secondAttribute="trailing" constant="12" id="9Dl-n9-vRI"/>
                 <constraint firstItem="lSU-OC-sEC" firstAttribute="leading" secondItem="Dnl-L5-xFP" secondAttribute="leading" constant="8" id="Ceb-sA-ECJ"/>
                 <constraint firstItem="Zpk-pq-9nW" firstAttribute="top" secondItem="7p6-pA-iw6" secondAttribute="bottom" id="KCa-8b-a6y"/>
-                <constraint firstItem="lSU-OC-sEC" firstAttribute="centerY" secondItem="iA5-go-AO0" secondAttribute="centerY" id="OeL-Zp-iRT"/>
                 <constraint firstItem="Zpk-pq-9nW" firstAttribute="leading" secondItem="Dnl-L5-xFP" secondAttribute="leading" id="XF2-31-E1x"/>
                 <constraint firstAttribute="trailing" secondItem="7p6-pA-iw6" secondAttribute="trailing" id="fG3-fe-Stb"/>
                 <constraint firstAttribute="bottom" secondItem="Zpk-pq-9nW" secondAttribute="bottom" id="fyv-EG-PC8"/>
                 <constraint firstItem="7p6-pA-iw6" firstAttribute="leading" secondItem="Dnl-L5-xFP" secondAttribute="leading" id="pZU-jW-B1h"/>
                 <constraint firstItem="7p6-pA-iw6" firstAttribute="top" secondItem="Dnl-L5-xFP" secondAttribute="top" id="tUm-nX-Jce"/>
-                <constraint firstItem="iA5-go-AO0" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="lSU-OC-sEC" secondAttribute="trailing" constant="8" id="yCg-gc-exN"/>
                 <constraint firstItem="lSU-OC-sEC" firstAttribute="top" secondItem="Dnl-L5-xFP" secondAttribute="top" constant="3" id="zay-ZJ-od3"/>
             </constraints>
         </view>
     </objects>
-    <resources>
-        <image name="filterInactive" width="13" height="13"/>
-    </resources>
 </document>

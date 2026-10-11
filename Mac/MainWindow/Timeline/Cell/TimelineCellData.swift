@@ -23,8 +23,6 @@ import Images
 	let showFeedName: TimelineShowFeedName
 	let iconImage: IconImage? // feed icon, user avatar, or favicon
 	let showIcon: Bool // Make space even when icon is nil
-	let read: Bool
-	let starred: Bool
 
 	init(article: Article, showFeedName: TimelineShowFeedName, feedName: String?, byline: String?, iconImage: IconImage?, showIcon: Bool) {
 
@@ -50,9 +48,6 @@ import Images
 
 		self.showIcon = showIcon
 		self.iconImage = iconImage
-
-		self.read = article.status.read
-		self.starred = article.status.starred
 	}
 
 	/// Whether the page is still being saved, else the article’s summary, or “(No Text)” when it has neither a title nor a summary.
@@ -76,8 +71,6 @@ import Images
 		self.showFeedName = .none
 		self.showIcon = false
 		self.iconImage = nil
-		self.read = true
-		self.starred = false
 		self.attributedTitle = NSAttributedString()
 	}
 }
