@@ -1,10 +1,12 @@
 import AppKit
+import WebKit
 import Extraction
 
 // Usage: extract-page [--live] [--html] URL...
 // Prints one line per URL: OK (readable), THIN (too little text) or FAIL, with timing and metadata.
 // --live loads the page with its JavaScript on first (the app's "Retry with Live Page").
 // --html also prints the extracted HTML.
+// Links to X posts and Articles go through the app's X extractor, signed out.
 
 let arguments = CommandLine.arguments.dropFirst()
 let urls = arguments.filter { !$0.hasPrefix("--") }
@@ -24,7 +26,13 @@ let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605
 		let start = Date()
 		do {
 			let page: ExtractedPage
-			if usesLivePage {
+			// The app decides this with URLCanonicalizer.xPage(for:); this is the same test, roughly.
+			let isXPage = ["x.com", "twitter.com"].contains(url.host?.lowercased().replacingOccurrences(of: "www.", with: "") ?? "")
+				&& (url.path.contains("/status/") || url.path.contains("/article/"))
+			if isXPage {
+				let statusID = url.path.firstMatch(of: #/\/status\/(\d+)/#).map { String($0.1) }
+				page = try await extractor.extractXPage(url: url, statusID: statusID, userAgent: userAgent, websiteDataStore: .nonPersistent())
+			} else if usesLivePage {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)
 			} else {
 				let fetched = try await fetcher.fetch(url, userAgent: userAgent)

@@ -75,6 +75,35 @@ import RSCore
 		}
 	}
 
+	/// How long an X page gets: X's own scripts render it, which takes longer than a static page.
+	static let xTimeout: Duration = .seconds(30)
+
+	/// Loads an X page with X's own scripts and reads it from the rendered page: the post
+	/// with `statusID` and the author's posts around it (a thread), photos and quoted posts,
+	/// or the X Article it carries. Without a `statusID`, the page's Article.
+	/// `websiteDataStore` holds the user's X sign-in, if any.
+	public func extractXPage(url: URL, statusID: String?, userAgent: String?, websiteDataStore: WKWebsiteDataStore) async throws -> ExtractedPage {
+		try await exclusively {
+			defer {
+				self.discardLiveWebView()
+			}
+			return try await self.withTimeout(Self.xTimeout) {
+				let webView = self.makeWebView(allowsPageJavaScript: true, websiteDataStore: websiteDataStore)
+				webView.customUserAgent = userAgent
+				self.liveWebView = webView
+				try await self.load(webView) {
+					webView.load(URLRequest(url: url, timeoutInterval: PageFetcher.timeout))
+				}
+				try await self.waitForXPage(statusID: statusID, in: webView)
+				let result = try await webView.callAsyncJavaScript("return netNewsListX.extract(statusID);", arguments: ["statusID": statusID ?? NSNull()], in: nil, contentWorld: Self.contentWorld)
+				guard let dictionary = result as? [String: Any] else {
+					throw ExtractionError.noReadableContent
+				}
+				return Self.page(from: dictionary, url: webView.url ?? url)
+			}
+		}
+	}
+
 	/// Releases the web views, ending any extraction in progress. The next extraction creates them again.
 	public func reset() {
 		for waiter in navigationWaiters.values {
@@ -150,7 +179,7 @@ private extension ReadabilityWebExtractor {
 	}
 
 	static let userScripts: [WKUserScript] = {
-		["Readability", "purify.min", "extract"].compactMap { name in
+		["Readability", "purify.min", "extract", "x"].compactMap { name in
 			guard let url = Bundle.module.url(forResource: name, withExtension: "js", subdirectory: "JavaScript"),
 				  let source = try? String(contentsOf: url, encoding: .utf8) else {
 				logger.fault("ReadabilityWebExtractor: missing script \(name, privacy: .public)")
@@ -173,7 +202,7 @@ private extension ReadabilityWebExtractor {
 
 	/// Runs `operation`, giving up after `timeout`. On timeout the web views are
 	/// discarded, which ends whatever WebKit was still doing.
-	func withTimeout<T: Sendable>(_ operation: @escaping @MainActor () async throws -> T) async throws -> T {
+	func withTimeout<T: Sendable>(_ timeout: Duration = ReadabilityWebExtractor.timeout, _ operation: @escaping @MainActor () async throws -> T) async throws -> T {
 		let once = Once()
 		var work: Task<Void, Never>?
 		var timer: Task<Void, Never>?
@@ -199,7 +228,7 @@ private extension ReadabilityWebExtractor {
 				}
 			}
 			timer = Task { @MainActor in
-				try? await Task.sleep(for: Self.timeout)
+				try? await Task.sleep(for: timeout)
 				guard !Task.isCancelled, !once.isDone else {
 					return
 				}
@@ -211,9 +240,9 @@ private extension ReadabilityWebExtractor {
 		}
 	}
 
-	func makeWebView(allowsPageJavaScript: Bool) -> WKWebView {
+	func makeWebView(allowsPageJavaScript: Bool, websiteDataStore: WKWebsiteDataStore = .nonPersistent()) -> WKWebView {
 		let configuration = WKWebViewConfiguration()
-		configuration.websiteDataStore = .nonPersistent()
+		configuration.websiteDataStore = websiteDataStore
 		configuration.defaultWebpagePreferences.allowsContentJavaScript = allowsPageJavaScript
 		configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 		configuration.mediaTypesRequiringUserActionForPlayback = .all
@@ -237,6 +266,21 @@ private extension ReadabilityWebExtractor {
 		}
 		isStaticWebViewReady = true
 		return webView
+	}
+
+	/// Waits until X has rendered the post (or Article), or throws when X shows only its sign-in wall.
+	func waitForXPage(statusID: String?, in webView: WKWebView) async throws {
+		while true {
+			let state = try await webView.callAsyncJavaScript("return netNewsListX.state(statusID);", arguments: ["statusID": statusID ?? NSNull()], in: nil, contentWorld: Self.contentWorld) as? String
+			switch state {
+			case "post":
+				return
+			case "login":
+				throw ExtractionError.signInRequired
+			default:
+				try await Task.sleep(for: .milliseconds(250))
+			}
+		}
 	}
 
 	func load(_ webView: WKWebView, start: () -> Void) async throws {

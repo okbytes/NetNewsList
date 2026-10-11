@@ -40,7 +40,9 @@ final class SettingsViewController: UITableViewController {
 	private enum ArticlesRow: Int, CaseIterable {
 		case theme = 0
 		case openLinksInNetNewsWire = 1
-		case enableFullScreenArticles = 2
+		case xAccount = 2
+		// Last: the iPad doesn't show it.
+		case enableFullScreenArticles = 3
 	}
 
 	private enum HelpRow: Int {
@@ -59,6 +61,7 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var colorPaletteCell: UITableViewCell?
 	@IBOutlet var unreadCountDisplayCell: UITableViewCell?
 	@IBOutlet var openLinksInNetNewsWire: UISwitch!
+	@IBOutlet var xAccountDetailLabel: UILabel!
 
 	var scrollToArticlesSection = false
 	weak var presentingParentController: UIViewController?
@@ -73,6 +76,7 @@ final class SettingsViewController: UITableViewController {
 
 		NotificationCenter.default.addObserver(self, selector: #selector(handleUserInterfaceColorPaletteDidUpdate(_:)), name: .userInterfaceColorPaletteDidUpdate, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
@@ -110,6 +114,8 @@ final class SettingsViewController: UITableViewController {
 		}
 
 		openLinksInNetNewsWire.isOn = !AppDefaults.shared.useSystemBrowser
+
+		updateXAccountDetailLabel()
 
 		let buildLabel = NonIntrinsicLabel(frame: CGRect(x: 32.0, y: 0.0, width: 0.0, height: 0.0))
 		buildLabel.font = UIFont.systemFont(ofSize: 11.0)
@@ -165,6 +171,9 @@ final class SettingsViewController: UITableViewController {
 			case .theme:
 				let articleThemes = UIStoryboard.settings.instantiateController(ofType: ArticleThemesTableViewController.self)
 				self.navigationController?.pushViewController(articleThemes, animated: true)
+			case .xAccount:
+				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
+				signInOrOutOfX()
 			default:
 				break
 			}
@@ -352,6 +361,33 @@ private extension SettingsViewController {
 			}
 		})
 		present(alertController, animated: true)
+	}
+
+	/// Signed out, shows X's sign-in page; signed in, offers to sign out. X shows some posts only to signed-in people.
+	func signInOrOutOfX() {
+		guard XAccount.shared.isSignedIn else {
+			let navigationController = UINavigationController(rootViewController: XSignInViewController())
+			present(navigationController, animated: true)
+			return
+		}
+		let title = NSLocalizedString("Sign Out of X?", comment: "Sign out of X alert title")
+		let message = NSLocalizedString("Posts that X shows only to signed-in people won’t be saved from this device until you sign in again.", comment: "Sign out of X alert message")
+		let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel button"), style: .cancel))
+		alertController.addAction(UIAlertAction(title: NSLocalizedString("Sign Out", comment: "Sign Out button"), style: .destructive) { _ in
+			Task { @MainActor in
+				await XAccount.shared.signOut()
+			}
+		})
+		present(alertController, animated: true)
+	}
+
+	func updateXAccountDetailLabel() {
+		xAccountDetailLabel.text = XAccount.shared.isSignedIn ? NSLocalizedString("Signed In", comment: "X account state") : NSLocalizedString("Not Signed In", comment: "X account state")
+	}
+
+	@objc func xAccountSignInStateDidChange(_ note: Notification) {
+		updateXAccountDetailLabel()
 	}
 
 	func openURL(_ urlString: String) {

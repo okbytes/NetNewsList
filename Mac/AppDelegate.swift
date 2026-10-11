@@ -80,6 +80,7 @@ let appName = "NetNewsList"
 	private var activityWindowController: CurrentActivityWindowController?
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
+	private var xSignInWindowController: XSignInWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
 
 	private var themeImportPath: String?
@@ -401,6 +402,10 @@ let appName = "NetNewsList"
 			(item as! NSMenuItem).state = AppDefaults.shared.webInspectorEnabled ? .on : .off
 		}
 
+		if item.action == #selector(signInOrOutOfX(_:)), let menuItem = item as? NSMenuItem {
+			menuItem.title = XAccount.shared.isSignedIn ? NSLocalizedString("Sign Out of X…", comment: "Menu item") : NSLocalizedString("Sign In to X…", comment: "Menu item")
+		}
+
 		return true
 	}
 
@@ -454,6 +459,29 @@ let appName = "NetNewsList"
 	@IBAction func showMainWindow(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
 		windowController.window?.makeKey()
+	}
+
+	/// Signed out, shows X's sign-in page; signed in, offers to sign out. X shows some posts only to signed-in people.
+	@IBAction func signInOrOutOfX(_ sender: Any?) {
+		guard XAccount.shared.isSignedIn else {
+			if xSignInWindowController == nil {
+				xSignInWindowController = XSignInWindowController()
+			}
+			xSignInWindowController?.showWindow(self)
+			return
+		}
+		let alert = NSAlert()
+		alert.messageText = NSLocalizedString("Sign Out of X?", comment: "Sign out of X alert title")
+		alert.informativeText = NSLocalizedString("Posts that X shows only to signed-in people won’t be saved from this Mac until you sign in again.", comment: "Sign out of X alert message")
+		alert.addButton(withTitle: NSLocalizedString("Sign Out", comment: "Sign Out button"))
+		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+		guard alert.runModal() == .alertFirstButtonReturn else {
+			return
+		}
+		xSignInWindowController = nil
+		Task {
+			await XAccount.shared.signOut()
+		}
 	}
 
 	@IBAction func resetiCloudSync(_ sender: Any?) {

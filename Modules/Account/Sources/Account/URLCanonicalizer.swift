@@ -73,13 +73,27 @@ public enum URLCanonicalizer {
 		return components.string
 	}
 
-	/// The post ID when `urlString` is a link to an X post, or nil.
-	public static func xStatusID(for urlString: String) -> String? {
+	/// What a link to X points to.
+	public enum XPage: Equatable, Sendable {
+		case post(id: String)
+		/// An X Article (long-form post) opened by its own address, `/i/article/<id>` or `/<user>/article/<id>`.
+		case article
+	}
+
+	/// What `urlString` points to on X, or nil when it isn't a link to an X post or Article.
+	public static func xPage(for urlString: String) -> XPage? {
 		guard let components = URLComponents(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
-			  let host = components.host else {
+			  let host = components.host?.lowercased() else {
 			return nil
 		}
-		return xStatusID(host: host.lowercased(), path: components.percentEncodedPath)
+		let path = components.percentEncodedPath
+		if let statusID = xStatusID(host: host, path: path) {
+			return .post(id: statusID)
+		}
+		if xHosts.contains(host), path.wholeMatch(of: /\/[A-Za-z0-9_]+\/article\/\d{1,20}(?:\/.*)?/) != nil {
+			return .article
+		}
+		return nil
 	}
 
 	/// Matches `/<user>/status/<id>`, `/<user>/statuses/<id>` (which covers `/i/status/<id>`)

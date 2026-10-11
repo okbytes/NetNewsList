@@ -90,8 +90,11 @@ extension Notification {
 		extractor.webViewHost = { webView in
 			Self.host(webView)
 		}
+		// Reads the X sign-in state now, so menus and Settings show it.
+		_ = XAccount.shared
 
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 #if os(macOS)
 		NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
 #else
@@ -109,7 +112,9 @@ extension Notification {
 	@discardableResult
 	func saveArticle(url urlString: String, title: String?, body: String? = nil) async throws -> Article {
 		var content: ReadingListContent?
-		if let contentHTML = ExtractedContentFormatter.storedHTML(forSuppliedBody: body) {
+		// An X page is read by the X extractor, which gets the whole thread, photos and
+		// quoted posts; a body captured from it (Safari runs Readability) has only part.
+		if URLCanonicalizer.xPage(for: urlString) == nil, let contentHTML = ExtractedContentFormatter.storedHTML(forSuppliedBody: body) {
 			content = ReadingListContent(title: title, contentHTML: contentHTML)
 		}
 		let article = try await account.saveArticle(url: urlString, title: title, content: content)
@@ -185,6 +190,24 @@ private extension ExtractionCoordinator {
 
 	@objc func accountDidDownloadArticles(_ note: Notification) {
 		scheduleDrain()
+	}
+
+	/// After signing in to X, tries again the X pages still waiting for their content.
+	@objc func xAccountSignInStateDidChange(_ note: Notification) {
+		guard XAccount.shared.isSignedIn else {
+			return
+		}
+		Task { @MainActor in
+			let pendingArticleIDs = await account.pendingExtractionArticleIDs()
+			let articles = await account.fetchArticlesAsync(.articleIDs(pendingArticleIDs))
+			let xArticleIDs = articles.filter { article in
+				guard let link = article.rawExternalLink ?? article.rawLink else {
+					return false
+				}
+				return URLCanonicalizer.xPage(for: link) != nil
+			}.map(\.articleID)
+			retry(articleIDs: Set(xArticleIDs), usesLivePage: false)
+		}
 	}
 
 	@objc func appDidBecomeActive(_ note: Notification) {
@@ -285,15 +308,29 @@ private extension ExtractionCoordinator {
 		}
 
 		let userAgent = UserAgent.browserUserAgent
+		let xPage = URLCanonicalizer.xPage(for: link)
 		var page: ExtractedPage?
 		do {
-			if job.usesLivePage {
+			if let xPage {
+				// X's static page is a sign-in wall for everyone, so X pages are always read live.
+				// A post loads fastest at its canonical address, which skips X's redirects
+				// from twitter.com and from an outdated screen name.
+				var statusID: String?
+				var xURL = url
+				if case .post(let id) = xPage {
+					statusID = id
+					xURL = URL(string: "https://x.com/i/status/\(id)") ?? url
+				}
+				page = try await extractor.extractXPage(url: xURL, statusID: statusID, userAgent: userAgent, websiteDataStore: XAccount.shared.websiteDataStore)
+			} else if job.usesLivePage {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)
 			} else {
 				let fetchedPage = try await fetcher.fetch(url, userAgent: userAgent)
 				page = try await extractor.extract(html: fetchedPage.html, url: fetchedPage.url)
 			}
-			guard let page, page.hasReadableContent else {
+			// A post can be a few words or only a photo, so X pages don't need the usual minimum of text.
+			let hasContent = xPage == nil ? page?.hasReadableContent == true : page?.contentHTML?.isEmpty == false
+			guard let page, hasContent else {
 				throw ExtractionError.noReadableContent
 			}
 			let content = ReadingListContent(title: article.title == nil ? page.title : nil,

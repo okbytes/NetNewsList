@@ -60,6 +60,7 @@ public enum ExtractionError: LocalizedError, Sendable, Equatable {
 	case timedOut
 	case webContentFailed(String)
 	case busy
+	case signInRequired
 
 	public var errorDescription: String? {
 		switch self {
@@ -82,6 +83,8 @@ public enum ExtractionError: LocalizedError, Sendable, Equatable {
 			return String(format: NSLocalizedString("The page couldn’t be read: %@", comment: "Extraction error: web content"), message)
 		case .busy:
 			return NSLocalizedString("Another page is being read.", comment: "Extraction error")
+		case .signInRequired:
+			return NSLocalizedString("X shows this post only to people who are signed in. Sign in to X, then retry.", comment: "Extraction error: X asked to sign in")
 		}
 	}
 }
