@@ -15,13 +15,13 @@ import Testing
 
 	init() async {
 		// On a CI simulator the first web views in the process can take longer than the extractor's
-		// timeout to start, sometimes for a minute. Throwaway extractions absorb that: up to three,
-		// until one comes back.
+		// timeout to start, sometimes more than a minute. Throwaway extractions absorb that: up to
+		// eight (about two and a half minutes), until one comes back.
 		guard !Self.didStartWebKit, let url = URL(string: "https://example.com/") else {
 			return
 		}
 		Self.didStartWebKit = true
-		for _ in 0..<3 {
+		for _ in 0..<8 {
 			if (try? await ReadabilityWebExtractor().extract(html: "<p>Warm-up</p>", url: url)) != nil {
 				break
 			}
