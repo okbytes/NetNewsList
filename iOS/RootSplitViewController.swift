@@ -60,8 +60,8 @@ final class RootSplitViewController: UISplitViewController {
 
 	// MARK: Keyboard Shortcuts
 
-	/// Space bar. GlobalKeyboardShortcuts.plist still names it for Next Unread, which is gone; it only scrolls now.
-	@objc func scrollOrGoToNextUnread(_ sender: Any?) {
+	/// Space bar: scrolls the article.
+	@objc func scrollArticle(_ sender: Any?) {
 		coordinator.scrollDown()
 	}
 

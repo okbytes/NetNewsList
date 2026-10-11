@@ -50,10 +50,6 @@ import Articles
 		self.init(initialArticles: initialArticles, statusKey: .read, flag: markingRead, undoManager: undoManager, completion: completion)
 	}
 
-	convenience init?(initialArticles: [Article], markingStarred: Bool, undoManager: UndoManager, completion: (() -> Void)? = nil) {
-		self.init(initialArticles: initialArticles, statusKey: .starred, flag: markingStarred, undoManager: undoManager, completion: completion)
-	}
-
     func perform() {
 		mark(statusKey, flag)
  		registerUndo()

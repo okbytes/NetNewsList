@@ -11,7 +11,6 @@ import Foundation
 enum ActivityType: String {
 	case restoration = "Restoration"
 	case selectFeed = "SelectFeed"
-	case nextUnread = "NextUnread"
 	case readArticle = "ReadArticle"
 	case addFeedIntent = "AddFeedIntent"
 }

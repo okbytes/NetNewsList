@@ -18,7 +18,6 @@ import Images
 
 @MainActor final class ActivityManager {
 
-	private var nextUnreadActivity: NSUserActivity?
 	private var selectingActivity: NSUserActivity?
 	private var readingActivity: NSUserActivity?
 	private var readingArticle: Article?
@@ -58,7 +57,6 @@ import Images
 		invalidateBrowsing()
 		invalidateReading()
 		invalidateSelecting()
-		invalidateNextUnread()
 	}
 
 	// Handoff advertises the in-app browser's page, not the article behind it.
@@ -96,31 +94,9 @@ import Images
 		selectingActivity = nil
 	}
 
-	func selectingNextUnread() {
-		guard nextUnreadActivity == nil else { return }
-
-		nextUnreadActivity = NSUserActivity(activityType: ActivityType.nextUnread.rawValue)
-		nextUnreadActivity!.title = NSLocalizedString("See first unread article", comment: "First Unread")
-
-		#if os(iOS)
-		nextUnreadActivity!.suggestedInvocationPhrase = nextUnreadActivity!.title
-		nextUnreadActivity!.isEligibleForPrediction = true
-		nextUnreadActivity!.persistentIdentifier = "nextUnread:"
-		nextUnreadActivity!.contentAttributeSet?.relatedUniqueIdentifier = "nextUnread:"
-		#endif
-
-		donate(nextUnreadActivity!)
-	}
-
-	func invalidateNextUnread() {
-		nextUnreadActivity?.invalidate()
-		nextUnreadActivity = nil
-	}
-
 	func reading(feed: SidebarItem?, article: Article?) {
 		invalidateBrowsing()
 		invalidateReading()
-		invalidateNextUnread()
 
 		guard let article = article else { return }
 		readingActivity = makeReadArticleActivity(sidebarItem: feed, article: article)

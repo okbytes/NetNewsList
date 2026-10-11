@@ -24,30 +24,6 @@ typealias ArticleArray = [Article]
 		first { articleSpecifier.matchesArticle($0) }
 	}
 
-	func orderedRowIndexes(fromIndex startIndex: Int, wrappingToTop wrapping: Bool) -> [Int] {
-		if startIndex >= self.count {
-			// Wrap around to the top if specified
-			return wrapping ? [Int](0..<self.count) : []
-		} else {
-			// Start at the selection and wrap around to the beginning
-			return [Int](startIndex..<self.count) + (wrapping ? [Int](0..<startIndex) : [])
-		}
-	}
-	func rowOfNextUnreadArticle(_ selectedRow: Int, wrappingToTop wrapping: Bool) -> Int? {
-		if isEmpty {
-			return nil
-		}
-
-		for rowIndex in orderedRowIndexes(fromIndex: selectedRow + 1, wrappingToTop: wrapping) {
-			let article = articleAtRow(rowIndex)!
-			if !article.status.read {
-				return rowIndex
-			}
-		}
-
-		return nil
-	}
-
 	func articlesForIndexes(_ indexes: IndexSet) -> [Article] {
 		return indexes.compactMap { (oneIndex) -> Article? in
 			return articleAtRow(oneIndex)
@@ -83,14 +59,6 @@ typealias ArticleArray = [Article]
 		return anyArticlePassesTest { !$0.status.read }
 	}
 
-	func anyArticleIsStarred() -> Bool {
-		return anyArticlePassesTest { $0.status.starred }
-	}
-
-	func anyArticleIsUnstarred() -> Bool {
-		return anyArticlePassesTest { !$0.status.starred }
-	}
-
 	func unreadArticles() -> [Article]? {
 		let articles = self.filter { !$0.status.read }
 		return articles.isEmpty ? nil : articles
@@ -109,31 +77,5 @@ typealias ArticleArray = [Article]
 			i += 1
 		}
 		return true
-	}
-
-	func articlesAbove(article: Article) -> [Article] {
-		guard let position = firstIndex(of: article) else {	return [] }
-		return articlesAbove(position: position)
-	}
-
-	func articlesAbove(position: Int) -> [Article] {
-		guard position < count else { return [] }
-		let articlesAbove = self[..<position]
-		return Array(articlesAbove)
-	}
-
-	func articlesBelow(article: Article) -> [Article] {
-		guard let position = firstIndex(of: article) else {	return [] }
-		return articlesBelow(position: position)
-	}
-
-	func articlesBelow(position: Int) -> [Article] {
-		guard position < count else { return [] }
-		var articlesBelow = Array(self[position...])
-		guard !articlesBelow.isEmpty else {
-			return []
-		}
-		articlesBelow.removeFirst()
-		return articlesBelow
 	}
 }

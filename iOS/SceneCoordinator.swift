@@ -400,8 +400,7 @@ struct SidebarItemNode: Hashable, Sendable {
 				self.handleSelectFeed(activity.userInfo)
 			case .readArticle:
 				self.handleReadArticle(activity.userInfo)
-			case .restoration, .addFeedIntent, .nextUnread:
-				// NextUnread isn't in NSUserActivityTypes any more, so it doesn't arrive.
+			case .restoration, .addFeedIntent:
 				break
 			}
 		}

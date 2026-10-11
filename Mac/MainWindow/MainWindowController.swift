@@ -301,8 +301,7 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	// MARK: - Actions
 
 	/// The space bar scrolls the article a page at a time and stops at the end.
-	/// The name is the action GlobalKeyboardShortcuts.plist gives the space bar.
-	@IBAction func scrollOrGoToNextUnread(_ sender: Any?) {
+	@IBAction func scrollArticle(_ sender: Any?) {
 		guard let detailViewController else {
 			return
 		}
@@ -416,10 +415,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return
 		}
 		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: true)
-	}
-
-	@IBAction func markOlderArticlesAsRead(_ sender: Any?) {
-		currentTimelineViewController?.markOlderArticlesRead()
 	}
 
 	@IBAction func navigateToTimeline(_ sender: Any?) {
