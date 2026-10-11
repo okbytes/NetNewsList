@@ -347,8 +347,9 @@ private extension ExtractionCoordinator {
 				return
 			}
 			recordFailure(job.articleID, error: error)
-			// Keep what little the page offered: its title, when the article has none.
-			if article.title == nil, let title = page?.title {
+			// Keep what little the page offered: its title, when the article has none. Not for
+			// X, whose page title is only "Name on X" and would stick once the post saves.
+			if article.title == nil, xPage == nil, let title = page?.title {
 				try? await account.updateArticleContent(articleID: job.articleID, content: ReadingListContent(title: title))
 			}
 		}

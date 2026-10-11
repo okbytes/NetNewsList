@@ -13,6 +13,7 @@ import RSWeb
 final class XSignInWindowController: NSWindowController, NSWindowDelegate {
 
 	private var webView: WKWebView?
+	private var signInCheck: Task<Void, Never>?
 
 	convenience init() {
 		let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 720), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
@@ -29,8 +30,6 @@ final class XSignInWindowController: NSWindowController, NSWindowDelegate {
 		window.contentView = webView
 		window.delegate = self
 		self.webView = webView
-
-		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 	}
 
 	override func showWindow(_ sender: Any?) {
@@ -39,15 +38,30 @@ final class XSignInWindowController: NSWindowController, NSWindowDelegate {
 			window?.center()
 		}
 		super.showWindow(sender)
+		startCheckingSignIn()
 	}
 
 	func windowWillClose(_ notification: Notification) {
 		webView?.stopLoading()
+		signInCheck?.cancel()
+		signInCheck = nil
 	}
 
-	@objc func xAccountSignInStateDidChange(_ note: Notification) {
-		if XAccount.shared.isSignedIn {
-			close()
+	/// X's sign-in happens inside its page, and the cookie store doesn't always report the
+	/// new session cookie, so check every couple of seconds while the window is open.
+	private func startCheckingSignIn() {
+		guard signInCheck == nil else {
+			return
+		}
+		signInCheck = Task { @MainActor [weak self] in
+			while !Task.isCancelled {
+				try? await Task.sleep(for: .seconds(2))
+				await XAccount.shared.updateSignInState()
+				if XAccount.shared.isSignedIn {
+					self?.close()
+					return
+				}
+			}
 		}
 	}
 }

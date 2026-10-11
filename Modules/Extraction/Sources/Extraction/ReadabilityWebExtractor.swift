@@ -78,6 +78,9 @@ import RSCore
 	/// How long an X page gets: X's own scripts render it, which takes longer than a static page.
 	static let xTimeout: Duration = .seconds(30)
 
+	/// How long to wait, at most, for X to stop adding to the page once the post has rendered.
+	static let xSettleLimit: Duration = .seconds(6)
+
 	/// Loads an X page with X's own scripts and reads it from the rendered page: the post
 	/// with `statusID` and the author's posts around it (a thread), photos and quoted posts,
 	/// or the X Article it carries. Without a `statusID`, the page's Article.
@@ -89,12 +92,30 @@ import RSCore
 			}
 			return try await self.withTimeout(Self.xTimeout) {
 				let webView = self.makeWebView(allowsPageJavaScript: true, websiteDataStore: websiteDataStore)
+				// Tall, so X renders more of a conversation and an Article's embedded posts, which it loads as they come into view.
+				webView.frame = CGRect(x: 0, y: 0, width: 1024, height: 4000)
 				webView.customUserAgent = userAgent
 				self.liveWebView = webView
-				try await self.load(webView) {
-					webView.load(URLRequest(url: url, timeoutInterval: PageFetcher.timeout))
+				// Read the page as soon as the post is there, not when every image has loaded;
+				// a failed load still ends the wait.
+				let loadFailure = LoadFailure()
+				let loading = Task { @MainActor in
+					do {
+						try await self.load(webView) {
+							webView.load(URLRequest(url: url, timeoutInterval: PageFetcher.timeout))
+						}
+					} catch {
+						// A navigation that X replaces with another (a redirect) reports itself cancelled.
+						let nsError = error as NSError
+						if !(error is CancellationError) && !(nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled) {
+							loadFailure.error = error
+						}
+					}
 				}
-				try await self.waitForXPage(statusID: statusID, in: webView)
+				defer {
+					loading.cancel()
+				}
+				try await self.waitForXPage(statusID: statusID, in: webView, loadFailure: loadFailure)
 				let result = try await webView.callAsyncJavaScript("return netNewsListX.extract(statusID);", arguments: ["statusID": statusID ?? NSNull()], in: nil, contentWorld: Self.contentWorld)
 				guard let dictionary = result as? [String: Any] else {
 					throw ExtractionError.noReadableContent
@@ -176,6 +197,11 @@ private extension ReadabilityWebExtractor {
 
 	@MainActor final class Once {
 		var isDone = false
+	}
+
+	/// Set when a page load fails, for code waiting on the page rather than the load.
+	@MainActor final class LoadFailure {
+		var error: (any Error)?
 	}
 
 	static let userScripts: [WKUserScript] = {
@@ -268,18 +294,33 @@ private extension ReadabilityWebExtractor {
 		return webView
 	}
 
-	/// Waits until X has rendered the post (or Article), or throws when X shows only its sign-in wall.
-	func waitForXPage(statusID: String?, in webView: WKWebView) async throws {
+	/// Waits until X has rendered the post (or Article) and stopped adding to the page (signed
+	/// in, X loads the conversation and an Article's embedded posts after the post), or throws
+	/// when X shows only its sign-in wall.
+	func waitForXPage(statusID: String?, in webView: WKWebView, loadFailure: LoadFailure) async throws {
+		let arguments: [String: Any] = ["statusID": statusID ?? NSNull()]
 		while true {
-			let state = try await webView.callAsyncJavaScript("return netNewsListX.state(statusID);", arguments: ["statusID": statusID ?? NSNull()], in: nil, contentWorld: Self.contentWorld) as? String
-			switch state {
-			case "post":
-				return
-			case "login":
-				throw ExtractionError.signInRequired
-			default:
-				try await Task.sleep(for: .milliseconds(250))
+			if let error = loadFailure.error {
+				throw error
 			}
+			// Until X's page has started, the web view shows an empty page without the script.
+			let state = try? await webView.callAsyncJavaScript("return netNewsListX.state(statusID);", arguments: arguments, in: nil, contentWorld: Self.contentWorld) as? String
+			if state == "post" {
+				break
+			}
+			if state == "login" {
+				throw ExtractionError.signInRequired
+			}
+			try await Task.sleep(for: .milliseconds(250))
+		}
+		let deadline = ContinuousClock.now + Self.xSettleLimit
+		var lastSignature: String?
+		var quietChecks = 0
+		while quietChecks < 4, ContinuousClock.now < deadline {
+			try await Task.sleep(for: .milliseconds(250))
+			let signature = try await webView.callAsyncJavaScript("return netNewsListX.signature();", arguments: [:], in: nil, contentWorld: Self.contentWorld) as? String
+			quietChecks = signature == lastSignature ? quietChecks + 1 : 0
+			lastSignature = signature
 		}
 	}
 
