@@ -14,13 +14,18 @@ import Testing
 	private let extractor = ReadabilityWebExtractor()
 
 	init() async {
-		// On a CI simulator the first web view in the process can take longer than the extractor's
-		// timeout to start. One throwaway extraction per run absorbs that, whatever its result.
+		// On a CI simulator the first web views in the process can take longer than the extractor's
+		// timeout to start, sometimes for a minute. Throwaway extractions absorb that: up to three,
+		// until one comes back.
 		guard !Self.didStartWebKit, let url = URL(string: "https://example.com/") else {
 			return
 		}
 		Self.didStartWebKit = true
-		_ = try? await ReadabilityWebExtractor().extract(html: "<p>Warm-up</p>", url: url)
+		for _ in 0..<3 {
+			if (try? await ReadabilityWebExtractor().extract(html: "<p>Warm-up</p>", url: url)) != nil {
+				break
+			}
+		}
 	}
 
 	private func extract(_ fixture: String, url: String) async throws -> ExtractedPage {
