@@ -587,24 +587,14 @@ let appName = "NetNewsList"
 		HelpURL.privacyPolicy.open()
 	}
 
-	@IBAction func gotoInbox(_ sender: Any?) {
+	@IBAction func gotoQueue(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
-		windowController.gotoInbox(sender)
-	}
-
-	@IBAction func gotoStarred(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		windowController.gotoStarred(sender)
+		windowController.gotoQueue(sender)
 	}
 
 	@IBAction func gotoArchive(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
 		windowController.gotoArchive(sender)
-	}
-
-	@IBAction func gotoAllArticles(_ sender: Any?) {
-		let windowController = createAndShowMainWindowIfNecessary()
-		windowController.gotoAllArticles(sender)
 	}
 
 	@IBAction func showCustomAboutPanel(_ sender: Any?) {

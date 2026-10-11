@@ -126,23 +126,13 @@ extension Notification.Name {
 
 	// MARK: - Actions
 
-	@IBAction func gotoInbox(_ sender: Any?) {
+	@IBAction func gotoQueue(_ sender: Any?) {
 		selectFeed(SmartFeedsController.shared.unreadFeed)
-		focus()
-	}
-
-	@IBAction func gotoStarred(_ sender: Any?) {
-		selectFeed(SmartFeedsController.shared.starredFeed)
 		focus()
 	}
 
 	@IBAction func gotoArchive(_ sender: Any?) {
 		selectFeed(SmartFeedsController.shared.archiveFeed)
-		focus()
-	}
-
-	@IBAction func gotoAllArticles(_ sender: Any?) {
-		selectFeed(SmartFeedsController.shared.allArticlesFeed)
 		focus()
 	}
 
@@ -242,9 +232,15 @@ extension Notification.Name {
 		outlineView.revealAndSelectRepresentedObject(sidebarItem as AnyObject, treeController)
 	}
 
-	/// Handoff and notifications name an article; every article is in All.
+	/// Handoff and notifications name an article: show the list it's in.
 	func deepLinkRevealAndSelect(for userInfo: [AnyHashable: Any]) {
-		selectFeed(SmartFeedsController.shared.allArticlesFeed)
+		let smartFeeds = SmartFeedsController.shared
+		guard let articleID = userInfo[ArticlePathKey.articleID] as? String,
+			  let article = AccountManager.shared.fetchArticles(.articleIDs([articleID])).first else {
+			selectFeed(smartFeeds.unreadFeed)
+			return
+		}
+		selectFeed(smartFeeds.list(for: article))
 	}
 }
 

@@ -9,6 +9,7 @@
 import Foundation
 import RSCore
 import Account
+import Articles
 
 @MainActor final class SmartFeedsController: DisplayNameProvider, ContainerIdentifiable {
 	nonisolated let containerID: ContainerIdentifier? = ContainerIdentifier.smartFeedController
@@ -17,13 +18,17 @@ import Account
 	let nameForDisplay = NSLocalizedString("Reading List", comment: "Sidebar group title")
 
 	var smartFeeds = [SidebarItem]()
+	/// Queue: everything saved and not yet archived.
 	let unreadFeed = UnreadFeed()
-	let starredFeed = SmartFeed(delegate: StarredFeedDelegate())
 	let archiveFeed = SmartFeed(delegate: ArchiveFeedDelegate())
-	let allArticlesFeed = SmartFeed(delegate: AllArticlesFeedDelegate())
 
 	private init() {
-		self.smartFeeds = [unreadFeed, starredFeed, archiveFeed, allArticlesFeed]
+		self.smartFeeds = [unreadFeed, archiveFeed]
+	}
+
+	/// The list an article is in: Archive once it's archived (read), Queue until then.
+	func list(for article: Article) -> PseudoFeed {
+		article.status.read ? archiveFeed : unreadFeed
 	}
 
 	func find(by identifier: SidebarItemIdentifier) -> PseudoFeed? {
@@ -32,12 +37,8 @@ import Account
 			switch stringIdentifer {
 			case String(describing: UnreadFeed.self):
 				return unreadFeed
-			case String(describing: StarredFeedDelegate.self):
-				return starredFeed
 			case String(describing: ArchiveFeedDelegate.self):
 				return archiveFeed
-			case String(describing: AllArticlesFeedDelegate.self):
-				return allArticlesFeed
 			default:
 				return nil
 			}

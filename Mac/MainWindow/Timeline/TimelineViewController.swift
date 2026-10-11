@@ -676,6 +676,39 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		}
 		reloadVisibleCells(for: articleIDs)
 		updateUnreadCount()
+		keepOnlyListMembers(changed: articleIDs)
+	}
+
+	/// Queue shows only articles not yet archived and Archive only archived ones. An article
+	/// whose status changed leaves the list it no longer belongs in, and the row that takes
+	/// its place is selected, as in Mail; one that now belongs (undo, or a change from another
+	/// device) is fetched in.
+	private func keepOnlyListMembers(changed articleIDs: Set<String>) {
+		let smartFeeds = SmartFeedsController.shared
+		guard representedObjects?.count == 1, let list = representedObjects?.first,
+			  list === smartFeeds.unreadFeed || list === smartFeeds.archiveFeed else {
+			return
+		}
+		let leavingIDs = Set(articles.filter { articleIDs.contains($0.articleID) && smartFeeds.list(for: $0) !== list }.map(\.articleID))
+		if !leavingIDs.isEmpty {
+			let selectedRow = tableView.selectedRow
+			let selectionLeaves = selectedArticles.contains { leavingIDs.contains($0.articleID) }
+			let remaining = Set(articles.filter { !leavingIDs.contains($0.articleID) })
+			if selectionLeaves {
+				replaceArticles(with: remaining)
+				let row = min(selectedRow, articles.count - 1)
+				if row >= 0 {
+					tableView.selectRowAndScrollToVisible(row)
+				}
+			} else {
+				performBlockAndRestoreSelection {
+					replaceArticles(with: remaining)
+				}
+			}
+		}
+		if articleIDs.contains(where: { articleID in !articles.contains { $0.articleID == articleID } }) {
+			queueFetchAndMergeArticles()
+		}
 	}
 
 	@objc func feedIconDidBecomeAvailable(_ note: Notification) {
@@ -998,13 +1031,6 @@ extension TimelineViewController: NSTableViewDelegate {
 		if selectedArticles.isEmpty {
 			selectionDidChange(nil)
 			return
-		}
-
-		if selectedArticles.count == 1 {
-			let article = selectedArticles.first!
-			if !article.status.read {
-				markArticles(Set([article]), statusKey: .read, flag: true)
-			}
 		}
 
 		selectionDidChange(selectedArticles)

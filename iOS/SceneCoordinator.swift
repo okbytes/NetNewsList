@@ -470,6 +470,26 @@ struct SidebarItemNode: Hashable, Sendable {
 
 	@objc func statusesDidChange(_ note: Notification) {
 		updateUnreadCount()
+		if let articleIDs = note.userInfo?[Account.UserInfoKey.articleIDs] as? Set<String> {
+			keepOnlyListMembers(changed: articleIDs)
+		}
+	}
+
+	/// Queue shows only articles not yet archived and Archive only archived ones. An article
+	/// whose status changed leaves the list it no longer belongs in (an open article stays open);
+	/// one that now belongs (undo, or a change from another device) is fetched in.
+	private func keepOnlyListMembers(changed articleIDs: Set<String>) {
+		let smartFeeds = SmartFeedsController.shared
+		guard let list = timelineFeed as AnyObject?, list === smartFeeds.unreadFeed || list === smartFeeds.archiveFeed else {
+			return
+		}
+		let remaining = articles.filter { !articleIDs.contains($0.articleID) || smartFeeds.list(for: $0) === list }
+		if remaining.count != articles.count {
+			replaceArticles(with: remaining, animated: true)
+		}
+		if articleIDs.contains(where: { articleID in !articles.contains { $0.articleID == articleID } }) {
+			queueFetchAndMergeArticles()
+		}
 	}
 
 	// Every list draws on the Reading List feed, so any change to the account's
@@ -875,20 +895,12 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func selectAllUnreadFeed(completion: (() -> Void)? = nil) {
+	func selectQueue(completion: (() -> Void)? = nil) {
 		selectListWhenSidebarIsReady(SmartFeedsController.shared.unreadFeed, completion: completion)
 	}
 
-	func selectArchiveFeed(completion: (() -> Void)? = nil) {
+	func selectArchive(completion: (() -> Void)? = nil) {
 		selectListWhenSidebarIsReady(SmartFeedsController.shared.archiveFeed, completion: completion)
-	}
-
-	func selectAllArticlesFeed(completion: (() -> Void)? = nil) {
-		selectListWhenSidebarIsReady(SmartFeedsController.shared.allArticlesFeed, completion: completion)
-	}
-
-	func selectStarredFeed(completion: (() -> Void)? = nil) {
-		selectListWhenSidebarIsReady(SmartFeedsController.shared.starredFeed, completion: completion)
 	}
 
 	func selectArticle(_ article: Article?, animations: Animations = [], articleWindowScrollY: Int? = nil) {
@@ -915,9 +927,6 @@ struct SidebarItemNode: Hashable, Sendable {
 
 		rootSplitViewController.showColumn(.secondary)
 		mainTimelineViewController?.didPushArticleViewController = true
-
-		// Mark article as read before navigating to it, so the read status does not flash unread/read on display
-		markArticles(Set([article!]), statusKey: .read, flag: true)
 
 		mainTimelineViewController?.updateArticleSelection(animations: animations)
 		articleViewController?.article = article
@@ -1881,9 +1890,13 @@ private extension SceneCoordinator {
 			return
 		}
 
-		// Every saved article is in All.
-		selectAllArticlesFeed {
-			self.selectArticleInCurrentFeed(articleID)
+		// Open the list the article is in.
+		Task { @MainActor in
+			let article = await account.fetchArticlesAsync(.articleIDs([articleID])).first
+			let list = article.map { SmartFeedsController.shared.list(for: $0) } ?? SmartFeedsController.shared.unreadFeed
+			self.selectListWhenSidebarIsReady(list) {
+				self.selectArticleInCurrentFeed(articleID)
+			}
 		}
 	}
 

@@ -71,7 +71,6 @@ struct Assets {
 		static let mainFolder = IconImage(folder, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.systemBrown)
-		static let allArticlesFeed = IconImage(RSImage(symbol: "tray.full.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.systemGray)
 
 #else // iOS
 
@@ -95,7 +94,6 @@ struct Assets {
 		static let mainFolder = IconImage(folder, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: UIColor.systemBrown)
-		static let allArticlesFeed = IconImage(RSImage(symbol: "tray.full.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: UIColor.systemGray)
 		static var timelineStar: RSImage {
 			let image = RSImage(symbol: "star.fill")!
 			return image.withTintColor(Assets.Colors.star, renderingMode: .alwaysOriginal)

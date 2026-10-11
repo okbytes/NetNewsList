@@ -531,20 +531,12 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		sidebarViewController?.outlineView.selectNextRow(sender)
 	}
 
-	@IBAction func gotoInbox(_ sender: Any?) {
-		sidebarViewController?.gotoInbox(sender)
-	}
-
-	@IBAction func gotoStarred(_ sender: Any?) {
-		sidebarViewController?.gotoStarred(sender)
+	@IBAction func gotoQueue(_ sender: Any?) {
+		sidebarViewController?.gotoQueue(sender)
 	}
 
 	@IBAction func gotoArchive(_ sender: Any?) {
 		sidebarViewController?.gotoArchive(sender)
-	}
-
-	@IBAction func gotoAllArticles(_ sender: Any?) {
-		sidebarViewController?.gotoAllArticles(sender)
 	}
 
 	@IBAction func toolbarShowShareMenu(_ sender: Any?) {

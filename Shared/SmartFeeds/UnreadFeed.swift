@@ -17,9 +17,9 @@ import Articles
 import ArticlesDatabase
 import Images
 
-// Inbox: saved articles not yet read. It shows the global unread count, which
-// AccountManager already has. The class keeps its NetNewsWire name because state
-// restoration and the read-filter settings store it.
+// Queue: saved articles not yet archived (read). It shows the global unread count,
+// which AccountManager already has. The class keeps its NetNewsWire name because
+// state restoration stores it.
 
 @MainActor final class UnreadFeed: PseudoFeed {
 
@@ -33,7 +33,7 @@ import Images
 		return SidebarItemIdentifier.smartFeed(String(describing: UnreadFeed.self))
 	}
 
-	let nameForDisplay = NSLocalizedString("Inbox", comment: "Inbox: unread saved articles")
+	let nameForDisplay = NSLocalizedString("Queue", comment: "Queue: saved articles not yet archived")
 	let fetchType = FetchType.unread(nil)
 
 	var unreadCount = 0 {
