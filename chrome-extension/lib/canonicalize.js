@@ -4,6 +4,12 @@
 
 const TRACKING_QUERY_ITEM_NAMES = new Set(["fbclid", "gclid", "dclid", "msclkid", "mc_cid", "mc_eid", "igshid"]);
 
+// Hosts that serve X posts, including the mirrors people share for their link previews.
+const X_HOSTS = new Set(["x.com", "www.x.com", "mobile.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "fxtwitter.com", "vxtwitter.com", "fixupx.com", "fixvx.com"]);
+
+// /<user>/status/<id>, /<user>/statuses/<id> (which covers /i/status/<id>) and /i/web/status/<id>, with anything after the ID.
+const X_STATUS_PATH = /^\/(?:[^/]+\/status(?:es)?|i\/web\/status)\/(\d{1,20})(?:\/.*)?$/s;
+
 // RFC 3986, appendix B.
 const URI_PARTS = /^([A-Za-z][A-Za-z0-9+.-]*):(?:\/\/([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/s;
 
@@ -87,6 +93,15 @@ export function canonicalize(urlString) {
   let portNumber = port === "" ? null : parseInt(port, 10);
   if ((scheme === "http" && portNumber === 80) || (scheme === "https" && portNumber === 443)) {
     portNumber = null;
+  }
+
+  // One form per post, whatever host, screen name (which can change), photo
+  // suffix or share parameters the link carries.
+  if (portNumber === null && userInfo === null && X_HOSTS.has(host)) {
+    const xMatch = X_STATUS_PATH.exec(encodeInvalidCharacters(match[3] || ""));
+    if (xMatch) {
+      return `https://x.com/i/status/${xMatch[1]}`;
+    }
   }
 
   let path = encodeInvalidCharacters(match[3] || "");

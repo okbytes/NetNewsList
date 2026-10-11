@@ -49,6 +49,18 @@
     { "input": "https://example.com:0443/p", "output": "https://example.com/p" },
     { "input": "https://[::1]:443/p", "output": "https://[::1]/p" },
     { "input": "https://example.com/p;params?x=1", "output": "https://example.com/p;params?x=1" },
-    { "input": "https://example.com/%E2%9C%93/", "output": "https://example.com/%E2%9C%93" }
+    { "input": "https://example.com/%E2%9C%93/", "output": "https://example.com/%E2%9C%93" },
+    { "input": "https://x.com/jack/status/20", "output": "https://x.com/i/status/20" },
+    { "input": "https://twitter.com/jack/status/20?s=20&t=AbC-dEf", "output": "https://x.com/i/status/20" },
+    { "input": "https://mobile.twitter.com/jack/status/20/photo/1", "output": "https://x.com/i/status/20" },
+    { "input": "HTTPS://WWW.X.COM/Jack/statuses/20/", "output": "https://x.com/i/status/20" },
+    { "input": "http://x.com/i/web/status/20", "output": "https://x.com/i/status/20" },
+    { "input": "https://fxtwitter.com/jack/status/20#m", "output": "https://x.com/i/status/20" },
+    { "input": "https://x.com:443/jack/status/20?utm_source=a", "output": "https://x.com/i/status/20" },
+    { "input": "https://x.com/jack", "output": "https://x.com/jack" },
+    { "input": "https://x.com/jack/status/20abc", "output": "https://x.com/jack/status/20abc" },
+    { "input": "https://x.com:8443/jack/status/20", "output": "https://x.com:8443/jack/status/20" },
+    { "input": "https://x.com/i/article/2007138660165009408?s=20", "output": "https://x.com/i/article/2007138660165009408?s=20" },
+    { "input": "https://example.com/jack/status/20?s=20", "output": "https://example.com/jack/status/20?s=20" }
   ]
 }
