@@ -10,28 +10,17 @@ import Foundation
 
 enum WidgetDeepLink {
 
-	case unread
-	case unreadArticle(id: String)
-	case starred
-	case starredArticle(id: String)
-	case icon
+	case queue
+	case queueArticle(id: String)
 
 	var url: URL {
 		switch self {
-		case .unread:
-			return URL(string: "nnw://showunread")!
-		case .unreadArticle(let articleID):
-			var url = URLComponents(url: WidgetDeepLink.unread.url, resolvingAgainstBaseURL: false)!
+		case .queue:
+			return URL(string: "nnw://showqueue")!
+		case .queueArticle(let articleID):
+			var url = URLComponents(url: WidgetDeepLink.queue.url, resolvingAgainstBaseURL: false)!
 			url.queryItems = [URLQueryItem(name: "id", value: articleID)]
 			return url.url!
-		case .starred:
-			return URL(string: "nnw://showstarred")!
-		case .starredArticle(let articleID):
-			var url = URLComponents(url: WidgetDeepLink.starred.url, resolvingAgainstBaseURL: false)!
-			url.queryItems = [URLQueryItem(name: "id", value: articleID)]
-			return url.url!
-		case .icon:
-			return URL(string: "nnw://icon")!
 		}
 	}
 

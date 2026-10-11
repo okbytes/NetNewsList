@@ -116,16 +116,14 @@ typealias FetchRequestOperationResultBlock = (Set<Article>, FetchRequestOperatio
 @MainActor final class FetchRequestOperation {
 
 	let id: Int
-	let hidingReadArticlesState: HidingReadArticlesState
 	let resultBlock: FetchRequestOperationResultBlock
 	var isCanceled = false
 	var isFinished = false
 	private let fetchers: [ArticleFetcher]
 
-	init(id: Int, hidingReadArticlesState: HidingReadArticlesState, fetchers: [ArticleFetcher], resultBlock: @escaping FetchRequestOperationResultBlock) {
+	init(id: Int, fetchers: [ArticleFetcher], resultBlock: @escaping FetchRequestOperationResultBlock) {
 		precondition(Thread.isMainThread)
 		self.id = id
-		self.hidingReadArticlesState = hidingReadArticlesState
 		self.fetchers = fetchers
 		self.resultBlock = resultBlock
 	}
@@ -180,20 +178,9 @@ typealias FetchRequestOperationResultBlock = (Set<Article>, FetchRequestOperatio
 				}
 			}
 
-			@MainActor func fetcherHidesReadArticles(_ fetcher: ArticleFetcher) -> Bool {
-				guard let sidebarItem = fetcher as? SidebarItem, let sidebarItemID = sidebarItem.sidebarItemID else {
-					return false
-				}
-				return hidingReadArticlesState.isHidingReadArticles(for: sidebarItemID)
-			}
-
+			// Each list's fetcher returns only its own articles: the Queue only unread ones, Archive only read ones.
 			for fetcher in fetchers {
-				let articles: Set<Article>
-				if fetcherHidesReadArticles(fetcher) {
-					articles = await fetcher.fetchUnreadArticlesAsync()
-				} else {
-					articles = await fetcher.fetchArticlesAsync()
-				}
+				let articles = await fetcher.fetchArticlesAsync()
 				process(articles)
 			}
 

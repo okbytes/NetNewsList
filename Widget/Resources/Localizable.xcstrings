@@ -18,106 +18,40 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The Lock Screen Summary displays current article counts across the Smart Feeds. "
+            "value" : "Shows how many articles are in your Queue."
           }
         }
       }
     },
-    "label.text.starred" : {
-      "comment" : "Starred",
+    "label.text.queue" : {
+      "comment" : "Queue",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Starred"
+            "value" : "Queue"
           }
         }
       }
     },
-    "label.text.starred-no-articles" : {
-      "comment" : "There are no starred articles.",
+    "label.text.queue-empty" : {
+      "comment" : "The Queue has no articles.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "There are no starred articles."
+            "value" : "Nothing in your Queue."
           }
         }
       }
     },
-    "label.text.starred-widget-description" : {
-      "comment" : "A description of the Starred widget.",
+    "label.text.queue-widget-description" : {
+      "comment" : "A description of the Queue widget.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This widget displays your starred articles."
-          }
-        }
-      }
-    },
-    "label.text.today" : {
-      "comment" : "Today",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today"
-          }
-        }
-      }
-    },
-    "label.text.today-no-articles" : {
-      "comment" : "There are no recent articles.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "There are no recent articles."
-          }
-        }
-      }
-    },
-    "label.text.today-widget-description" : {
-      "comment" : "A description of the Today widget.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This widget displays articles posted within the last 24 hours."
-          }
-        }
-      }
-    },
-    "label.text.unread" : {
-      "comment" : "Unread",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unread"
-          }
-        }
-      }
-    },
-    "label.text.unread-no-articles" : {
-      "comment" : "There are no unread articles.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "There are no unread articles."
-          }
-        }
-      }
-    },
-    "label.text.unread-widget-description" : {
-      "comment" : "A description of the Unread widget.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This widget display unread articles."
+            "value" : "Shows the articles in your Queue."
           }
         }
       }

@@ -11,46 +11,27 @@ import SwiftUI
 
 // MARK: - Supported Widgets
 
-struct UnreadWidget: Widget {
-	let kind: String = "NetNewsList.UnreadWidget"
+struct QueueWidget: Widget {
+	let kind: String = WidgetKind.queue
 
 	var body: some WidgetConfiguration {
 
 		return StaticConfiguration(kind: kind, provider: Provider(), content: { entry in
-			UnreadWidgetView(entry: entry)
+			QueueWidgetView(entry: entry)
 				.frame(maxHeight: .infinity, alignment: .top)
 				.containerBackground(for: .widget) {
 					Color.clear
 				}
 				.clipped()
 		})
-		.configurationDisplayName(Text("label.text.unread", comment: "Unread"))
-		.description(Text("label.text.unread-widget-description", comment: "A description of the Unread widget."))
-		.supportedFamilies([.systemMedium, .systemLarge])
-	}
-}
-
-struct StarredWidget: Widget {
-	let kind: String = "NetNewsList.StarredWidget"
-
-	var body: some WidgetConfiguration {
-
-		return StaticConfiguration(kind: kind, provider: Provider(), content: { entry in
-			StarredWidgetView(entry: entry)
-				.frame(maxHeight: .infinity, alignment: .top)
-				.containerBackground(for: .widget) {
-					Color.clear
-				}
-				.clipped()
-		})
-		.configurationDisplayName(Text("label.text.starred", comment: "Starred"))
-		.description(Text("label.text.starred-widget-description", comment: "A description of the Starred widget."))
+		.configurationDisplayName(Text("label.text.queue", comment: "Queue"))
+		.description(Text("label.text.queue-widget-description", comment: "A description of the Queue widget."))
 		.supportedFamilies([.systemMedium, .systemLarge])
 	}
 }
 
 struct LockScreenSummaryWidget: Widget {
-	let kind: String = "NetNewsList.LockScreenSummaryWidget"
+	let kind: String = WidgetKind.lockScreenSummary
 
 	var body: some WidgetConfiguration {
 
@@ -73,8 +54,7 @@ struct LockScreenSummaryWidget: Widget {
 struct NetNewsWireWidgets: WidgetBundle {
 	@WidgetBundleBuilder
 	var body: some Widget {
-		UnreadWidget()
-		StarredWidget()
+		QueueWidget()
 		LockScreenSummaryWidget()
 	}
 }

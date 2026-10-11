@@ -59,7 +59,6 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var confirmMarkAllAsReadSwitch: UISwitch!
 	@IBOutlet var showFullscreenArticlesSwitch: UISwitch!
 	@IBOutlet var colorPaletteCell: UITableViewCell?
-	@IBOutlet var unreadCountDisplayCell: UITableViewCell?
 	@IBOutlet var openLinksInNetNewsWire: UISwitch!
 	@IBOutlet var xAccountDetailLabel: UILabel!
 
@@ -67,7 +66,6 @@ final class SettingsViewController: UITableViewController {
 	weak var presentingParentController: UIViewController?
 
 	private lazy var colorPalettePopUpButton = Self.makePopUpButton()
-	private lazy var unreadCountDisplayPopUpButton = Self.makePopUpButton()
 
 	override func viewDidLoad() {
 		// This hack mostly works around a bug in static tables with dynamic type.  See: https://spin.atomicobject.com/2018/10/15/dynamic-type-static-uitableview/
@@ -75,16 +73,13 @@ final class SettingsViewController: UITableViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(handleUserInterfaceColorPaletteDidUpdate(_:)), name: .userInterfaceColorPaletteDidUpdate, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
 
 		addPopUpButton(colorPalettePopUpButton, to: colorPaletteCell)
-		addPopUpButton(unreadCountDisplayPopUpButton, to: unreadCountDisplayCell)
 		updateColorPalettePopUpButton()
-		updateUnreadCountDisplayPopUpButton()
 	}
 
 	override func viewWillAppear(_ animated: Bool) {
@@ -293,10 +288,6 @@ final class SettingsViewController: UITableViewController {
 		updateColorPalettePopUpButton()
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		updateUnreadCountDisplayPopUpButton()
-	}
-
 }
 
 // MARK: - Private
@@ -334,16 +325,6 @@ private extension SettingsViewController {
 			}
 		}
 		colorPalettePopUpButton.menu = UIMenu(children: actions)
-	}
-
-	func updateUnreadCountDisplayPopUpButton() {
-		let currentUnreadCountDisplay = AppDefaults.shared.unreadCountDisplay
-		let actions = UnreadCountDisplay.allCases.map { unreadCountDisplay in
-			UIAction(title: String(describing: unreadCountDisplay), state: unreadCountDisplay == currentUnreadCountDisplay ? .on : .off) { _ in
-				AppDefaults.shared.unreadCountDisplay = unreadCountDisplay
-			}
-		}
-		unreadCountDisplayPopUpButton.menu = UIMenu(children: actions)
 	}
 
 	func confirmResetiCloudSync() {

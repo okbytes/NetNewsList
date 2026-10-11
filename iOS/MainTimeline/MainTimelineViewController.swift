@@ -21,8 +21,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	// MARK: Private Variables
 	private var numberOfTextLines = 0
 	private var iconSize = IconSize.medium
-	private lazy var filterButton = UIBarButtonItem(image: Assets.Images.filter, style: .plain, target: self, action: #selector(toggleFilter(_:)))
-	private lazy var nextUnreadButton = UIBarButtonItem(image: Assets.Images.nextUnread, style: .plain, target: self, action: #selector(nextUnread(_:)))
 	private let refreshProgressView = RefreshProgressView(frame: .zero)
 	private lazy var refreshBarItem = UIBarButtonItem(customView: refreshProgressView)
 	private var isToolbarProgressViewShowing = false
@@ -65,15 +63,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	private var timelineIconImage: IconImage? {
 		assert(coordinator != nil)
 		return coordinator?.timelineIconImage
-	}
-
-	private var timelineDefaultReadFilterType: ReadFilterType {
-		return timelineFeed?.defaultReadFilterType ?? .none
-	}
-
-	private var isReadArticlesFiltered: Bool {
-		assert(coordinator != nil)
-		return coordinator?.isReadArticlesFiltered ?? false
 	}
 
 	private var isTimelineUnreadAvailable: Bool {
@@ -473,11 +462,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		coordinator?.showInAppBrowser()
 	}
 
-	@IBAction func toggleFilter(_ sender: Any) {
-		assert(coordinator != nil)
-		coordinator?.toggleReadArticlesFilter()
-	}
-
 	@IBAction func markAllAsRead(_ sender: Any?) {
 		guard let coordinator else {
 			assertionFailure("Expected coordinator")
@@ -505,11 +489,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 				self?.coordinator?.markAsReadAndShowSidebar(articlesToMark)
 			}
 		}
-	}
-
-	@IBAction func nextUnread(_ sender: Any) {
-		assert(coordinator != nil)
-		coordinator?.selectNextUnread()
 	}
 
     /*
@@ -544,18 +523,9 @@ extension MainTimelineViewController: UICollectionViewDelegate {
 
 			var menuElements = [UIMenuElement]()
 
-			var markActions = [UIAction]()
 			if let action = self.toggleArticleReadStatusAction(article) {
-				markActions.append(action)
+				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
-			markActions.append(self.toggleArticleStarStatusAction(article))
-			if let action = self.markAboveAsReadAction(article, indexPath: firstIndex) {
-				markActions.append(action)
-			}
-			if let action = self.markBelowAsReadAction(article, indexPath: firstIndex) {
-				markActions.append(action)
-			}
-			menuElements.append(UIMenu(title: "", options: .displayInline, children: markActions))
 
 			var copyActions = [UIAction]()
 			if let action = self.copyArticleURLAction(article) {
@@ -727,35 +697,6 @@ private extension MainTimelineViewController {
 			guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 			var actions = [UIContextualAction]()
 
-			// Set up the star action
-			let starTitle = article.status.starred ?
-				NSLocalizedString("Unstar", comment: "Unstar") :
-				NSLocalizedString("Star", comment: "Star")
-
-			let starAction = UIContextualAction(style: .normal, title: starTitle) { [weak self] _, _, completion in
-
-				// Post the accessibility announcement immediately so VoiceOver
-				// doesn’t lag behind user actions.
-				let announcement = article.status.starred ?
-					NSLocalizedString("Unstarred", comment: "Accessibility announcement") :
-					NSLocalizedString("Starred", comment: "Starred")
-				UIAccessibility.post(notification: .announcement, argument: announcement)
-
-				/// The call to `toggleStar` is delayed in order to allow
-				/// the swipe animation to complete. Calling `toggleStar` with no
-				/// delay results UICollectionView internal inconsistency: unexpected
-				/// removal of the current swipe occurrence’s mask view error.
-				DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
-					self?.toggleStar(article)
-				}
-
-				completion(true)
-			}
-
-			starAction.image = article.status.starred ? Assets.Images.starOpen : Assets.Images.starClosed
-			starAction.backgroundColor = Assets.Colors.star
-
-			// Set up the read action
 			let moreTitle = NSLocalizedString("More", comment: "More")
 			let moreAction = UIContextualAction(style: .normal, title: moreTitle) { [weak self] (action, view, completion) in
 
@@ -765,14 +706,6 @@ private extension MainTimelineViewController {
 					if let popoverController = alert.popoverPresentationController {
 						popoverController.sourceView = view
 						popoverController.sourceRect = CGRect(x: view.frame.size.width/2, y: view.frame.size.height/2, width: 1, height: 1)
-					}
-
-					if let action = self.markAboveAsReadAlertAction(article, indexPath: indexPath, completion: completion) {
-						alert.addAction(action)
-					}
-
-					if let action = self.markBelowAsReadAlertAction(article, indexPath: indexPath, completion: completion) {
-						alert.addAction(action)
 					}
 
 					if let action = self.openInBrowserAlertAction(article, completion: completion) {
@@ -808,7 +741,6 @@ private extension MainTimelineViewController {
 			deleteAction.image = Assets.Images.trash
 
 			actions.append(deleteAction)
-			actions.append(starAction)
 			actions.append(moreAction)
 
 			let config = UISwipeActionsConfiguration(actions: actions)
@@ -824,9 +756,9 @@ private extension MainTimelineViewController {
 			guard !article.status.read || article.isAvailableToMarkUnread else { return nil }
 			var actions = [UIContextualAction]()
 
-			// Set up the read action
+			// Set up the archive action
 			let readTitle = article.status.read ?
-				NSLocalizedString("Move to Inbox", comment: "Command") :
+				NSLocalizedString("Move to Queue", comment: "Command") :
 				NSLocalizedString("Archive", comment: "Command")
 
 			let readAction = UIContextualAction(style: .normal, title: readTitle) { [weak self] _, _, completion in
@@ -834,7 +766,7 @@ private extension MainTimelineViewController {
 				// Post the accessibility announcement immediately so VoiceOver
 				// doesn’t lag behind user actions.
 				let announcement = article.status.read ?
-					NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
+					NSLocalizedString("Moved to Queue", comment: "Accessibility announcement") :
 					NSLocalizedString("Archived", comment: "Accessibility announcement")
 				UIAccessibility.post(notification: .announcement, argument: announcement)
 
@@ -928,9 +860,7 @@ private extension MainTimelineViewController {
 					toolbarItems = [
 						markAllAsRead,
 						.flexibleSpace(),
-						navigationItem.searchBarPlacementBarButtonItem,
-						.flexibleSpace(),
-						nextUnreadButton
+						navigationItem.searchBarPlacementBarButtonItem
 					]
 				}
 			} else {
@@ -944,17 +874,6 @@ private extension MainTimelineViewController {
 	}
 
 	func resetUI(resetScroll: Bool) {
-		let shouldShowFilterButton = coordinator?.shouldShowFilterButton() ?? false
-		navigationItem.rightBarButtonItem = shouldShowFilterButton ? filterButton : nil
-
-		if isReadArticlesFiltered {
-			filterButton.tintColor = Assets.Colors.primaryAccent
-			filterButton.accLabelText = NSLocalizedString("Selected - Filter Read Articles", comment: "Selected - Filter Read Articles")
-		} else {
-			filterButton.tintColor = .label
-			filterButton.accLabelText = NSLocalizedString("Filter Read Articles", comment: "Filter Read Articles")
-		}
-
 		collectionView?.selectItem(at: nil, animated: false, scrollPosition: .top)
 
 		if resetScroll {
@@ -971,7 +890,6 @@ private extension MainTimelineViewController {
 
 	func updateToolbar() {
 		markAllAsReadButton?.isEnabled = isTimelineUnreadAvailable
-		nextUnreadButton.isEnabled = coordinator?.isNextUnreadAvailable ?? false
 		if #unavailable(iOS 26) {
 			rebuildToolbarItems()
 		}
@@ -989,10 +907,8 @@ private extension MainTimelineViewController {
 		if isToolbarProgressViewShowing {
 			items.append(.flexibleSpace())
 			items.append(refreshBarItem)
+			items.append(.flexibleSpace())
 		}
-
-		items.append(.flexibleSpace())
-		items.append(nextUnreadButton)
 
 		setToolbarItems(items, animated: false)
 	}
@@ -1164,7 +1080,7 @@ extension MainTimelineViewController {
 		guard !article.status.read || article.isAvailableToMarkUnread else { return nil }
 
 		let title = article.status.read ?
-			NSLocalizedString("Move to Inbox", comment: "Command") :
+			NSLocalizedString("Move to Queue", comment: "Command") :
 			NSLocalizedString("Archive", comment: "Command")
 		let image = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
 
@@ -1172,7 +1088,7 @@ extension MainTimelineViewController {
 			// Post the accessibility announcement immediately so VoiceOver
 			// doesn’t lag behind user actions.
 			let announcement = article.status.read ?
-				NSLocalizedString("Moved to Inbox", comment: "Accessibility announcement") :
+				NSLocalizedString("Moved to Queue", comment: "Accessibility announcement") :
 				NSLocalizedString("Archived", comment: "Accessibility announcement")
 			UIAccessibility.post(notification: .announcement, argument: announcement)
 
@@ -1181,122 +1097,6 @@ extension MainTimelineViewController {
 			}
 		}
 
-		return action
-	}
-
-	func toggleStar(_ article: Article) {
-		assert(coordinator != nil)
-		coordinator?.toggleStar(article)
-	}
-
-	func toggleArticleStarStatusAction(_ article: Article) -> UIAction {
-
-		let title = article.status.starred ?
-			NSLocalizedString("Mark as Unstarred", comment: "Command") :
-			NSLocalizedString("Mark as Starred", comment: "Command")
-		let image = article.status.starred ? Assets.Images.starOpen : Assets.Images.starClosed
-
-		let action = UIAction(title: title, image: image) { [weak self] _ in
-			// Post the accessibility announcement immediately so VoiceOver
-			// doesn’t lag behind user actions.
-			let announcement = article.status.starred ?
-				NSLocalizedString("Unstarred", comment: "Accessibility announcement") :
-				NSLocalizedString("Starred", comment: "Starred")
-			UIAccessibility.post(notification: .announcement, argument: announcement)
-
-			DispatchQueue.main.asyncAfter(wallDeadline: .now() + 1.0) {
-				self?.toggleStar(article)
-			}
-		}
-
-		return action
-	}
-
-	func markAboveAsRead(_ article: Article) {
-		assert(coordinator != nil)
-		coordinator?.markAboveAsRead(article)
-	}
-
-	func canMarkAboveAsRead(for article: Article) -> Bool {
-		assert(coordinator != nil)
-		return coordinator?.canMarkAboveAsRead(for: article) ?? false
-	}
-
-	func markAboveAsReadAction(_ article: Article, indexPath: IndexPath) -> UIAction? {
-		guard canMarkAboveAsRead(for: article), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let title = NSLocalizedString("Archive Above", comment: "Command")
-		let image = Assets.Images.markAboveAsRead
-		let action = UIAction(title: title, image: image) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-				self?.markAboveAsRead(article)
-			}
-		}
-		return action
-	}
-
-	func markBelowAsRead(_ article: Article) {
-		assert(coordinator != nil)
-		coordinator?.markBelowAsRead(article)
-	}
-
-	func canMarkBelowAsRead(for article: Article) -> Bool {
-		assert(coordinator != nil)
-		return coordinator?.canMarkBelowAsRead(for: article) ?? false
-	}
-
-	func markBelowAsReadAction(_ article: Article, indexPath: IndexPath) -> UIAction? {
-		guard canMarkBelowAsRead(for: article), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let title = NSLocalizedString("Archive Below", comment: "Command")
-		let image = Assets.Images.markBelowAsRead
-		let action = UIAction(title: title, image: image) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-				self?.markBelowAsRead(article)
-			}
-		}
-		return action
-	}
-
-	func markAboveAsReadAlertAction(_ article: Article, indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> UIAlertAction? {
-		guard canMarkAboveAsRead(for: article), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let title = NSLocalizedString("Archive Above", comment: "Command")
-		let cancel = {
-			completion(true)
-		}
-
-		let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView, cancelCompletion: cancel) { [weak self] in
-				self?.markAboveAsRead(article)
-				completion(true)
-			}
-		}
-		return action
-	}
-
-	func markBelowAsReadAlertAction(_ article: Article, indexPath: IndexPath, completion: @escaping (Bool) -> Void) -> UIAlertAction? {
-		guard canMarkBelowAsRead(for: article), let collectionView, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return nil
-		}
-
-		let title = NSLocalizedString("Archive Below", comment: "Command")
-		let cancel = {
-			completion(true)
-		}
-
-		let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView, cancelCompletion: cancel) { [weak self] in
-				self?.markBelowAsRead(article)
-				completion(true)
-			}
-		}
 		return action
 	}
 

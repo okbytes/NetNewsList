@@ -312,29 +312,6 @@
                                             <outlet property="label" destination="2Fp-li-dGP" id="gyE-t6-U2X"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" id="Ucd-a1-Cel" customClass="VibrantBasicTableViewCell" customModule="NetNewsWire" customModuleProvider="target">
-                                        <rect key="frame" x="20" y="1203" width="374" height="51"/>
-                                        <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Ucd-a1-Cel" id="Ucd-b2-Cnt">
-                                            <rect key="frame" x="0.0" y="0.0" width="343.5" height="51"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Unread Counts" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ucd-c3-Lbl">
-                                                    <rect key="frame" x="20" y="15.5" width="110" height="20.5"/>
-                                                    <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                            </subviews>
-                                            <constraints>
-                                                <constraint firstItem="Ucd-c3-Lbl" firstAttribute="leading" secondItem="Ucd-b2-Cnt" secondAttribute="leadingMargin" id="Ucd-g7-Ld1"/>
-                                                <constraint firstItem="Ucd-c3-Lbl" firstAttribute="centerY" secondItem="Ucd-b2-Cnt" secondAttribute="centerY" id="Ucd-h8-Cy2"/>
-                                            </constraints>
-                                        </tableViewCellContentView>
-                                        <connections>
-                                            <outlet property="label" destination="Ucd-c3-Lbl" id="Ucd-k1-Ol1"/>
-                                        </connections>
-                                    </tableViewCell>
                                 </cells>
                             </tableViewSection>
                             <tableViewSection headerTitle="Troubleshooting" id="Trb-eL-9xZ">
@@ -502,7 +479,6 @@
                         <outlet property="openLinksInNetNewsWire" destination="dhR-L2-PX3" id="z1b-pX-bwG"/>
                         <outlet property="showFullscreenArticlesSwitch" destination="2Md-2E-7Z4" id="lEN-VP-wEO"/>
                         <outlet property="timelineSortOrderSwitch" destination="Keq-Np-l9O" id="Zm7-HG-r5h"/>
-                        <outlet property="unreadCountDisplayCell" destination="Ucd-a1-Cel" id="Ucd-u1-Out"/>
                         <outlet property="xAccountDetailLabel" destination="xAc-dt-01d" id="xAc-o3-01k"/>
                     </connections>
                 </tableViewController>

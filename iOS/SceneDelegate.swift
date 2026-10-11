@@ -85,7 +85,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	}
 
 	func sceneDidEnterBackground(_ scene: UIScene) {
-		coordinator.didEnterBackground()
 		appDelegate.prepareAccountsForBackground()
 	}
 
@@ -123,8 +122,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 			let urlString = context.url.absoluteString
 
-			// Show Unread View or Article
-			if urlString.contains(WidgetDeepLink.unread.url.absoluteString) {
+			// Show the Queue, or an article in it
+			if urlString.contains(WidgetDeepLink.queue.url.absoluteString) {
 				guard let comps = URLComponents(string: urlString ) else { return  }
 				let id = comps.queryItems?.first(where: { $0.name == "id" })?.value
 				if id != nil {
@@ -180,8 +179,8 @@ private extension SceneDelegate {
 
 	func handleShortcutItem(_ shortcutItem: UIApplicationShortcutItem) {
 		switch shortcutItem.type {
-		case "NetNewsList.FirstUnread":
-			coordinator.selectFirstUnreadInAllUnread()
+		case "NetNewsList.ShowQueue":
+			coordinator.selectQueue()
 		case "NetNewsList.ShowSearch":
 			coordinator.showSearch()
 		case "NetNewsList.ShowAdd":

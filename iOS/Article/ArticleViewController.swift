@@ -16,11 +16,9 @@ import Articles
 
 final class ArticleViewController: UIViewController {
 
-	@IBOutlet private weak var nextUnreadBarButtonItem: UIBarButtonItem!
 	@IBOutlet private weak var prevArticleBarButtonItem: UIBarButtonItem!
 	@IBOutlet private weak var nextArticleBarButtonItem: UIBarButtonItem!
 	@IBOutlet private weak var readBarButtonItem: UIBarButtonItem!
-	@IBOutlet private weak var starBarButtonItem: UIBarButtonItem!
 	@IBOutlet private weak var actionBarButtonItem: UIBarButtonItem!
 
 	@IBOutlet private var searchBar: ArticleSearchBar!
@@ -119,15 +117,14 @@ final class ArticleViewController: UIViewController {
 		navigationItem.titleView = fullScreenTapZone
 
 		if #available(iOS 26, *) {
-			toolbarItems?.insert(showOriginalBarButtonItem, at: 5)
+			// Grouped with Share at the trailing end.
+			if let shareIndex = toolbarItems?.firstIndex(of: actionBarButtonItem) {
+				toolbarItems?.insert(showOriginalBarButtonItem, at: shareIndex)
+			}
 		} else {
 			let flex = { UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil) }
 			toolbarItems = [
 				readBarButtonItem,
-				flex(),
-				starBarButtonItem,
-				flex(),
-				nextUnreadBarButtonItem,
 				flex(),
 				showOriginalBarButtonItem,
 				flex(),
@@ -230,20 +227,16 @@ final class ArticleViewController: UIViewController {
 
 		guard let article = article else {
 			showOriginalBarButtonItem.isEnabled = false
-			nextUnreadBarButtonItem.isEnabled = false
 			prevArticleBarButtonItem.isEnabled = false
 			nextArticleBarButtonItem.isEnabled = false
 			readBarButtonItem.isEnabled = false
-			starBarButtonItem.isEnabled = false
 			actionBarButtonItem.isEnabled = false
 			return
 		}
 
-		nextUnreadBarButtonItem.isEnabled = coordinator.isNextUnreadAvailable
 		prevArticleBarButtonItem.isEnabled = coordinator.isPrevArticleAvailable
 		nextArticleBarButtonItem.isEnabled = coordinator.isNextArticleAvailable
 		readBarButtonItem.isEnabled = true
-		starBarButtonItem.isEnabled = true
 
 		let permalinkPresent = article.preferredLink != nil
 		showOriginalBarButtonItem.isEnabled = permalinkPresent
@@ -252,19 +245,11 @@ final class ArticleViewController: UIViewController {
 		if article.status.read {
 			readBarButtonItem.image = Assets.Images.circleOpen
 			readBarButtonItem.isEnabled = article.isAvailableToMarkUnread
-			readBarButtonItem.accLabelText = NSLocalizedString("Move to Inbox", comment: "Command")
+			readBarButtonItem.accLabelText = NSLocalizedString("Move to Queue", comment: "Command")
 		} else {
 			readBarButtonItem.image = Assets.Images.circleClosed
 			readBarButtonItem.isEnabled = true
 			readBarButtonItem.accLabelText = NSLocalizedString("Archive", comment: "Command")
-		}
-
-		if article.status.starred {
-			starBarButtonItem.image = Assets.Images.starClosed
-			starBarButtonItem.accLabelText = NSLocalizedString("Selected - Star Article", comment: "Selected - Star Article")
-		} else {
-			starBarButtonItem.image = Assets.Images.starOpen
-			starBarButtonItem.accLabelText = NSLocalizedString("Star Article", comment: "Star Article")
 		}
 	}
 
@@ -311,10 +296,6 @@ final class ArticleViewController: UIViewController {
 		currentWebViewController?.openInAppBrowser()
 	}
 
-	@IBAction func nextUnread(_ sender: Any) {
-		coordinator.selectNextUnread()
-	}
-
 	@IBAction func prevArticle(_ sender: Any) {
 		coordinator.selectPrevArticle()
 	}
@@ -325,10 +306,6 @@ final class ArticleViewController: UIViewController {
 
 	@IBAction func toggleRead(_ sender: Any) {
 		coordinator.toggleReadForCurrentArticle()
-	}
-
-	@IBAction func toggleStar(_ sender: Any) {
-		coordinator.toggleStarredForCurrentArticle()
 	}
 
 	@IBAction func showActivityDialog(_ sender: Any) {

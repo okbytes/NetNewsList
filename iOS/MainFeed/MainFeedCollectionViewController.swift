@@ -17,7 +17,7 @@ import Images
 
 private let reuseIdentifier = "FeedCell"
 
-/// The sidebar: one group of fixed lists (Inbox, Starred, Archive, All).
+/// The sidebar: one group of fixed lists (Queue, Archive).
 final class MainFeedCollectionViewController: UICollectionViewController {
 	@IBOutlet var addNewItemButton: UIBarButtonItem! {
 		didSet {
@@ -179,7 +179,6 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 
 	func registerForNotifications() {
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 		registerForTraitChanges([UITraitPreferredContentSizeCategory.self], target: self, action: #selector(preferredContentSizeCategoryDidChange))
 	}
 
@@ -544,11 +543,6 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 		reconfigureItems(nodesToReconfigure)
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		// Only realized cells are reconfigured. Others pick up the setting when dequeued.
-		reconfigureItems(currentSidebarSnapshot.itemIdentifiers)
-	}
-
 	// MARK: - Actions
 
 	@objc func sync(_ sender: Any) {
@@ -581,7 +575,7 @@ private extension MainFeedCollectionViewController {
 		return UIAction(title: title, image: Assets.Images.markAllAsRead) { [weak self] _ in
 			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
 				let articles = sidebarItem.fetchUnreadArticles()
-				self?.coordinator.markAllAsRead(Array(articles), in: sidebarItem)
+				self?.coordinator.markAllAsRead(Array(articles))
 			}
 		}
 	}

@@ -14,43 +14,20 @@ struct LockScreenSummaryWidgetView: View {
 	var entry: Provider.Entry
 
     var body: some View {
-		VStack(alignment: .leading, spacing: 2) {
-			HStack(alignment: .center) {
-				unreadImage
-				Text("label.text.unread", comment: "Unread")
-				Spacer()
-				Text(verbatim: unreadCountText)
-					.frame(maxWidth: .infinity, alignment: .trailing)
-			}
-			HStack(alignment: .center) {
-				starredImage
-				Text("label.text.starred", comment: "Starred")
-				Spacer()
-				Text(verbatim: entry.widgetData.totalStarredCount.formatted())
-					.frame(maxWidth: .infinity, alignment: .trailing)
-			}
+		HStack(alignment: .center) {
+			queueImage
+			Text("label.text.queue", comment: "Queue")
+			Spacer()
+			Text(verbatim: entry.widgetData.queueCount.formatted())
+				.frame(maxWidth: .infinity, alignment: .trailing)
 		}
 		.font(.subheadline)
     }
 
-	/// Shows 0 when counts are showing, so the row doesn’t look broken.
-	var unreadCountText: String {
-		let widgetData = entry.widgetData
-		guard widgetData.effectiveUnreadCountDisplay == .count else {
-			return widgetData.effectiveUnreadCountDisplay.text(for: widgetData.totalUnreadCount) ?? ""
-		}
-		return widgetData.totalUnreadCount.formatted()
-	}
-
-	var starredImage: some View {
-		Image(systemName: "star.fill")
+	var queueImage: some View {
+		Image(systemName: "tray.fill")
 			.resizable()
-			.frame(width: 14, height: 14)
-	}
-
-	var unreadImage: some View {
-		Image(systemName: "largecircle.fill.circle")
-			.resizable()
+			.scaledToFit()
 			.frame(width: 14, height: 14)
 	}
 

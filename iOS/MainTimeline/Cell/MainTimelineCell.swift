@@ -22,7 +22,6 @@ final class MainTimelineCell: UICollectionViewCell {
 	private let dateView = MainTimelineCell.singleLineLabel()
 	private let feedNameView = MainTimelineCell.singleLineLabel()
 	private lazy var iconView = IconView()
-	private lazy var indicatorView = IconView()
 	private let topSeparator = UIView()
 
 	var cellData: MainTimelineCellData! {
@@ -39,11 +38,6 @@ final class MainTimelineCell: UICollectionViewCell {
 	required init?(coder: NSCoder) {
 		super.init(coder: coder)
 		commonInit()
-	}
-
-	override func prepareForReuse() {
-		super.prepareForReuse()
-		indicatorView.isHidden = true
 	}
 
 	override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
@@ -65,7 +59,6 @@ final class MainTimelineCell: UICollectionViewCell {
 		feedNameView.setFrameIfNotEqual(layout.feedNameRect)
 		dateView.setFrameIfNotEqual(layout.dateRect)
 		iconView.setFrameIfNotEqual(layout.iconImageRect)
-		indicatorView.setFrameIfNotEqual(cellData.starred ? layout.starRect : layout.unreadIndicatorRect)
 		topSeparator.frame = CGRect(x: layout.separatorRect.minX, y: 0, width: layout.separatorRect.width, height: 1.0 / traitCollection.displayScale)
 	}
 
@@ -127,7 +120,6 @@ final class MainTimelineCell: UICollectionViewCell {
 
 		// Text goes white only on the accent background. On gray, labels keep their normal colors.
 		updateColors(active: isActiveSelection)
-		updateIndicatorView(active: isActiveSelection)
 	}
 
 	func setIconImage(_ image: IconImage) {
@@ -159,11 +151,10 @@ private extension MainTimelineCell {
 	func commonInit() {
 		isAccessibilityElement = true
 		topSeparator.backgroundColor = .separator.withAlphaComponent(0.1)
-		for view in [titleView, summaryView, dateView, feedNameView, iconView, indicatorView, topSeparator] {
+		for view in [titleView, summaryView, dateView, feedNameView, iconView, topSeparator] {
 			contentView.addSubview(view)
 			view.isAccessibilityElement = false
 		}
-		indicatorView.isHidden = true
 	}
 
 	func updatedLayout(width: CGFloat) -> MainTimelineCellLayout {
@@ -216,9 +207,7 @@ private extension MainTimelineCell {
 			iconView.isHidden = true
 		}
 
-		let active = configurationState.isSelected && isInExpandedSplitView
-		updateColors(active: active)
-		updateIndicatorView(active: active)
+		updateColors(active: configurationState.isSelected && isInExpandedSplitView)
 		updateAccessibilityLabel()
 		setNeedsLayout()
 	}
@@ -230,27 +219,7 @@ private extension MainTimelineCell {
 		feedNameView.textColor = active ? .white : .secondaryLabel
 	}
 
-	func updateIndicatorView(active: Bool) {
-		guard cellData != nil else {
-			indicatorView.isHidden = true
-			return
-		}
-		if cellData.starred {
-			indicatorView.iconImage = Assets.Images.starredFeed
-			indicatorView.tintColor = active ? .white : Assets.Colors.star
-			indicatorView.isHidden = false
-		} else if !cellData.read {
-			indicatorView.iconImage = Assets.Images.unreadCellIndicator
-			indicatorView.tintColor = active ? .white : Assets.Colors.secondaryAccent
-			indicatorView.isHidden = false
-		} else {
-			indicatorView.isHidden = true
-		}
-	}
-
 	func updateAccessibilityLabel() {
-		let starredStatus = cellData.starred ? "\(NSLocalizedString("Starred", comment: "Starred")), " : ""
-		let unreadStatus = cellData.read ? "" : "\(NSLocalizedString("Unread", comment: "Unread")), "
-		accessibilityLabel = starredStatus + unreadStatus + "\(cellData.feedName), \(cellData.title), \(cellData.summary), \(cellData.dateString)"
+		accessibilityLabel = "\(cellData.feedName), \(cellData.title), \(cellData.summary), \(cellData.dateString)"
 	}
 }

@@ -69,8 +69,6 @@ struct SidebarItemNode: Hashable, Sendable {
 
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "SceneCoordinator")
 
-	private let hidingReadArticlesState = HidingReadArticlesState()
-
 	private(set) var preSearchTimelineFeed: SidebarItem?
 	private var lastSearchString = ""
 	private var lastSearchScope: SearchScope?
@@ -119,17 +117,6 @@ struct SidebarItemNode: Hashable, Sendable {
 	// In collapsed mode, the article view is in the window only while it’s on top of the navigation stack.
 	var isArticleViewControllerShowing: Bool {
 		articleViewController?.viewIfLoaded?.window != nil
-	}
-
-	var isReadArticlesFiltered: Bool {
-		guard let sidebarItemID = timelineFeed?.sidebarItemID else {
-			return false
-		}
-		return hidingReadArticlesState.isHidingReadArticles(for: sidebarItemID)
-	}
-
-	var timelineDefaultReadFilterType: ReadFilterType {
-		return timelineFeed?.defaultReadFilterType ?? .none
 	}
 
 	var rootNode: Node {
@@ -208,15 +195,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		return articles[articleRow + 1]
 	}
 
-	var firstUnreadArticleIndexPath: IndexPath? {
-		for (row, article) in articles.enumerated() {
-			if !article.status.read {
-				return IndexPath(row: row, section: 0)
-			}
-		}
-		return nil
-	}
-
 	var currentArticle: Article? {
 		didSet {
 			if let article = currentArticle {
@@ -254,24 +232,19 @@ struct SidebarItemNode: Hashable, Sendable {
 		return timelineUnreadCount > 0
 	}
 
-	var isNextUnreadAvailable: Bool {
-		// Return false when the only unread article is the selected article.
-		// With nothing selected — e.g. the collapsed timeline — this falls through to "is there any unread at all".
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5008>
-		if AccountManager.shared.unreadCount == 1, let article = currentArticle, !article.status.read {
-			return false
-		}
-		return AccountManager.shared.unreadCount > 0
-	}
-
 	var timelineUnreadCount: Int = 0 {
 		didSet {
 			updateNavigationBarSubtitles(nil)
 		}
 	}
 
-	private var isTimelineUnreadCountSubtitleShown: Bool {
-		timelineFeed != nil && timelineUnreadCount > 0 && AppDefaults.shared.unreadCountDisplay == .count
+	/// "12 in Queue" while the Queue is showing and has articles. Archive shows no count.
+	private var queueCountSubtitle: String? {
+		guard timelineFeed as AnyObject? === SmartFeedsController.shared.unreadFeed, timelineUnreadCount > 0 else {
+			return nil
+		}
+		let format = NSLocalizedString("%d in Queue", comment: "Timeline subtitle: the number of articles in the Queue")
+		return String.localizedStringWithFormat(format, timelineUnreadCount)
 	}
 
 	private static let minimumTimelineWidth: CGFloat = 280
@@ -344,7 +317,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(themeDownloadDidFail(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(updateNavigationBarSubtitles(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 
 		NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
 			Task { @MainActor in
@@ -358,8 +330,6 @@ struct SidebarItemNode: Hashable, Sendable {
 
 		let stateInfo = StateRestorationInfo()
 		isRestoringState = true
-
-		hidingReadArticlesState.copy(from: stateInfo)
 
 		// Ensure the view is loaded so dataSource is initialized before rebuilding
 		_ = mainFeedCollectionViewController.view
@@ -428,11 +398,10 @@ struct SidebarItemNode: Hashable, Sendable {
 			switch activityType {
 			case .selectFeed:
 				self.handleSelectFeed(activity.userInfo)
-			case .nextUnread:
-				self.selectFirstUnreadInAllUnread()
 			case .readArticle:
 				self.handleReadArticle(activity.userInfo)
-			case .restoration, .addFeedIntent:
+			case .restoration, .addFeedIntent, .nextUnread:
+				// NextUnread isn't in NSUserActivityTypes any more, so it doesn't arrive.
 				break
 			}
 		}
@@ -448,12 +417,6 @@ struct SidebarItemNode: Hashable, Sendable {
 			mainTimelineViewController?.focus()
 		} else {
 			mainFeedCollectionViewController?.focus()
-		}
-	}
-
-	func selectFirstUnreadInAllUnread() {
-		selectListWhenSidebarIsReady(SmartFeedsController.shared.unreadFeed, animations: []) {
-			self.selectFirstUnreadArticleInTimeline()
 		}
 	}
 
@@ -532,7 +495,7 @@ struct SidebarItemNode: Hashable, Sendable {
 
 	@objc func willEnterForeground(_ note: Notification) {
 		// Don’t interfere with any fetch requests that we may have initiated before the app was returned to the foreground.
-		// For example if you select Next Unread from the Home Screen Quick actions, you can start a request before we are
+		// For example if you select Queue from the Home Screen Quick actions, you can start a request before we are
 		// in the foreground.
 		if !fetchRequestQueue.isAnyCurrentRequest {
 			queueFetchAndMergeArticles()
@@ -562,10 +525,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		updateNavigationBarSubtitles(nil)
-	}
-
 	/// Updates navigation bar subtitles in response to list selection, unread count changes,
 	/// `progressInfoDidChange` notifications, and a timed refresh every
 	/// 60s.
@@ -577,9 +536,9 @@ struct SidebarItemNode: Hashable, Sendable {
 	/// - After syncing: the sidebar displays "Synced <#relative_time#>" on both iPhone and iPad.
 	///
 	/// `MainTimelineViewController`
-	/// - Where the unread count for the timeline is > 0 and the Unread Counts setting is Show, this is displayed on both iPhone and iPad.
-	/// - If the timeline count is 0, the iPhone follows the same logic as `MainFeedViewController`
-	/// - Specific to iPad, if the unread count is 0, the iPad will not display a subtitle. The sync text
+	/// - When the Queue is showing and has articles, its count ("12 in Queue") is displayed on both iPhone and iPad.
+	/// - Otherwise (an empty Queue, or Archive), the iPhone follows the same logic as `MainFeedViewController`
+	/// - Specific to iPad, with no count the iPad will not display a subtitle. The sync text
 	/// will generally be visible in the sidebar and there’s no need to display it twice.
 	///
 	/// - Parameter note: Optional `Notification`
@@ -600,13 +559,10 @@ struct SidebarItemNode: Hashable, Sendable {
 						self.mainFeedCollectionViewController?.navigationItem.subtitle = refreshText
 					}
 
-					// If unread count > 0, add unread string to timeline
-					if isTimelineUnreadCountSubtitleShown {
-						let localizedUnreadCount = NSLocalizedString("%i Unread", comment: "14 Unread")
-						let unreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
-						self.mainTimelineViewController?.updateNavigationBarSubtitle(unreadCount)
+					if let queueCountSubtitle {
+						self.mainTimelineViewController?.updateNavigationBarSubtitle(queueCountSubtitle)
 					} else {
-						// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
+						// With no Queue count, iPhone timeline displays the Synced text; iPad is blank
 						if UIDevice.current.userInterfaceIdiom == .phone {
 							self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshText)
 						} else {
@@ -619,13 +575,10 @@ struct SidebarItemNode: Hashable, Sendable {
 						self.mainFeedCollectionViewController?.navigationItem.subtitle = NSLocalizedString("Synced Just Now", comment: "Synced Just Now")
 					}
 
-					// If unread count > 0, add unread string to timeline
-					if isTimelineUnreadCountSubtitleShown {
-						let localizedUnreadCount = NSLocalizedString("%i Unread", comment: "14 Unread")
-						let refreshTextWithUnreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
-						self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshTextWithUnreadCount)
+					if let queueCountSubtitle {
+						self.mainTimelineViewController?.updateNavigationBarSubtitle(queueCountSubtitle)
 					} else {
-						// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
+						// With no Queue count, iPhone timeline displays Synced Just Now; iPad is blank
 						if UIDevice.current.userInterfaceIdiom == .phone {
 							self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Synced Just Now", comment: "Synced Just Now"))
 						} else {
@@ -637,13 +590,10 @@ struct SidebarItemNode: Hashable, Sendable {
 				if #available(iOS 26, *) {
 					self.mainFeedCollectionViewController?.navigationItem.subtitle = ""
 				}
-				// If unread count > 0, add unread string to timeline
-				if isTimelineUnreadCountSubtitleShown {
-					let localizedUnreadCount = NSLocalizedString("%i Unread", comment: "14 Unread")
-					let refreshTextWithUnreadCount = NSString.localizedStringWithFormat(localizedUnreadCount as NSString, timelineUnreadCount) as String
-					self.mainTimelineViewController?.updateNavigationBarSubtitle(refreshTextWithUnreadCount)
+				if let queueCountSubtitle {
+					self.mainTimelineViewController?.updateNavigationBarSubtitle(queueCountSubtitle)
 				} else {
-					// When unread count == 0, iPhone timeline displays Synced Just Now; iPad is blank
+					// With no Queue count, iPhone timeline displays Synced Just Now; iPad is blank
 					if UIDevice.current.userInterfaceIdiom == .phone {
 						self.mainTimelineViewController?.updateNavigationBarSubtitle(NSLocalizedString("Synced Just Now", comment: "Synced Just Now"))
 					} else {
@@ -673,10 +623,6 @@ struct SidebarItemNode: Hashable, Sendable {
 	}
 
 	// MARK: API
-
-	func didEnterBackground() {
-		hidingReadArticlesState.save()
-	}
 
 	func timelineDidLayout() {
 		saveColumnWidthsQueue.add(self, #selector(saveTimelineWidth))
@@ -719,67 +665,11 @@ struct SidebarItemNode: Hashable, Sendable {
 		fetchRequestQueue.cancelAllRequests()
 	}
 
-	func cleanUp() {
-		Self.logger.debug("SceneCoordinator: cleanUp")
-		removeArticlesHiddenByReadFilter()
-	}
-
-	func removeArticlesHiddenByReadFilter() {
-		removeReadArticles { _ in true }
-	}
-
-	// Marking one feed read shouldn’t make another feed’s already-read rows disappear.
-	func removeArticlesHiddenByReadFilter(among articleIDs: Set<String>) {
-		removeReadArticles { articleIDs.contains($0.articleID) }
-	}
-
-	// Cleanup dropped these articles, so fetching is the only way to get the rows back.
-	func restoreArticlesToTimeline() {
-		guard isReadArticlesFiltered else {
-			return
-		}
-
-		queueFetchAndMergeArticles()
-	}
-
-	private func removeReadArticles(where isEligible: @escaping (Article) -> Bool) {
-		let sidebarItemID = timelineFeed?.sidebarItemID
-
-		// A snapshot applied during a UIKit transition gets dropped, so wait it out.
-		Task { @MainActor in
-			// If the timeline moved on while we waited, it’s not the one the user acted on.
-			guard sidebarItemID == self.timelineFeed?.sidebarItemID, self.isReadArticlesFiltered else {
-				return
-			}
-
-			// Keep the open article — don’t pull the row out from under what the user is reading.
-			let remainingArticles = self.articles.filter { article in
-				!article.status.read || !isEligible(article) || self.isCurrentArticle(article)
-			}
-			self.replaceArticles(with: remainingArticles, animated: true)
-		}
-	}
-
 	private func isCurrentArticle(_ article: Article) -> Bool {
 		guard let currentArticle else {
 			return false
 		}
 		return article.articleID == currentArticle.articleID && article.accountID == currentArticle.accountID
-	}
-
-	func shouldShowFilterButton() -> Bool {
-		guard let sidebarItemID = timelineFeed?.sidebarItemID else {
-			return false
-		}
-		return hidingReadArticlesState.canToggleHidingReadArticles(for: sidebarItemID)
-	}
-
-	func toggleReadArticlesFilter() {
-		guard let sidebarItemID = timelineFeed?.sidebarItemID else {
-			return
-		}
-		hidingReadArticlesState.toggleHidingReadArticles(for: sidebarItemID)
-		refreshTimeline(resetScroll: false)
 	}
 
 	func nodeFor(sidebarItemID: SidebarItemIdentifier) -> Node? {
@@ -1016,76 +906,10 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func selectPrevUnread() {
-
-		// This should never happen, but I don’t want to risk throwing us
-		// into an infinite loop searching for an unread that isn’t there.
-		if AccountManager.shared.unreadCount < 1 {
-			return
-		}
-
-		if selectPrevUnreadArticleInTimeline() {
-			return
-		}
-
-		// Disable navigation only while hopping to the Inbox, so the intermediate
-		// timeline isn’t pushed. Selecting within the current timeline must be able to
-		// push the article view controller.
-		isNavigationDisabled = true
-		defer {
-			isNavigationDisabled = false
-		}
-
-		if self.isSearching {
-			self.mainTimelineViewController?.hideSearch()
-		}
-
-		selectInboxForUnreadWalk {
-			self.afterTimelineTransition {
-				self.selectPrevUnreadArticleInTimeline()
-			}
-		}
-	}
-
-	func selectNextUnread() {
-
-		// Flush coalesced unread-count updates so folder counts are current.
-		CoalescingQueue.standard.performCallsImmediately()
-
-		// This should never happen, but I don’t want to risk throwing us
-		// into an infinite loop searching for an unread that isn’t there.
-		if AccountManager.shared.unreadCount < 1 {
-			return
-		}
-
-		if selectNextUnreadArticleInTimeline() {
-			return
-		}
-
-		// Disable navigation only while hopping to the Inbox, so the intermediate
-		// timeline isn’t pushed. Selecting within the current timeline must be able to
-		// push the article view controller.
-		isNavigationDisabled = true
-		defer {
-			isNavigationDisabled = false
-		}
-
-		if self.isSearching {
-			self.mainTimelineViewController?.hideSearch()
-		}
-
-		selectInboxForUnreadWalk {
-			self.afterTimelineTransition {
-				self.selectNextUnreadArticleInTimeline()
-			}
-		}
-	}
-
-	func scrollOrGoToNextUnread() {
+	/// Space bar: page the article down.
+	func scrollDown() {
 		if articleViewController?.canScrollDown() ?? false {
 			articleViewController?.scrollPageDown()
-		} else {
-			selectNextUnread()
 		}
 	}
 
@@ -1095,85 +919,16 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
+	/// Archives the articles. They leave the Queue through `keepOnlyListMembers`; undo brings them back.
 	func markAllAsRead(_ articles: [Article], completion: (() -> Void)? = nil) {
 		markArticlesWithUndo(articles, statusKey: .read, flag: true, completion: completion)
 	}
 
-	// The marked articles are in the timeline. Remove them. Undo brings them back.
-	func markAllAsReadInTimeline(_ articlesToMark: [Article], completion: (() -> Void)? = nil) {
-		let articleIDs = Set(articlesToMark.articleIDs())
-
-		markArticlesWithUndo(articlesToMark, statusKey: .read, flag: true, completion: completion) { [weak self] markedAsRead in
-			if markedAsRead {
-				self?.removeArticlesHiddenByReadFilter(among: articleIDs)
-			} else {
-				self?.restoreArticlesToTimeline()
-			}
-		}
-	}
-
-	// From the sidebar: clean up only when the marked item is the one the timeline is showing.
-	func markAllAsRead(_ articlesToMark: [Article], in sidebarItem: SidebarItem, completion: (() -> Void)? = nil) {
-		if sidebarItem.sidebarItemID == timelineFeed?.sidebarItemID {
-			markAllAsReadInTimeline(articlesToMark, completion: completion)
-		} else {
-			markAllAsRead(articlesToMark, completion: completion)
-		}
-	}
-
 	func markAsReadAndShowSidebar(_ articlesToMark: [Article], completion: (() -> Void)? = nil) {
-		markAllAsReadInTimeline(articlesToMark) {
+		markAllAsRead(articlesToMark) {
 			self.rootSplitViewController.preferredDisplayMode = .twoBesideSecondary
 			self.rootSplitViewController.showColumn(.primary, bypassDisplayModeRestriction: true)
 			completion?()
-		}
-	}
-
-	func canMarkAboveAsRead(for article: Article) -> Bool {
-		let articlesAboveArray = articles.articlesAbove(article: article)
-		return articlesAboveArray.canMarkAllAsRead()
-	}
-
-	func markAboveAsRead() {
-		guard let currentArticle = currentArticle else {
-			return
-		}
-
-		markAboveAsRead(currentArticle)
-	}
-
-	func markAboveAsRead(_ article: Article) {
-		let articlesAboveArray = articles.articlesAbove(article: article)
-		markAllAsReadInTimeline(articlesAboveArray)
-	}
-
-	func canMarkBelowAsRead(for article: Article) -> Bool {
-		let articleBelowArray = articles.articlesBelow(article: article)
-		return articleBelowArray.canMarkAllAsRead()
-	}
-
-	func markBelowAsRead() {
-		guard let currentArticle = currentArticle else {
-			return
-		}
-
-		markBelowAsRead(currentArticle)
-	}
-
-	func markBelowAsRead(_ article: Article) {
-		let articleBelowArray = articles.articlesBelow(article: article)
-		markAllAsReadInTimeline(articleBelowArray)
-	}
-
-	func markAsReadForCurrentArticle() {
-		if let article = currentArticle {
-			markArticlesWithUndo([article], statusKey: .read, flag: true)
-		}
-	}
-
-	func markAsUnreadForCurrentArticle() {
-		if let article = currentArticle {
-			markArticlesWithUndo([article], statusKey: .read, flag: false)
 		}
 	}
 
@@ -1195,16 +950,6 @@ struct SidebarItemNode: Hashable, Sendable {
 			return
 		}
 		markArticlesWithUndo([article], statusKey: .read, flag: !article.status.read)
-	}
-
-	func toggleStarredForCurrentArticle() {
-		if let article = currentArticle {
-			toggleStar(article)
-		}
-	}
-
-	func toggleStar(_ article: Article) {
-		markArticlesWithUndo([article], statusKey: .starred, flag: !article.status.starred)
 	}
 
 	func showStatusBar() {
@@ -1439,8 +1184,6 @@ extension SceneCoordinator: UINavigationControllerDelegate {
 
 		// If we are using a phone and navigate away from the detail, clear up the article resources (including activity).
 		// Don’t clear it if we have pushed an ArticleViewController, but don’t yet see it on the navigation stack.
-		// This happens when we are going to the next unread and we need to grab another timeline to continue.  The
-		// ArticleViewController will be pushed, but we will briefly show the Timeline.  Don’t clear things out when that happens.
 		// Also skip during state restoration so we don’t clear the restored article.
 		if viewController === mainTimelineViewController && rootSplitViewController.isCollapsed && !isArticleViewControllerPending && !isRestoringState {
 			currentArticle = nil
@@ -1527,9 +1270,9 @@ private extension SceneCoordinator {
 		}
 	}
 
-	func markArticlesWithUndo(_ articles: [Article], statusKey: ArticleStatus.Key, flag: Bool, completion: (() -> Void)? = nil, didMark: ((Bool) -> Void)? = nil) {
+	func markArticlesWithUndo(_ articles: [Article], statusKey: ArticleStatus.Key, flag: Bool, completion: (() -> Void)? = nil) {
 		guard let undoManager = undoManager,
-			  let markReadCommand = MarkStatusCommand(initialArticles: articles, statusKey: statusKey, flag: flag, undoManager: undoManager, completion: completion, didMark: didMark) else {
+			  let markReadCommand = MarkStatusCommand(initialArticles: articles, statusKey: statusKey, flag: flag, undoManager: undoManager, completion: completion) else {
 			completion?()
 			return
 		}
@@ -1564,34 +1307,6 @@ private extension SceneCoordinator {
 	func selectListWhenSidebarIsReady(_ sidebarItem: SidebarItem, animations: Animations = [.navigation, .scroll], completion: (() -> Void)? = nil) {
 		rebuildBackingStores {
 			self.selectFeed(sidebarItem, animations: animations, completion: completion)
-		}
-	}
-
-	/// Every unread article is in the Inbox, so an unread walk that runs out of
-	/// unread articles in the current list continues there.
-	func selectInboxForUnreadWalk(completion: @escaping () -> Void) {
-		guard let indexPath = indexPathFor(SmartFeedsController.shared.unreadFeed) else {
-			completion()
-			return
-		}
-		selectSidebarItem(indexPath: indexPath, animations: [.scroll, .navigation], deselectArticle: false) {
-			self.currentArticle = nil
-			completion()
-		}
-	}
-
-	/// The supplementary push from selectSidebarItem may still be animating when
-	/// its completion fires — the async data fetch can outrun the push animation
-	/// in compact mode. Wait for the in-flight transition before pushing the
-	/// article view controller, or UIKit aborts with NSInternalInconsistencyException
-	/// from -[UINavigationController pushViewController:transition:forceImmediate:].
-	func afterTimelineTransition(_ block: @escaping @MainActor () -> Void) {
-		if let coordinator = mainTimelineViewController?.navigationController?.transitionCoordinator {
-			coordinator.animate(alongsideTransition: nil) { _ in
-				block()
-			}
-		} else {
-			block()
 		}
 	}
 
@@ -1648,77 +1363,6 @@ private extension SceneCoordinator {
 			self.mainTimelineViewController?.reinitializeArticles(resetScroll: true)
 			completion?()
 		}
-	}
-
-	// MARK: Select Prev Unread
-
-	@discardableResult
-	func selectPrevUnreadArticleInTimeline() -> Bool {
-		let startingRow: Int = {
-			if let articleRow = currentArticleRow {
-				return articleRow
-			} else {
-				return articles.count - 1
-			}
-		}()
-
-		return selectPrevArticleInTimeline(startingRow: startingRow)
-	}
-
-	func selectPrevArticleInTimeline(startingRow: Int) -> Bool {
-
-		guard startingRow >= 0 else {
-			return false
-		}
-
-		for i in (0...startingRow).reversed() {
-			let article = articles[i]
-			if !article.status.read {
-				selectArticle(article)
-				return true
-			}
-		}
-
-		return false
-
-	}
-
-	// MARK: Select Next Unread
-
-	@discardableResult
-	func selectFirstUnreadArticleInTimeline() -> Bool {
-		return selectNextArticleInTimeline(startingRow: 0, animated: true)
-	}
-
-	@discardableResult
-	func selectNextUnreadArticleInTimeline() -> Bool {
-		let startingRow: Int = {
-			if let articleRow = currentArticleRow {
-				return articleRow + 1
-			} else {
-				return 0
-			}
-		}()
-
-		return selectNextArticleInTimeline(startingRow: startingRow, animated: false)
-	}
-
-	func selectNextArticleInTimeline(startingRow: Int, animated: Bool) -> Bool {
-
-		guard startingRow < articles.count else {
-			return false
-		}
-
-		for i in startingRow..<articles.count {
-			let article = articles[i]
-			if !article.status.read {
-				selectArticle(article, animations: [.scroll, .navigation])
-				return true
-			}
-		}
-
-		return false
-
 	}
 
 	// MARK: Fetching Articles
@@ -1807,7 +1451,7 @@ private extension SceneCoordinator {
 		if emptyFirst {
 			emptyTheTimeline()
 		} else if let article = currentArticle, let account = article.account {
-			// Keeping the timeline in place keeps the open article, even when the read filter excludes it.
+			// Keeping the timeline in place keeps the open article, even when it has left the list.
 			exceptionArticleFetcher = SingleArticleFetcher(account: account, articleID: article.articleID)
 		}
 		guard let timelineFeed = timelineFeed else {
@@ -1836,7 +1480,7 @@ private extension SceneCoordinator {
 		cancelPendingAsyncFetches()
 
 		let fetchers = representedObjects.compactMap { $0 as? ArticleFetcher }
-		let fetchOperation = FetchRequestOperation(id: fetchSerialNumber, hidingReadArticlesState: hidingReadArticlesState, fetchers: fetchers) { [weak self] (articles, operation) in
+		let fetchOperation = FetchRequestOperation(id: fetchSerialNumber, fetchers: fetchers) { [weak self] (articles, operation) in
 			precondition(Thread.isMainThread)
 			guard !operation.isCanceled, let strongSelf = self, operation.id == strongSelf.fetchSerialNumber else {
 				return

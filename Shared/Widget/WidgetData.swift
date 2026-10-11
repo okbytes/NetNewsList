@@ -9,17 +9,9 @@
 import Foundation
 
 struct WidgetData: Codable {
-	let totalUnreadCount: Int
-	let totalStarredCount: Int
-	let unreadArticles: [LatestArticle]
-	let starredArticles: [LatestArticle]
+	let queueCount: Int
+	let queueArticles: [LatestArticle]
 	let lastUpdateTime: Date
-	let unreadCountDisplay: UnreadCountDisplay?
-
-	/// Data written before this setting existed has no value, which means `.count`.
-	var effectiveUnreadCountDisplay: UnreadCountDisplay {
-		unreadCountDisplay ?? .count
-	}
 }
 
 struct LatestArticle: Codable, Identifiable, Hashable {
@@ -29,4 +21,10 @@ struct LatestArticle: Codable, Identifiable, Hashable {
 	let articleSummary: String?
 	let feedIconPath: String? // Path to image data in shared container.
 	let pubDate: String
+}
+
+enum WidgetKind {
+	/// The Queue widget. The kind keeps its old name: widgets already on a Home Screen are stored under it.
+	static let queue = "NetNewsList.UnreadWidget"
+	static let lockScreenSummary = "NetNewsList.LockScreenSummaryWidget"
 }

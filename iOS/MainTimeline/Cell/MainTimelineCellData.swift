@@ -25,8 +25,6 @@ import Images
 	let showFeedName: ShowFeedName
 	let iconImage: IconImage? // feed icon, user avatar, or favicon
 	let showIcon: Bool // Make space even when icon is nil
-	let read: Bool
-	let starred: Bool
 	let numberOfLines: Int
 	let iconSize: IconSize
 
@@ -65,8 +63,6 @@ import Images
 		self.showIcon = showIcon
 		self.iconImage = iconImage
 
-		self.read = article.status.read
-		self.starred = article.status.starred
 		self.numberOfLines = numberOfLines
 		self.iconSize = iconSize
 
@@ -84,8 +80,6 @@ import Images
 		self.showFeedName = .none
 		self.showIcon = false
 		self.iconImage = nil
-		self.read = true
-		self.starred = false
 		self.numberOfLines = 0
 		self.iconSize = .medium
 	}

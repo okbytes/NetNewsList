@@ -135,9 +135,6 @@ private extension KeyboardManager {
 		let syncTitle = NSLocalizedString("Sync Now", comment: "Command")
 		keys.append(KeyboardManager.createKeyCommand(title: syncTitle, action: "sync:", input: "r", modifiers: [.command]))
 
-		let nextUnreadTitle = NSLocalizedString("Next Unread", comment: "Next Unread")
-		keys.append(KeyboardManager.createKeyCommand(title: nextUnreadTitle, action: "nextUnread:", input: "/", modifiers: [.command]))
-
 		let goToQueueTitle = NSLocalizedString("Go To Queue", comment: "Go To Queue")
 		keys.append(KeyboardManager.createKeyCommand(title: goToQueueTitle, action: "goToQueue:", input: "1", modifiers: [.command]))
 
@@ -152,12 +149,6 @@ private extension KeyboardManager {
 
 		let markAllAsReadTitle = NSLocalizedString("Archive All", comment: "Command")
 		keys.append(KeyboardManager.createKeyCommand(title: markAllAsReadTitle, action: "markAllAsRead:", input: "k", modifiers: [.command]))
-
-		let cleanUp = NSLocalizedString("Clean Up", comment: "Clean Up button")
-		keys.append(KeyboardManager.createKeyCommand(title: cleanUp, action: "cleanUp:", input: "'", modifiers: [.command]))
-
-		let toggleReadArticlesFilter = NSLocalizedString("Toggle Read Articles Filter", comment: "Toggle Read Articles Filter")
-		keys.append(KeyboardManager.createKeyCommand(title: toggleReadArticlesFilter, action: "toggleReadArticlesFilter:", input: "h", modifiers: [.command, .shift]))
 
 		let showOriginal = NSLocalizedString("Show Original", comment: "Show Original")
 		keys.append(KeyboardManager.createKeyCommand(title: showOriginal, action: "showOriginal:", input: "r", modifiers: [.command, .shift]))
@@ -183,17 +174,8 @@ private extension KeyboardManager {
 		let openInBrowserTitle = NSLocalizedString("Open In Browser", comment: "Open In Browser")
 		keys.append(KeyboardManager.createKeyCommand(title: openInBrowserTitle, action: "openInBrowser:", input: UIKeyCommand.inputRightArrow, modifiers: [.command]))
 
-		let toggleReadTitle = NSLocalizedString("Archive or Move to Inbox", comment: "Command")
+		let toggleReadTitle = NSLocalizedString("Archive or Move to Queue", comment: "Command")
 		keys.append(KeyboardManager.createKeyCommand(title: toggleReadTitle, action: "toggleRead:", input: "u", modifiers: [.command, .shift]))
-
-		let markAboveAsReadTitle = NSLocalizedString("Archive Above", comment: "Command")
-		keys.append(KeyboardManager.createKeyCommand(title: markAboveAsReadTitle, action: "markAboveAsRead:", input: "k", modifiers: [.command, .control]))
-
-		let markBelowAsReadTitle = NSLocalizedString("Archive Below", comment: "Command")
-		keys.append(KeyboardManager.createKeyCommand(title: markBelowAsReadTitle, action: "markBelowAsRead:", input: "k", modifiers: [.command, .shift]))
-
-		let toggleStarredTitle = NSLocalizedString("Toggle Starred Status", comment: "Toggle Starred Status")
-		keys.append(KeyboardManager.createKeyCommand(title: toggleStarredTitle, action: "toggleStarred:", input: "l", modifiers: [.command, .shift]))
 
 		let findInArticleTitle = NSLocalizedString("Find in Article", comment: "Find in Article")
 		keys.append(KeyboardManager.createKeyCommand(title: findInArticleTitle, action: "beginFind:", input: "f", modifiers: [.command]))

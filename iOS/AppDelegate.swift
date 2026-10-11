@@ -53,7 +53,6 @@ import Images
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
 	}
 
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
@@ -126,10 +125,10 @@ import Images
 		AppNotification.postLowMemory()
 	}
 
+	/// The badge is the number of articles in the Queue (none when it's empty).
 	private func updateBadge() {
 		assert(unreadCount == AccountManager.shared.unreadCount)
-		let badgeCount = AppDefaults.shared.unreadCountDisplay == .count ? unreadCount : 0
-		UNUserNotificationCenter.current().setBadgeCount(badgeCount)
+		UNUserNotificationCenter.current().setBadgeCount(unreadCount)
 	}
 
 	// MARK: Notifications
@@ -138,10 +137,6 @@ import Images
 		if note.object is AccountManager {
 			unreadCount = AccountManager.shared.unreadCount
 		}
-	}
-
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		updateBadge()
 	}
 
 	// MARK: - API
@@ -223,9 +218,9 @@ private extension AppDelegate {
 	}
 
 	private func initializeHomeScreenQuickActions() {
-		let unreadTitle = NSLocalizedString("First Unread", comment: "First Unread")
-		let unreadIcon = UIApplicationShortcutIcon(systemImageName: "chevron.down.circle")
-		let unreadItem = UIApplicationShortcutItem(type: "NetNewsList.FirstUnread", localizedTitle: unreadTitle, localizedSubtitle: nil, icon: unreadIcon, userInfo: nil)
+		let queueTitle = NSLocalizedString("Queue", comment: "Home Screen quick action that opens the Queue")
+		let queueIcon = UIApplicationShortcutIcon(systemImageName: "tray.fill")
+		let queueItem = UIApplicationShortcutItem(type: "NetNewsList.ShowQueue", localizedTitle: queueTitle, localizedSubtitle: nil, icon: queueIcon, userInfo: nil)
 
 		let searchTitle = NSLocalizedString("Search", comment: "Search")
 		let searchIcon = UIApplicationShortcutIcon(systemImageName: "magnifyingglass")
@@ -235,7 +230,7 @@ private extension AppDelegate {
 		let addIcon = UIApplicationShortcutIcon(systemImageName: "plus")
 		let addItem = UIApplicationShortcutItem(type: "NetNewsList.ShowAdd", localizedTitle: addTitle, localizedSubtitle: nil, icon: addIcon, userInfo: nil)
 
-		UIApplication.shared.shortcutItems = [addItem, searchItem, unreadItem]
+		UIApplication.shared.shortcutItems = [addItem, searchItem, queueItem]
 	}
 
 }

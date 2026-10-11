@@ -12,8 +12,6 @@ import Images
 
 @MainActor protocol MainTimelineCellLayout {
 	var height: CGFloat { get }
-	var unreadIndicatorRect: CGRect { get }
-	var starRect: CGRect { get }
 	var iconImageRect: CGRect { get }
 	var titleRect: CGRect { get }
 	var summaryRect: CGRect { get }
@@ -23,23 +21,6 @@ import Images
 }
 
 extension MainTimelineCellLayout {
-
-	static func rectForUnreadIndicator(_ point: CGPoint) -> CGRect {
-		var r = CGRect.zero
-		r.size = CGSize(width: MainTimelineDefaultCellLayout.unreadCircleDimension, height: MainTimelineDefaultCellLayout.unreadCircleDimension)
-		r.origin.x = point.x
-		r.origin.y = point.y + 5
-		return r
-	}
-
-	static func rectForStar(_ point: CGPoint) -> CGRect {
-		var r = CGRect.zero
-		r.size.width = MainTimelineDefaultCellLayout.starDimension
-		r.size.height = MainTimelineDefaultCellLayout.starDimension
-		r.origin.x = floor(point.x - ((MainTimelineDefaultCellLayout.starDimension - MainTimelineDefaultCellLayout.unreadCircleDimension) / 2.0))
-		r.origin.y = point.y + 3
-		return r
-	}
 
 	static func rectForIconView(_ point: CGPoint, iconSize: IconSize) -> CGRect {
 		var r = CGRect.zero
@@ -97,13 +78,8 @@ extension MainTimelineCellLayout {
 
 struct MainTimelineDefaultCellLayout: MainTimelineCellLayout {
 
-	static let cellPadding = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 20)
-
-	static let unreadCircleMarginLeft = CGFloat(0)
-	static let unreadCircleDimension = CGFloat(12)
-	static let unreadCircleMarginRight = CGFloat(8)
-
-	static let starDimension = CGFloat(16)
+	// No unread dot or star column on the leading side, so the padding matches the trailing side.
+	static let cellPadding = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
 
 	static let iconMarginRight = CGFloat(8)
 	static let iconCornerRadius = CGFloat(4)
@@ -120,8 +96,6 @@ struct MainTimelineDefaultCellLayout: MainTimelineCellLayout {
 	static var summaryFont: UIFont { UIFont.preferredFont(forTextStyle: .body) }
 
 	let height: CGFloat
-	let unreadIndicatorRect: CGRect
-	let starRect: CGRect
 	let iconImageRect: CGRect
 	let titleRect: CGRect
 	let summaryRect: CGRect
@@ -132,13 +106,8 @@ struct MainTimelineDefaultCellLayout: MainTimelineCellLayout {
 	init(width: CGFloat, insets: UIEdgeInsets, cellData: MainTimelineCellData) {
 
 		var currentPoint = CGPoint.zero
-		currentPoint.x = Self.cellPadding.left + insets.left + Self.unreadCircleMarginLeft
+		currentPoint.x = Self.cellPadding.left + insets.left
 		currentPoint.y = Self.cellPadding.top
-
-		self.unreadIndicatorRect = Self.rectForUnreadIndicator(currentPoint)
-		self.starRect = Self.rectForStar(currentPoint)
-
-		currentPoint.x += Self.unreadCircleDimension + Self.unreadCircleMarginRight
 
 		if cellData.showIcon {
 			self.iconImageRect = Self.rectForIconView(currentPoint, iconSize: cellData.iconSize)
@@ -189,8 +158,6 @@ struct MainTimelineDefaultCellLayout: MainTimelineCellLayout {
 struct MainTimelineAccessibilityCellLayout: MainTimelineCellLayout {
 
 	let height: CGFloat
-	let unreadIndicatorRect: CGRect
-	let starRect: CGRect
 	let iconImageRect: CGRect
 	let titleRect: CGRect
 	let summaryRect: CGRect
@@ -201,13 +168,8 @@ struct MainTimelineAccessibilityCellLayout: MainTimelineCellLayout {
 	init(width: CGFloat, insets: UIEdgeInsets, cellData: MainTimelineCellData) {
 
 		var currentPoint = CGPoint.zero
-		currentPoint.x = MainTimelineDefaultCellLayout.cellPadding.left + insets.left + MainTimelineDefaultCellLayout.unreadCircleMarginLeft
+		currentPoint.x = MainTimelineDefaultCellLayout.cellPadding.left + insets.left
 		currentPoint.y = MainTimelineDefaultCellLayout.cellPadding.top
-
-		self.unreadIndicatorRect = Self.rectForUnreadIndicator(currentPoint)
-		self.starRect = Self.rectForStar(currentPoint)
-
-		currentPoint.x += MainTimelineDefaultCellLayout.unreadCircleDimension + MainTimelineDefaultCellLayout.unreadCircleMarginRight
 
 		if cellData.showIcon {
 			self.iconImageRect = Self.rectForIconView(currentPoint, iconSize: cellData.iconSize)

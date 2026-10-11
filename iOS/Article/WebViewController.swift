@@ -298,14 +298,7 @@ extension WebViewController: UIContextMenuInteractionDelegate {
 				menus.append(UIMenu(title: "", options: .displayInline, children: navActions))
 			}
 
-			var toggleActions = [UIAction]()
 			if let action = self.toggleReadAction() {
-				toggleActions.append(action)
-			}
-			toggleActions.append(self.toggleStarredAction())
-			menus.append(UIMenu(title: "", options: .displayInline, children: toggleActions))
-
-			if let action = self.nextUnreadArticleAction() {
 				menus.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
 
@@ -760,27 +753,10 @@ private extension WebViewController {
 	func toggleReadAction() -> UIAction? {
 		guard let article = article, !article.status.read || article.isAvailableToMarkUnread else { return nil }
 
-		let title = article.status.read ? NSLocalizedString("Move to Inbox", comment: "Command") : NSLocalizedString("Archive", comment: "Command")
+		let title = article.status.read ? NSLocalizedString("Move to Queue", comment: "Command") : NSLocalizedString("Archive", comment: "Command")
 		let readImage = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
 		return UIAction(title: title, image: readImage) { [weak self] _ in
 			self?.coordinator.toggleReadForCurrentArticle()
-		}
-	}
-
-	func toggleStarredAction() -> UIAction {
-		let starred = article?.status.starred ?? false
-		let title = starred ? NSLocalizedString("Mark as Unstarred", comment: "Command") : NSLocalizedString("Mark as Starred", comment: "Command")
-		let starredImage = starred ? Assets.Images.starOpen : Assets.Images.starClosed
-		return UIAction(title: title, image: starredImage) { [weak self] _ in
-			self?.coordinator.toggleStarredForCurrentArticle()
-		}
-	}
-
-	func nextUnreadArticleAction() -> UIAction? {
-		guard coordinator.isNextUnreadAvailable else { return nil }
-		let title = NSLocalizedString("Next Unread Article", comment: "Next Unread Article")
-		return UIAction(title: title, image: Assets.Images.nextUnread) { [weak self] _ in
-			self?.coordinator.selectNextUnread()
 		}
 	}
 

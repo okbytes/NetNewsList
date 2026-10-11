@@ -64,7 +64,6 @@ final class AppDefaults: Sendable {
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
-		static let smartFeedsHidingReadArticles = "smartFeedsHidingReadArticles"
 		static let selectedSidebarItem = "selectedSidebarItem"
 		static let selectedArticle = "selectedArticle"
 		static let splitViewPreferredDisplayMode = "splitViewPreferredDisplayMode"
@@ -245,17 +244,6 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var smartFeedsHidingReadArticles: Set<String> {
-		get {
-			let smartFeedIDs = UserDefaults.standard.array(forKey: Key.smartFeedsHidingReadArticles) as? [String] ?? []
-			return Set(smartFeedIDs)
-		}
-		set {
-			let array = Array(newValue)
-			UserDefaults.standard.set(array, forKey: Key.smartFeedsHidingReadArticles)
-		}
-	}
-
 	var selectedSidebarItem: SidebarItemIdentifier? {
 		get {
 			guard let userInfo = UserDefaults.standard.dictionary(forKey: Key.selectedSidebarItem) as? [String: String] else {
@@ -293,7 +281,8 @@ final class AppDefaults: Sendable {
 										Key.timelineGroupByFeed: false,
 										Key.timelineNumberOfLines: 2,
 										Key.timelineIconDimension: IconSize.medium.rawValue,
-										Key.timelineSortDirection: ComparisonResult.orderedDescending.rawValue,
+										// Oldest first: a reading list is read in the order it was saved.
+										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 										Key.articleFullscreenAvailable: false,
 										Key.articleFullscreenEnabled: false,
 										Key.confirmMarkAllAsRead: true,
@@ -366,21 +355,18 @@ private extension AppDefaults {
 
 struct StateRestorationInfo {
 	let selectedSidebarItem: SidebarItemIdentifier?
-	let smartFeedsHidingReadArticles: Set<String>
 	let selectedArticle: ArticleSpecifier?
 	let articleWindowScrollY: Int
 
 	init() {
 		let selectedSidebarItem = AppDefaults.shared.selectedSidebarItem
-		let smartFeedsHidingReadArticles = AppDefaults.shared.smartFeedsHidingReadArticles
 		let selectedArticle = AppDefaults.shared.selectedArticle
 		let articleWindowScrollY = AppDefaults.shared.articleWindowScrollY
 
 		self.selectedSidebarItem = selectedSidebarItem
-		self.smartFeedsHidingReadArticles = smartFeedsHidingReadArticles
 		self.selectedArticle = selectedArticle
 		self.articleWindowScrollY = articleWindowScrollY
 
-		AppDefaults.logger.debug("AppDefaults: StateRestorationInfo:\nselectedSidebarItem: \(selectedSidebarItem?.userInfo ?? [String: String]())\nsmartFeedsHidingReadArticles: \(smartFeedsHidingReadArticles)\nselectedArticle: \(selectedArticle?.dictionary ?? [String: String]())\narticleWindowScrollY: \(articleWindowScrollY)")
+		AppDefaults.logger.debug("AppDefaults: StateRestorationInfo:\nselectedSidebarItem: \(selectedSidebarItem?.userInfo ?? [String: String]())\nselectedArticle: \(selectedArticle?.dictionary ?? [String: String]())\narticleWindowScrollY: \(articleWindowScrollY)")
 	}
 }

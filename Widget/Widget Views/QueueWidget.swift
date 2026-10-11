@@ -1,5 +1,5 @@
 //
-//  UnreadWidget.swift
+//  QueueWidget.swift
 //  NetNewsWire Widget Extension
 //
 //  Created by Stuart Breckenridge on 18/11/20.
@@ -9,22 +9,22 @@
 import WidgetKit
 import SwiftUI
 
-struct UnreadWidgetView: View {
+struct QueueWidgetView: View {
 	@Environment(\.widgetFamily) var family: WidgetFamily
 	@Environment(\.sizeCategory) var sizeCategory: ContentSizeCategory
 
 	var entry: Provider.Entry
 
 	var body: some View {
-		if entry.widgetData.totalUnreadCount == 0 {
-			inboxZero
-				.widgetURL(WidgetDeepLink.unread.url)
+		if entry.widgetData.queueCount == 0 {
+			emptyQueue
+				.widgetURL(WidgetDeepLink.queue.url)
 		} else {
 			VStack {
 				HStack(alignment: .center) {
-					unreadImage
+					queueImage
 						.layoutPriority(1)
-					Text("label.text.unread", comment: "Unread")
+					Text("label.text.queue", comment: "Queue")
 						.font(.caption2)
 						.bold()
 						.lineLimit(1)
@@ -33,8 +33,8 @@ struct UnreadWidgetView: View {
 						.layoutPriority(1)
 					Spacer()
 						.layoutPriority(0)
-					if entry.widgetData.totalUnreadCount - maxCount() > 0, let unreadCountText = entry.widgetData.effectiveUnreadCountDisplay.text(for: entry.widgetData.totalUnreadCount) {
-						Text(verbatim: unreadCountText)
+					if entry.widgetData.queueCount - maxCount() > 0 {
+						Text(verbatim: entry.widgetData.queueCount.formatted())
 							.font(.caption2)
 							.bold()
 							.foregroundColor(.secondary)
@@ -43,11 +43,11 @@ struct UnreadWidgetView: View {
 							.fixedSize(horizontal: false, vertical: true)
 					}
 				}
-				.widgetURL(WidgetDeepLink.unread.url)
+				.widgetURL(WidgetDeepLink.queue.url)
 				Divider()
-				ForEach(entry.widgetData.unreadArticles.prefix(maxCount())) { article in
+				ForEach(entry.widgetData.queueArticles.prefix(maxCount())) { article in
 					ArticleItemView(article: article,
-									deepLink: WidgetDeepLink.unreadArticle(id: article.id).url)
+									deepLink: WidgetDeepLink.queueArticle(id: article.id).url)
 				}
 				Spacer()
 			}
@@ -55,9 +55,10 @@ struct UnreadWidgetView: View {
 		}
 	}
 
-	var unreadImage: some View {
-		Image(systemName: "largecircle.fill.circle")
+	var queueImage: some View {
+		Image(systemName: "tray.fill")
 			.resizable()
+			.scaledToFit()
 			.frame(width: WidgetLayout.titleImageSize, height: WidgetLayout.titleImageSize, alignment: .top)
 			.foregroundColor(.accentColor)
 	}
@@ -69,25 +70,25 @@ struct UnreadWidgetView: View {
 		}
 
 		if family == .systemLarge {
-			return entry.widgetData.totalUnreadCount >= 7 ? (7 - reduceAccessibilityCount) : entry.widgetData.totalUnreadCount
+			return entry.widgetData.queueCount >= 7 ? (7 - reduceAccessibilityCount) : entry.widgetData.queueCount
 		}
-		return entry.widgetData.totalUnreadCount >= 3 ? (3 - reduceAccessibilityCount) : entry.widgetData.totalUnreadCount
+		return entry.widgetData.queueCount >= 3 ? (3 - reduceAccessibilityCount) : entry.widgetData.queueCount
 	}
 
-	var inboxZero: some View {
+	var emptyQueue: some View {
 		VStack(alignment: .center) {
 			Spacer()
-			Image(systemName: "largecircle.fill.circle")
+			Image(systemName: "tray.fill")
 				.resizable()
 				.scaledToFit()
 				.foregroundColor(.accentColor)
 				.frame(width: 30)
 
-			Text("label.text.unread", comment: "Unread")
+			Text("label.text.queue", comment: "Queue")
 				.font(.headline)
 				.foregroundColor(.primary)
 
-			Text("label.text.unread-no-articles", comment: "There are no unread articles.")
+			Text("label.text.queue-empty", comment: "The Queue has no articles.")
 				.font(.caption)
 				.foregroundColor(.gray)
 			Spacer()

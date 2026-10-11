@@ -60,67 +60,13 @@ final class RootSplitViewController: UISplitViewController {
 
 	// MARK: Keyboard Shortcuts
 
+	/// Space bar. GlobalKeyboardShortcuts.plist still names it for Next Unread, which is gone; it only scrolls now.
 	@objc func scrollOrGoToNextUnread(_ sender: Any?) {
-		coordinator.scrollOrGoToNextUnread()
+		coordinator.scrollDown()
 	}
 
 	@objc func scrollUp(_ sender: Any?) {
 		coordinator.scrollUp()
-	}
-
-	@objc func goToPreviousUnread(_ sender: Any?) {
-		coordinator.selectPrevUnread()
-	}
-
-	@objc func nextUnread(_ sender: Any?) {
-		coordinator.selectNextUnread()
-	}
-
-	@objc func markRead(_ sender: Any?) {
-		coordinator.markAsReadForCurrentArticle()
-	}
-
-	@objc func markUnreadAndGoToNextUnread(_ sender: Any?) {
-		coordinator.markAsUnreadForCurrentArticle()
-		coordinator.selectNextUnread()
-	}
-
-	@objc func markAllAsReadAndGoToNextUnread(_ sender: Any?) {
-		if !coordinator.isTimelineUnreadAvailable {
-			coordinator.selectNextUnread()
-			return
-		}
-		let articlesToMark = coordinator.articles
-		let title = NSLocalizedString("Archive All", comment: "Command")
-
-		let completion: () -> Void = { [weak self] in
-			guard let self else {
-				return
-			}
-			self.coordinator.markAsReadAndShowSidebar(articlesToMark) {
-				self.coordinator.selectNextUnread()
-			}
-		}
-
-		// Anchor to the Archive All button (keyboard shortcut has no source view).
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5370>
-		if let markAllAsReadButton = (viewController(for: .supplementary) as? MainTimelineViewController)?.markAllAsReadButton {
-			MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: markAllAsReadButton, completion: completion)
-		} else {
-			MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: view as UIView, completion: completion)
-		}
-	}
-
-	@objc func markAboveAsRead(_ sender: Any?) {
-		coordinator.markAboveAsRead()
-	}
-
-	@objc func markBelowAsRead(_ sender: Any?) {
-		coordinator.markBelowAsRead()
-	}
-
-	@objc func markUnread(_ sender: Any?) {
-		coordinator.markAsUnreadForCurrentArticle()
 	}
 
 	@objc func goToPreviousSubscription(_ sender: Any?) {
@@ -147,14 +93,6 @@ final class RootSplitViewController: UISplitViewController {
 		coordinator.showAddArticle()
 	}
 
-	@objc func cleanUp(_ sender: Any?) {
-		coordinator.cleanUp()
-	}
-
-	@objc func toggleReadArticlesFilter(_ sender: Any?) {
-		coordinator.toggleReadArticlesFilter()
-	}
-
 	@objc func sync(_ sender: Any?) {
 		appDelegate.manualRefresh(errorHandler: ErrorHandler.present(self))
 	}
@@ -177,9 +115,5 @@ final class RootSplitViewController: UISplitViewController {
 
 	@objc func showOriginal(_ sender: Any?) {
 		coordinator.showOriginalForCurrentArticle()
-	}
-
-	@objc func toggleStarred(_ sender: Any?) {
-		coordinator.toggleStarredForCurrentArticle()
 	}
 }

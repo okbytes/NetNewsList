@@ -25,16 +25,11 @@ final class MainFeedCollectionViewCell: UICollectionViewCell {
 		}
 	}
 
-	private var _unreadCount: Int = 0
-
-	var unreadCount: Int {
-		get {
-			return _unreadCount
-		}
-		set {
-			_unreadCount = newValue
-			unreadCountLabel.isHidden = AppDefaults.shared.unreadCountDisplay.text(for: newValue) == nil
-			unreadCountLabel.setUnreadCount(newValue)
+	/// The number of articles in the list. Only the Queue has one; nothing shows at 0.
+	var unreadCount: Int = 0 {
+		didSet {
+			unreadCountLabel.isHidden = unreadCount == 0
+			unreadCountLabel.text = unreadCount > 0 ? unreadCount.formatted() : nil
 			setNeedsUpdateConfiguration()
 		}
 	}
@@ -42,12 +37,10 @@ final class MainFeedCollectionViewCell: UICollectionViewCell {
 	override var accessibilityLabel: String? {
 		get {
 			let name = feedTitle.text ?? ""
-			if unreadCount > 0 && AppDefaults.shared.unreadCountDisplay == .count {
-				let unreadLabel = NSLocalizedString("unread", comment: "Unread label for accessibility")
-				return "\(name) \(unreadCount) \(unreadLabel)"
-			} else {
+			guard unreadCount > 0 else {
 				return name
 			}
+			return "\(name), \(unreadCount.formatted())"
 		}
 		set {}
 	}

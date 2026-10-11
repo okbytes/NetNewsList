@@ -44,12 +44,6 @@ import Account
 			Self.logger.error("WidgetDataEncoder: unable to create folder for images")
 			return nil
 		}
-
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUnreadCountDisplaySettingDidChange(_:)), name: .unreadCountDisplaySettingDidChange, object: nil)
-	}
-
-	@objc func handleUnreadCountDisplaySettingDidChange(_ notification: Notification) {
-		encode()
 	}
 
 	/// Fire-and-forget. Sets `isRunning` synchronously so the background-task wait loop
@@ -101,31 +95,14 @@ import Account
 	}
 
 	func reloadTimelines(newData: WidgetData, existingData: WidgetData?) {
-		if let existingData = existingData {
-			if existingData.effectiveUnreadCountDisplay != newData.effectiveUnreadCountDisplay {
-				WidgetCenter.shared.reloadAllTimelines()
-				Self.logger.debug("WidgetDataEncoder: Reloading all widgets because unread count display changed")
-				return
-			}
-
-			var shouldRefreshSummary = false
-
-			if existingData.unreadArticles != newData.unreadArticles {
-				WidgetCenter.shared.reloadTimelines(ofKind: "NetNewsList.UnreadWidget")
-				shouldRefreshSummary = true
-				Self.logger.debug("WidgetDataEncoder: Reloading Unread widget")
-			}
-
-			if existingData.starredArticles != newData.starredArticles {
-				WidgetCenter.shared.reloadTimelines(ofKind: "NetNewsList.StarredWidget")
-				shouldRefreshSummary = true
-				Self.logger.debug("WidgetDataEncoder: Reloading Starred widget")
-			}
-
-			if shouldRefreshSummary {
-				WidgetCenter.shared.reloadTimelines(ofKind: "NetNewsList.LockScreenSummaryWidget")
-				Self.logger.debug("WidgetDataEncoder: Reloading Summary widget")
-			}
+		guard let existingData else {
+			return
+		}
+		// Both widgets show the Queue count, so a change in the count alone reloads them too.
+		if existingData.queueArticles != newData.queueArticles || existingData.queueCount != newData.queueCount {
+			WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.queue)
+			WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.lockScreenSummary)
+			Self.logger.debug("WidgetDataEncoder: Reloading Queue and Summary widgets")
 		}
 	}
 
@@ -134,22 +111,12 @@ import Account
 @MainActor private extension WidgetDataEncoder {
 
 	func fetchWidgetData() async -> WidgetData {
-		let fetchedUnreadArticles = await AccountManager.shared.fetchArticlesAsync(.unread(fetchLimit))
-		let unreadArticles = sortedLatestArticles(fetchedUnreadArticles)
+		let fetchedQueueArticles = await AccountManager.shared.fetchArticlesAsync(.unread(fetchLimit))
+		let queueArticles = sortedLatestArticles(fetchedQueueArticles)
 
-		let fetchedStarredArticles = await AccountManager.shared.fetchArticlesAsync(.starred(fetchLimit))
-		let starredArticles = sortedLatestArticles(fetchedStarredArticles)
-
-		let totalStarredCount = await AccountManager.shared.fetchCountForStarredArticlesAsync()
-
-		let latestData = WidgetData(totalUnreadCount: SmartFeedsController.shared.unreadFeed.unreadCount,
-									totalStarredCount: totalStarredCount,
-									unreadArticles: unreadArticles,
-									starredArticles: starredArticles,
-									lastUpdateTime: Date.now,
-									unreadCountDisplay: AppDefaults.shared.unreadCountDisplay)
-
-		return latestData
+		return WidgetData(queueCount: SmartFeedsController.shared.unreadFeed.unreadCount,
+						  queueArticles: queueArticles,
+						  lastUpdateTime: Date.now)
 	}
 
 	func fileExists() -> Bool {
