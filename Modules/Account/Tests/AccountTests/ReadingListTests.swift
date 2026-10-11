@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import CloudKit
 import Testing
 import Articles
 @testable import Account
@@ -80,6 +81,33 @@ import Articles
 		#expect(article.title == "Real title")
 		#expect(article.contentHTML == "<p>Body</p>")
 		#expect(await account.pendingExtractionArticleIDs().isEmpty)
+	}
+
+	@Test func extractedContentKeepsAnImportedSaveDate() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		// Imported from Matter on another device: the date saved there arrives as datePublished.
+		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+		let dateSaved = Date(timeIntervalSince1970: 1_780_000_000)
+		let feed = account.ensureReadingListFeed()
+		let record = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType)
+		record[Fields.feedURL] = feed.feedID
+		record[Fields.uniqueID] = "https://example.com/post"
+		record[Fields.url] = "https://example.com/post"
+		record[Fields.title] = "Post"
+		record[Fields.datePublished] = dateSaved
+		let item = try #require(makeParsedItem(record))
+		let imported = try #require(await account.updateAsync(feedID: feed.feedID, parsedItems: [item]).new?.first)
+
+		// Losing it would move the article to the end of the Queue on every device.
+		try await account.updateArticleContent(articleID: imported.articleID, content: ReadingListContent(contentHTML: "<p>Body</p>"))
+
+		let article = try #require(await account.fetchArticlesAsync(.articleIDs([imported.articleID])).first)
+		#expect(article.contentHTML == "<p>Body</p>")
+		#expect(article.datePublished == dateSaved)
 	}
 
 	@Test func archiveListsReadArticles() async throws {

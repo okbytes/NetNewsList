@@ -113,13 +113,14 @@ extension Account: ReadingListStore {
 		return article
 	}
 
-	/// Stores extracted content for a saved article and uploads it.
+	/// Stores extracted content for a saved article and uploads it. An imported article’s
+	/// save date (its `datePublished`) is kept.
 	public func updateArticleContent(articleID: String, content: ReadingListContent) async throws {
 		guard let article = await fetchArticlesAsync(.articleIDs([articleID])).first,
 			  let feed = readingListFeed else {
 			throw ReadingListError.articleNotFound
 		}
-		let item = parsedItem(uniqueID: article.uniqueID, feed: feed, externalURL: article.rawExternalLink, title: content.title ?? article.title, content: content)
+		let item = parsedItem(uniqueID: article.uniqueID, feed: feed, externalURL: article.rawExternalLink, title: content.title ?? article.title, content: content, datePublished: article.datePublished)
 		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item])
 		guard let updated = changes.updated, !updated.isEmpty else {
 			return
@@ -153,8 +154,11 @@ private extension Account {
 	}
 
 	/// Saved articles carry no publication date, so every date-based sort and query
-	/// treats them by the date they were saved, and none arrives already read.
-	func parsedItem(uniqueID: String, feed: Feed, externalURL: String?, title: String?, content: ReadingListContent?) -> ParsedItem {
+	/// treats them by the date they were saved, and none arrives already read. The
+	/// exception is the pages imported from Matter on 2026-10-11: their `datePublished` is
+	/// the date they were saved there, which, unlike `dateArrived`, syncs, so every device
+	/// lists them in the same order.
+	func parsedItem(uniqueID: String, feed: Feed, externalURL: String?, title: String?, content: ReadingListContent?, datePublished: Date? = nil) -> ParsedItem {
 		var authors: Set<ParsedAuthor>?
 		if let byline = content?.byline, !byline.isEmpty {
 			authors = [ParsedAuthor(name: byline, url: nil, avatarURL: nil, emailAddress: nil)]
@@ -172,7 +176,7 @@ private extension Account {
 						  summary: content?.summary,
 						  imageURL: content?.imageURL,
 						  bannerImageURL: nil,
-						  datePublished: nil,
+						  datePublished: datePublished,
 						  dateModified: nil,
 						  authors: authors,
 						  tags: nil,

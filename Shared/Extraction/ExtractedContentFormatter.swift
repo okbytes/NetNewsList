@@ -4,7 +4,8 @@
 //
 //  Builds the stored body for an extracted page. The page’s own publication
 //  date and site name go into the HTML, never into `datePublished`, which stays
-//  nil so every list sorts by the date saved. See Technotes/NetNewsList/Plan.md, D2.
+//  nil (except on the pages imported from Matter, where it is the date they were
+//  saved there) so every list sorts by the date saved. See Technotes/NetNewsList/Plan.md, D2.
 //
 
 import Foundation
