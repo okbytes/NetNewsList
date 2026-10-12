@@ -11,7 +11,6 @@ import RSCore
 import os
 import WebKit
 import RSWeb
-import Articles
 
 @MainActor final class WebViewConfiguration {
 
@@ -47,31 +46,6 @@ import Articles
 #endif
 
 		return configuration
-	}
-
-	/// A plain configuration for a live page shown with Show Original: no article scripts and no scheme handler.
-	static func originalPageConfiguration() -> WKWebViewConfiguration {
-		assert(Thread.isMainThread)
-
-		let configuration = WKWebViewConfiguration()
-		configuration.websiteDataStore = .nonPersistent()
-		configuration.preferences = preferences
-		configuration.mediaTypesRequiringUserActionForPlayback = .all
-		configuration.applicationNameForUserAgent = applicationNameForUserAgent
-		return configuration
-	}
-
-	/// Whether a live page shown with Show Original may run its scripts. Stored article
-	/// content never runs scripts: it is untrusted HTML from the web.
-	/// Called from the navigation delegate on every navigation, so a change to the user setting takes effect on the next load.
-	static func allowsOriginalPageJavaScript(for article: Article?) -> Bool {
-		guard AppDefaults.shared.isArticleContentJavascriptEnabled else {
-			return false
-		}
-		guard let article else {
-			return true
-		}
-		return !ArticleRenderingSpecialCases.shouldDisableJavaScript(for: article)
 	}
 
 	/// Add content blocking rules to a web view. Call before loading article content.

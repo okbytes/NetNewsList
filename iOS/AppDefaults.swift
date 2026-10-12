@@ -29,7 +29,6 @@ final class AppDefaults: Sendable {
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
 		static let firstRunDate = "firstRunDate"
 		static let timelineSortDirection = "timelineSortDirection"
-		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
 		static let selectedArticle = "selectedArticle"
 		static let timelineWidth = "timelineWidth"
@@ -58,15 +57,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setSortDirection(for: Key.timelineSortDirection, newValue)
-		}
-	}
-
-	var isArticleContentJavascriptEnabled: Bool {
-		get {
-			return AppDefaults.bool(for: Key.articleContentJavascriptEnabled)
-		}
-		set {
-			AppDefaults.setBool(for: Key.articleContentJavascriptEnabled, newValue)
 		}
 	}
 
@@ -111,8 +101,7 @@ final class AppDefaults: Sendable {
 
 	@MainActor static func registerDefaults() {
 		let defaults: [String: Any] = [// Oldest first: a reading list is read in the order it was saved.
-										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
-										Key.articleContentJavascriptEnabled: true]
+										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue]
 		AppDefaults.store.register(defaults: defaults)
 	}
 }
@@ -126,14 +115,6 @@ private extension AppDefaults {
 		set {
 			setDate(for: Key.firstRunDate, newValue)
 		}
-	}
-
-	static func bool(for key: String) -> Bool {
-		return AppDefaults.store.bool(forKey: key)
-	}
-
-	static func setBool(for key: String, _ flag: Bool) {
-		AppDefaults.store.set(flag, forKey: key)
 	}
 
 	static func int(for key: String) -> Int {

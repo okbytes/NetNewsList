@@ -178,12 +178,6 @@ final class AppDefaults: Sendable {
 		.large
 	}
 
-	/// Saved pages never run scripts, and the Mac app has no live-page view, so nothing on the Mac
-	/// runs page JavaScript. Kept because Shared `WebViewConfiguration.allowsOriginalPageJavaScript` reads it.
-	var isArticleContentJavascriptEnabled: Bool {
-		false
-	}
-
 	@MainActor func registerDefaults() {
 		#if DEBUG
  		let showDebugMenu = true

@@ -32,14 +32,6 @@ struct Assets {
 		nonisolated static var nnwFeedIcon: RSImage { RSImage(named: "nnwFeedIcon")! }
 		static var faviconTemplate: RSImage { RSImage(named: "faviconTemplateImage")! }
 
-		static let showOriginal = RSImage(symbol: "globe")!
-		static let showSavedPage: RSImage = {
-			if #available(iOS 18, macOS 15, *) {
-				return RSImage(symbol: "text.page")!
-			} else {
-				return RSImage(symbol: "doc.plaintext")!
-			}
-		}()
 		static let share = RSImage(symbol: "square.and.arrow.up")!
 		static let folder = RSImage(symbol: "folder")!
 		/// Archive an article: from the Queue to the Archive.

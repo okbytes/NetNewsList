@@ -8,28 +8,8 @@
 
 import Foundation
 import RSWeb
-import Articles
 
 struct ArticleRenderingSpecialCases {
-
-	// Content JavaScript is always disabled for articles from these domains,
-	// regardless of the user setting. Subdomains match too.
-	private static let domainsWithJavaScriptDisabled = ["slashdot.org"]
-
-	/// True when any of the URL strings (article link, feed URL, feed home page URL)
-	/// is on a domain whose article content must render without JavaScript.
-	static func shouldDisableJavaScript(urlStrings: [String?]) -> Bool {
-		for urlString in urlStrings {
-			if let urlString, SpecialCase.urlStringMatchesDomain(urlString, domainsWithJavaScriptDisabled) {
-				return true
-			}
-		}
-		return false
-	}
-
-	@MainActor static func shouldDisableJavaScript(for article: Article) -> Bool {
-		shouldDisableJavaScript(urlStrings: [article.link, article.externalLink, article.siteHomePageURL])
-	}
 
 	private static let feedDomainsWithParagraphsSeparatedByReturns = ["slashdot.org"]
 	private static let consecutiveReturnsRegex = try? NSRegularExpression(pattern: "(?:\\r?\\n[ \\t]*){2,}")
