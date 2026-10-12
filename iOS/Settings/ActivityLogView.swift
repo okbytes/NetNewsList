@@ -12,12 +12,9 @@ import RSCore
 
 struct ActivityLogView: View {
 
-	private static let helpURL = URL(string: "https://netnewswire.com/help/activity-log.html")!
-
 	@State private var isEmpty = true
 	@State private var attributedText = AttributedString()
 	@State private var plainText = ""
-	@State private var showHelp = false
 
 	var body: some View {
 		VStack(spacing: 0) {
@@ -35,8 +32,6 @@ struct ActivityLogView: View {
 						.padding()
 				}
 			}
-			Divider()
-			helpLinkFooter
 		}
 		.navigationTitle(NSLocalizedString("Activity Log", comment: "Activity Log screen title"))
 		.toolbar {
@@ -46,9 +41,6 @@ struct ActivityLogView: View {
 				}
 				.disabled(isEmpty)
 			}
-		}
-		.sheet(isPresented: $showHelp) {
-			SafariView(url: Self.helpURL)
 		}
 		.task {
 			reload()
@@ -63,15 +55,6 @@ struct ActivityLogView: View {
 			.font(.footnote)
 			.foregroundStyle(.secondary)
 			.padding()
-	}
-
-	private var helpLinkFooter: some View {
-		Button(NSLocalizedString("Activity Log Help", comment: "Help link")) {
-			showHelp = true
-		}
-		.font(.subheadline)
-		.frame(maxWidth: .infinity)
-		.padding(.vertical, 12)
 	}
 }
 

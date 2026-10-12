@@ -88,7 +88,7 @@ final class MainTimelineCell: UICollectionViewCell {
 			backgroundConfig.cornerRadius = 0
 		}
 
-		// Matches the feeds list: accent background when the timeline is first responder, gray otherwise.
+		// Accent background when the timeline is first responder, gray otherwise.
 		let isActiveSelection = state.isSelected && isInExpandedSplitView && enclosingViewController?.isFirstResponder == true
 
 		if state.isSwiped {

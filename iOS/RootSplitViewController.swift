@@ -23,8 +23,6 @@ final class RootSplitViewController: UISplitViewController {
 	/// reveal a column the display-mode suppression below would otherwise keep hidden.
 	/// <https://github.com/Ranchero-Software/NetNewsWire/issues/3138>
 	func showColumn(_ column: UISplitViewController.Column, bypassDisplayModeRestriction: Bool = false) {
-		guard !coordinator.isNavigationDisabled else { return }
-
 		/// Always show the column on iPhone
 		if UIDevice.current.userInterfaceIdiom == .phone {
 			show(column)

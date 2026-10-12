@@ -79,8 +79,6 @@ enum ShowFeedName {
 		activityManager.stateRestorationActivity
 	}
 
-	var isNavigationDisabled = false
-
 	var isRootSplitCollapsed: Bool {
 		return rootSplitViewController.isCollapsed
 	}
@@ -102,34 +100,6 @@ enum ShowFeedName {
 	// Every list mixes articles from many sites, so each row shows its site and icon.
 	let showFeedNames = ShowFeedName.feed
 	let showIcons = true
-
-	var isPrevArticleAvailable: Bool {
-		guard let articleRow = currentArticleRow else {
-			return false
-		}
-		return articleRow > 0
-	}
-
-	var isNextArticleAvailable: Bool {
-		guard let articleRow = currentArticleRow else {
-			return false
-		}
-		return articleRow + 1 < articles.count
-	}
-
-	var prevArticle: Article? {
-		guard isPrevArticleAvailable, let articleRow = currentArticleRow else {
-			return nil
-		}
-		return articles[articleRow - 1]
-	}
-
-	var nextArticle: Article? {
-		guard isNextArticleAvailable, let articleRow = currentArticleRow else {
-			return nil
-		}
-		return articles[articleRow + 1]
-	}
 
 	var currentArticle: Article? {
 		didSet {
@@ -155,13 +125,6 @@ enum ShowFeedName {
 			rebuildArticleDictionaries()
 		}
 		return _idToArticleDictionary
-	}
-
-	private var currentArticleRow: Int? {
-		guard let article = currentArticle else {
-			return nil
-		}
-		return articles.firstIndex(of: article)
 	}
 
 	var timelineUnreadCount: Int = 0 {
@@ -480,7 +443,7 @@ enum ShowFeedName {
 		// While the Archive is being pushed or popped, the outgoing article can still be in the window,
 		// but the push comes after the transition.
 		let isListTransitionInProgress = listNavigationController?.transitionCoordinator != nil
-		if !isNavigationDisabled, rootSplitViewController.isCollapsed, isListTransitionInProgress || !isArticleViewControllerShowing {
+		if rootSplitViewController.isCollapsed, isListTransitionInProgress || !isArticleViewControllerShowing {
 			// A push will follow — set to false in ArticleViewController.viewDidAppear.
 			// <https://github.com/Ranchero-Software/NetNewsWire/issues/5417>
 			isArticleViewControllerPending = true
@@ -511,13 +474,13 @@ enum ShowFeedName {
 	}
 
 	func selectPrevArticle() {
-		if let article = prevArticle {
+		if let currentArticle, let article = findPrevArticle(currentArticle) {
 			selectArticle(article, animations: [.navigation, .scroll])
 		}
 	}
 
 	func selectNextArticle() {
-		if let article = nextArticle {
+		if let currentArticle, let article = findNextArticle(currentArticle) {
 			selectArticle(article, animations: [.navigation, .scroll])
 		}
 	}
@@ -782,7 +745,7 @@ private extension SceneCoordinator {
 			rootSplitViewController.showColumn(.primary)
 			return
 		}
-		guard !isNavigationDisabled, let mainTimelineViewController, let navigationController = listNavigationController,
+		guard let mainTimelineViewController, let navigationController = listNavigationController,
 			  navigationController.topViewController !== mainTimelineViewController,
 			  navigationController.viewControllers.contains(mainTimelineViewController) else {
 			return
@@ -825,7 +788,7 @@ private extension SceneCoordinator {
 	}
 
 	func revealColumnInCollapsedMode(_ column: UISplitViewController.Column, thenFocus focus: @escaping @MainActor () -> Void) {
-		guard !isNavigationDisabled, let navController = listNavigationController else {
+		guard let navController = listNavigationController else {
 			return
 		}
 		let targetViewController: UIViewController?
@@ -992,15 +955,15 @@ private extension SceneCoordinator {
 		fetchRequestQueue.cancelAllRequests()
 	}
 
+	/// Fetches the whole list again. With `emptyFirst`, the rows are cleared first; without it, they stay
+	/// until the new ones arrive. An article a deep link is about to open (`exceptionArticleFetcher`) is
+	/// fetched too, even when it isn't in the list. The open article isn't kept when it has left the list:
+	/// every caller is about to close it or open another one, and keeping it would put an article that was
+	/// just archived back in the Queue.
 	func fetchAndReplaceArticlesAsync(animated: Bool, emptyFirst: Bool = true, completion: @escaping () -> Void) {
-		// To be called when we need to do an entire fetch, but an async delay is okay.
-		// Example: we have the Today feed selected, and the calendar day just changed.
 		cancelPendingAsyncFetches()
 		if emptyFirst {
 			emptyTheTimeline()
-		} else if let article = currentArticle, let account = article.account {
-			// Keeping the timeline in place keeps the open article, even when it has left the list.
-			exceptionArticleFetcher = SingleArticleFetcher(account: account, articleID: article.articleID)
 		}
 		guard let timelineFeed = timelineFeed else {
 			completion()

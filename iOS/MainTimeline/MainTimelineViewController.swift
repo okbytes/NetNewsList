@@ -192,11 +192,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 		super.viewWillAppear(animated)
 
-		// If the nav bar is hidden, fade it in to avoid it showing stuff as it is getting laid out
-		if navigationController?.navigationBar.isHidden ?? false {
-			navigationController?.navigationBar.alpha = 0
-		}
-
 		// Re-assert small title in case the shared iPhone nav bar was left in large mode.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5141>
 		navigationItem.largeTitleDisplayMode = .never
@@ -212,12 +207,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewDidAppear")
 
 		super.viewDidAppear(animated)
-		if navigationController?.navigationBar.alpha == 0 {
-			UIView.animate(withDuration: 0.5) {
-				self.navigationController?.navigationBar.alpha = 1
-			}
-		}
-
 		// Deselect only when returning from article navigation, and not while
 		// another article push is in flight.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5417>
@@ -232,9 +221,7 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	func deselectIfNecessary() {
 		Self.logger.debug("MainTimelineViewController: deselectIfNecessary")
 
-		guard traitCollection.userInterfaceIdiom == .phone else {
-			return
-		}
+		// Any device whose split view has collapsed to one stack, including an iPad in a narrow window.
 		guard let coordinator, coordinator.isRootSplitCollapsed else {
 			return
 		}
@@ -663,8 +650,10 @@ private extension MainTimelineViewController {
 				/// the swipe animation to complete. Calling `toggleRead` with no
 				/// delay results UICollectionView internal inconsistency: unexpected
 				/// removal of the current swipe occurrence’s mask view error.
+				/// It goes through the coordinator, which outlives a pushed Archive closed in the meantime.
+				let coordinator = self?.coordinator
 				DispatchQueue.main.asyncAfter(wallDeadline: .now() + 0.85) {
-					self?.toggleRead(article)
+					coordinator?.toggleRead(article)
 				}
 				completion(true)
 			}
@@ -688,13 +677,13 @@ private extension MainTimelineViewController {
 			let section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
 
 			/// Note to future self: apply insets that affect cell width
-			/// calculations (leading swipe actions with sidebar visible)
-			let sidebarOverlapWidth = layoutEnvironment.container.contentInsets.leading
-			// container.contentSize includes the width under the sidebar.
-			let remainingWidth = layoutEnvironment.container.contentSize.width - sidebarOverlapWidth
+			/// calculations (leading swipe actions under a leading container inset)
+			let leadingContainerInset = layoutEnvironment.container.contentInsets.leading
+			// container.contentSize includes the width under that inset.
+			let remainingWidth = layoutEnvironment.container.contentSize.width - leadingContainerInset
 			section.contentInsets = NSDirectionalEdgeInsets(
 				top: 0,
-				leading: remainingWidth > 0 ? sidebarOverlapWidth : 0,
+				leading: remainingWidth > 0 ? leadingContainerInset : 0,
 				bottom: 0,
 				trailing: 0
 			)
@@ -849,11 +838,6 @@ private extension MainTimelineViewController {
 
 // MARK: Article Actions
 extension MainTimelineViewController {
-	func toggleRead(_ article: Article) {
-		assert(coordinator != nil)
-		coordinator?.toggleRead(article)
-	}
-
 	func toggleArticleReadStatusAction(_ article: Article) -> UIAction? {
 		guard !article.status.read || article.isAvailableToMarkUnread else { return nil }
 
@@ -870,8 +854,10 @@ extension MainTimelineViewController {
 				NSLocalizedString("Archived", comment: "Accessibility announcement")
 			UIAccessibility.post(notification: .announcement, argument: announcement)
 
+			// Through the coordinator, which outlives a pushed Archive closed in the meantime.
+			let coordinator = self?.coordinator
 			DispatchQueue.main.asyncAfter(wallDeadline: .now() + 1.0) {
-				self?.toggleRead(article)
+				coordinator?.toggleRead(article)
 			}
 		}
 
