@@ -9,6 +9,20 @@ export function isWebPage(url) {
   return /^https?:\/\//i.test(url || "");
 }
 
+// An extension's toolbar popup can't open netnewslist:// links: it isn't a tab, so the
+// browser has nowhere to ask whether to open the app, and drops the link. Local mode
+// opens this small window instead, from the toolbar button and the context menu alike.
+export function openLocalSaveWindow(pageURL, title) {
+  const query = new URLSearchParams({ url: pageURL || "", title: title || "" });
+  return chrome.windows.create({
+    url: chrome.runtime.getURL(`save.html?${query.toString()}`),
+    type: "popup",
+    width: 440,
+    height: 220,
+    focused: true
+  });
+}
+
 export function addURL(pageURL, title) {
   const params = new URLSearchParams({ url: pageURL });
   if (title && title.trim()) {

@@ -4,7 +4,7 @@ A Manifest V3 extension for Chrome and other Chromium browsers (Helium, Arc, Bra
 
 ## Local mode: a Mac with the app
 
-Saving opens `netnewslist://add?url=…&title=…`. The app saves the page, extracts it and syncs it through iCloud, then gives the focus back to the browser. The first save asks whether to open NetNewsList: tick **Always allow** once.
+Saving opens a small window that hands the page to the app through `netnewslist://add?url=…&title=…` (an extension's toolbar popup can't open app links: it isn't a tab, so the browser drops them). The app saves the page, extracts it and syncs it through iCloud, then gives the focus back to the browser, and the window closes. The first save asks whether to open NetNewsList: tick **Always allow** and choose Open. macOS opens the NetNewsList copy registered for the link, which is the one Xcode builds; if another copy is running, a second one starts, so run the app from Xcode.
 
 ## Remote mode: a computer without the app
 

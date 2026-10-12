@@ -1,4 +1,4 @@
-import { isWebPage } from "./common.js";
+import { isWebPage, openLocalSaveWindow } from "./common.js";
 import { SignInRequiredError, currentUser, setWebAuthToken, signInURL, useSignInToken } from "./lib/cloudkit.js";
 import { clearDroppedPages, drainQueue, droppedPages, enqueue, queueLength } from "./lib/remote.js";
 import { loadSettings } from "./lib/settings.js";
@@ -14,6 +14,25 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
   drainAndUpdateBadge();
+});
+
+// Remote mode saves from the toolbar popup. Local mode has no popup: the button opens
+// the small window that hands the page to the app (see openLocalSaveWindow).
+async function applyActionPopup() {
+  const settings = await loadSettings();
+  await chrome.action.setPopup({ popup: settings.mode === "remote" ? "save.html" : "" });
+}
+
+applyActionPopup();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.settings) {
+    applyActionPopup();
+  }
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  openLocalSaveWindow(tab.url, tab.title);
 });
 
 // The badge shows "!" while something needs attention (signed out, pages that
@@ -206,12 +225,5 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
     await showOutcomeOnBadge(result);
     return;
   }
-  const query = new URLSearchParams({ url: info.linkUrl, title: info.selectionText || "" });
-  chrome.windows.create({
-    url: `save.html?${query.toString()}`,
-    type: "popup",
-    width: 360,
-    height: 140,
-    focused: true
-  });
+  openLocalSaveWindow(info.linkUrl, info.selectionText);
 });

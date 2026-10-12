@@ -1,12 +1,13 @@
-import { addURL, isWebPage } from "./common.js";
+import { addURL, isWebPage, openLocalSaveWindow } from "./common.js";
 import { loadSettings } from "./lib/settings.js";
 
 const status = document.getElementById("status");
 const detail = document.getElementById("detail");
 const actions = document.getElementById("actions");
 
-// Opened by the toolbar button (no query: save the active tab) or, in local
-// mode, by the context menu (?url=…&title=…: save that link).
+// Opened by the toolbar button in remote mode (no query: save the active tab) or, in
+// local mode, as a small window by the toolbar button or the context menu
+// (?url=…&title=…: save that page).
 async function pageToSave() {
   const query = new URLSearchParams(location.search);
   if (query.has("url")) {
@@ -23,10 +24,25 @@ function addButton(title, action) {
   actions.append(button);
 }
 
+// Hands the page to the app. The first time, the browser asks whether to open
+// NetNewsList: tick "Always allow" and choose Open. The window closes once the focus
+// comes back to it after leaving (the app saved the page and handed the focus back, or
+// the question was answered), and after 20 seconds in any case.
 function saveLocally(page) {
-  location.href = addURL(page.url, page.title);
-  status.textContent = "Sent to NetNewsList";
-  setTimeout(() => window.close(), 1500);
+  const link = addURL(page.url, page.title);
+  status.textContent = "Opening NetNewsList…";
+  const hint = document.createElement("div");
+  hint.id = "hint";
+  hint.textContent = "If the browser asks, tick “Always allow” and choose Open.";
+  detail.after(hint);
+  addButton("Open Again", () => {
+    location.href = link;
+  });
+  window.addEventListener("blur", () => {
+    window.addEventListener("focus", () => setTimeout(() => window.close(), 400), { once: true });
+  }, { once: true });
+  setTimeout(() => window.close(), 20000);
+  location.href = link;
 }
 
 async function saveRemotely(page) {
@@ -56,8 +72,12 @@ async function save() {
   const settings = await loadSettings();
   if (settings.mode === "remote") {
     await saveRemotely(page);
-  } else {
+  } else if (new URLSearchParams(location.search).has("url")) {
     saveLocally(page);
+  } else {
+    // Shown as the toolbar popup before the switch to local mode took effect.
+    await openLocalSaveWindow(page.url, page.title);
+    window.close();
   }
 }
 
