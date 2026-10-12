@@ -50,10 +50,6 @@
 		848E84D62DB749670023F3BA /* RSCore in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 848E84D42DB749670023F3BA /* RSCore */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		848E84D82DB749720023F3BA /* RSCore in Frameworks */ = {isa = PBXBuildFile; productRef = 848E84D72DB749720023F3BA /* RSCore */; };
 		848E84DF2DB749A40023F3BA /* RSCore in Frameworks */ = {isa = PBXBuildFile; productRef = 848E84DE2DB749A40023F3BA /* RSCore */; };
-		84EE3F122DB8A088009D3A8D /* RSTree in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F112DB8A088009D3A8D /* RSTree */; };
-		84EE3F132DB8A088009D3A8D /* RSTree in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F112DB8A088009D3A8D /* RSTree */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		84EE3F152DB8A0A0009D3A8D /* RSTree in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F142DB8A0A0009D3A8D /* RSTree */; };
-		84EE3F162DB8A0A0009D3A8D /* RSTree in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE3F142DB8A0A0009D3A8D /* RSTree */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		84EE43482DB8A441009D3A8D /* RSDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE43472DB8A441009D3A8D /* RSDatabase */; };
 		84EE43492DB8A441009D3A8D /* RSDatabase in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 84EE43472DB8A441009D3A8D /* RSDatabase */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		84EE434B2DB8A44C009D3A8D /* RSDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 84EE434A2DB8A44C009D3A8D /* RSDatabase */; };
@@ -187,7 +183,6 @@
 				D1A7E100000000000000B003 /* ActivityLog in Embed Frameworks */,
 				D1A7E100000000000000C003 /* Images in Embed Frameworks */,
 				513F327B2593EE6F0003048F /* SyncDatabase in Embed Frameworks */,
-				84EE3F162DB8A0A0009D3A8D /* RSTree in Embed Frameworks */,
 				513F32722593EE6F0003048F /* Articles in Embed Frameworks */,
 				513F32812593EF180003048F /* Account in Embed Frameworks */,
 				513F32752593EE6F0003048F /* ArticlesDatabase in Embed Frameworks */,
@@ -223,7 +218,6 @@
 				D1A7E100000000000000E006 /* Extraction in Embed Frameworks */,
 				D1A7E100000000000000B006 /* ActivityLog in Embed Frameworks */,
 				D1A7E100000000000000C006 /* Images in Embed Frameworks */,
-				84EE3F132DB8A088009D3A8D /* RSTree in Embed Frameworks */,
 				513277652590FC640064F1E7 /* SyncDatabase in Embed Frameworks */,
 				513277622590FC640064F1E7 /* ArticlesDatabase in Embed Frameworks */,
 				BE939B018E9B4B13850AA286 /* ErrorLog in Embed Frameworks */,
@@ -418,7 +412,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				84EE3F152DB8A0A0009D3A8D /* RSTree in Frameworks */,
 				848E84D52DB749670023F3BA /* RSCore in Frameworks */,
 				8424B31B2DB73D530053AA11 /* RSParser in Frameworks */,
 				516B695F24D2F33B00B5702F /* Account in Frameworks */,
@@ -444,7 +437,6 @@
 				513277642590FC640064F1E7 /* SyncDatabase in Frameworks */,
 				5132775E2590FC640064F1E7 /* Articles in Frameworks */,
 				84EE43482DB8A441009D3A8D /* RSDatabase in Frameworks */,
-				84EE3F122DB8A088009D3A8D /* RSTree in Frameworks */,
 				513277612590FC640064F1E7 /* ArticlesDatabase in Frameworks */,
 				514C16CE24D2E63F009A3AFA /* Account in Frameworks */,
 				27692BB9F5D9450894A7EDA4 /* ErrorLog in Frameworks */,
@@ -641,7 +633,6 @@
 				D1A7E100000000000000C001 /* Images */,
 				8424B31A2DB73D530053AA11 /* RSParser */,
 				848E84D42DB749670023F3BA /* RSCore */,
-				84EE3F142DB8A0A0009D3A8D /* RSTree */,
 				84EE434A2DB8A44C009D3A8D /* RSDatabase */,
 			);
 			productName = "NetNewsWire-iOS";
@@ -685,7 +676,6 @@
 				8424B3172DB73D4C0053AA11 /* RSParser */,
 				848E84CC2DB749440023F3BA /* RSCore */,
 				848E84CF2DB749440023F3BA /* RSCoreResources */,
-				84EE3F112DB8A088009D3A8D /* RSTree */,
 				84EE43472DB8A441009D3A8D /* RSDatabase */,
 			);
 			productName = NetNewsWire;
@@ -1339,14 +1329,6 @@
 		848E84DE2DB749A40023F3BA /* RSCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RSCore;
-		};
-		84EE3F112DB8A088009D3A8D /* RSTree */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = RSTree;
-		};
-		84EE3F142DB8A0A0009D3A8D /* RSTree */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = RSTree;
 		};
 		84EE43472DB8A441009D3A8D /* RSDatabase */ = {
 			isa = XCSwiftPackageProductDependency;
