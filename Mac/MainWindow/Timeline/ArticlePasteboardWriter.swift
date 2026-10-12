@@ -31,7 +31,7 @@ extension Article: @retroactive PasteboardWriterOwner {
 
 	@MainActor init(article: Article) {
 		self.article = article
-		let rendering = ArticleRenderer.articleHTML(article: article, theme: ArticleThemesManager.shared.currentTheme)
+		let rendering = ArticleRenderer.articleHTML(article: article, theme: .defaultTheme)
 		self.renderedHTML = rendering.html
 
 		self.feedURL = article.feed?.url

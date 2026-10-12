@@ -175,7 +175,6 @@ let appName = "NetNewsList"
 			}
 		}
 
-		ArticleThemesManager.shared.start()
 		NetworkMonitor.shared.start()
 		MemoryPressureMonitor.shared.start()
 

@@ -1,5 +1,5 @@
 {
-  "originHash" : "5953c29570620373a6da43d60a8253af0dab8dd80e8d23607224a78036b1ec0c",
+  "originHash" : "0bd61b74d59cdb7c60465c834fb6b87c0b39730391c8c1b5fb43946ee78fb0a0",
   "pins" : [
     {
       "identity" : "tidemark",
@@ -8,14 +8,6 @@
       "state" : {
         "revision" : "2a5cd8a715ad1145d36009f5d3f146704d3f7ec0",
         "version" : "1.0.1"
-      }
-    },
-    {
-      "identity" : "zip",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/marmelroy/Zip.git",
-      "state" : {
-        "revision" : "bca30f6d6c7d37cbc4aa8f6b0002e281dcc36195"
       }
     }
   ],

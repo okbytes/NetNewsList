@@ -186,24 +186,12 @@ private extension ArticleRenderer {
 		return try! MacroProcessor.renderedText(withTemplate: styleString(), substitutions: styleSubstitutions())
 	}
 
-	static var defaultStyleSheet: String = {
-		let path = Bundle.main.path(forResource: "stylesheet", ofType: "css")!
-		let s = try! String(contentsOfFile: path, encoding: .utf8)
-		return "\n\(s)\n"
-	}()
-
-	static let defaultTemplate: String = {
-		let path = Bundle.main.path(forResource: "template", ofType: "html")!
-		let s = try! String(contentsOfFile: path, encoding: .utf8)
-		return s as String
-	}()
-
 	func styleString() -> String {
-		return articleTheme.css ?? ArticleRenderer.defaultStyleSheet
+		return articleTheme.css
 	}
 
 	func template() -> String {
-		return articleTheme.template ?? ArticleRenderer.defaultTemplate
+		return articleTheme.template
 	}
 
 	func articleSubstitutions() -> [String: String] {

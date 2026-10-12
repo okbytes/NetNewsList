@@ -87,7 +87,6 @@ import Images
 
 		UNUserNotificationCenter.current().delegate = self
 
-		// ArticleThemesManager isn't started: without a theme setting, articles always use the default theme.
 		NetworkMonitor.shared.start()
 
 		if !Platform.isRunningUnitTests {

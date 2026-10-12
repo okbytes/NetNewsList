@@ -17,8 +17,6 @@ enum FontSize: Int {
 
 final class AppDefaults: Sendable {
 
-	static let defaultThemeName = "Default"
-
 	static let shared = AppDefaults()
 
 	struct Key {
@@ -114,17 +112,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setString(for: Key.addFolderAccountID, newValue)
-		}
-	}
-
-	/// The Mac app has one article theme, the default. Shared `ArticleThemesManager` reads this, and
-	/// would set it only to choose another theme, which nothing on the Mac does.
-	var currentThemeName: String? {
-		get {
-			Self.defaultThemeName
-		}
-		set {
-			assert(newValue == Self.defaultThemeName, "The Mac app has only the default article theme.")
 		}
 	}
 

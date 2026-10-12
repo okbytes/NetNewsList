@@ -51,7 +51,6 @@ struct Assets {
 
 #if os(macOS)
 		static let addNewSidebarItem = RSImage(symbol: "plus")!
-		static let articleTheme = RSImage(symbol: "doc.richtext")!
 		static var marsEdit: RSImage { RSImage(named: "MarsEditIcon")! }
 		static var microblog: RSImage { RSImage(named: "MicroblogIcon")! }
 		static let openInBrowser = RSImage(symbol: "safari")!

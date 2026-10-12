@@ -15,7 +15,6 @@ import Images
 
 final class AppDefaults: Sendable {
 	static let shared = AppDefaults()
-	static let defaultThemeName = "Default"
 	fileprivate static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "AppDefaults")
 
 	private init() {}
@@ -30,7 +29,6 @@ final class AppDefaults: Sendable {
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
 		static let firstRunDate = "firstRunDate"
 		static let timelineSortDirection = "timelineSortDirection"
-		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
 		static let selectedArticle = "selectedArticle"
@@ -86,16 +84,6 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	/// Read and written by ArticleThemesManager (Shared). iOS has no theme setting and always uses the default theme.
-	var currentThemeName: String? {
-		get {
-			return AppDefaults.string(for: Key.currentThemeName)
-		}
-		set {
-			AppDefaults.setString(for: Key.currentThemeName, newValue)
-		}
-	}
-
 	var articleWindowScrollY: Int {
 		get {
 			UserDefaults.standard.integer(forKey: Key.articleWindowScrollY)
@@ -124,8 +112,7 @@ final class AppDefaults: Sendable {
 	@MainActor static func registerDefaults() {
 		let defaults: [String: Any] = [// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
-										Key.articleContentJavascriptEnabled: true,
-										Key.currentThemeName: Self.defaultThemeName]
+										Key.articleContentJavascriptEnabled: true]
 		AppDefaults.store.register(defaults: defaults)
 	}
 }
@@ -139,14 +126,6 @@ private extension AppDefaults {
 		set {
 			setDate(for: Key.firstRunDate, newValue)
 		}
-	}
-
-	static func string(for key: String) -> String? {
-		return UserDefaults.standard.string(forKey: key)
-	}
-
-	static func setString(for key: String, _ value: String?) {
-		UserDefaults.standard.set(value, forKey: key)
 	}
 
 	static func bool(for key: String) -> Bool {

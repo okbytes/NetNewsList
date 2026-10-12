@@ -434,7 +434,7 @@ private extension WebViewController {
 			return
 		}
 
-		let theme = ArticleThemesManager.shared.currentTheme
+		let theme = ArticleTheme.defaultTheme
 		let rendering: ArticleRenderer.Rendering
 
 		if let article {

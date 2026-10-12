@@ -106,7 +106,6 @@ final class DetailWebViewController: NSViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(avatarDidBecomeAvailable(_:)), name: .AvatarDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .FaviconDidBecomeAvailable, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(currentArticleThemeDidChangeNotification(_:)), name: .CurrentArticleThemeDidChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .AccountDidDownloadArticles, object: nil)
 
@@ -125,10 +124,6 @@ final class DetailWebViewController: NSViewController {
 
 	@objc func faviconDidBecomeAvailable(_ note: Notification) {
 		reloadArticleImage()
-	}
-
-	@objc func currentArticleThemeDidChangeNotification(_ note: Notification) {
-		reloadHTMLMaintainingScrollPosition()
 	}
 
 	/// Shows the body as soon as the page is saved, and keeps the saving status current until then.
@@ -332,13 +327,6 @@ private extension DetailWebViewController {
 		}
 	}
 
-	func reloadHTMLMaintainingScrollPosition() {
-		fetchScrollInfo { scrollInfo in
-			self.pendingScrollRestorationY = scrollInfo?.offsetY
-			self.reloadHTML()
-		}
-	}
-
 	func reloadHTML() {
 		// Guard against a re-entrancy crash.
 		if isReloadingHTML {
@@ -351,7 +339,7 @@ private extension DetailWebViewController {
 
 		delegate?.mouseDidExit(self)
 
-		let theme = ArticleThemesManager.shared.currentTheme
+		let theme = ArticleTheme.defaultTheme
 		let rendering: ArticleRenderer.Rendering
 
 		switch state {
