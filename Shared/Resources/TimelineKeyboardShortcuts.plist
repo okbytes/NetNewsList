@@ -20,14 +20,6 @@
 	</dict>
 	<dict>
 		<key>action</key>
-		<string>navigateToSidebar:</string>
-		<key>key</key>
-		<string>[leftarrow]</string>
-		<key>title</key>
-		<string>Navigate to Feeds</string>
-	</dict>
-	<dict>
-		<key>action</key>
 		<string>navigateToDetail:</string>
 		<key>key</key>
 		<string>[rightarrow]</string>
