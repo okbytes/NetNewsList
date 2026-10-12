@@ -35,7 +35,7 @@
 			<string>NetNewsList</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>netnewslist</string>
+				<string>$(MAC_URL_SCHEME)</string>
 			</array>
 		</dict>
 	</array>

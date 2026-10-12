@@ -3,3 +3,8 @@
 
 BUNDLE_ID_SUFFIX = -DEBUG
 APP_GROUP_SUFFIX = -DEBUG
+
+// The Mac Debug build is "NetNewsList Dev", so it can sit beside the installed app
+// (scripts/install-mac.sh) without sharing its name or its link scheme.
+MAC_APP_NAME = NetNewsList Dev
+MAC_URL_SCHEME = netnewslist-dev

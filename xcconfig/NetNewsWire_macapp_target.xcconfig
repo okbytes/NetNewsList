@@ -3,5 +3,8 @@
 
 CODE_SIGN_ENTITLEMENTS = Mac/Resources/NetNewsWire.entitlements
 PRODUCT_BUNDLE_IDENTIFIER = $(ORGANIZATION_IDENTIFIER).NetNewsList$(BUNDLE_ID_SUFFIX)
-PRODUCT_NAME = NetNewsList
+PRODUCT_NAME = $(MAC_APP_NAME)
+// The data folder is named after the executable (AppConfig.appName), so both builds keep
+// Application Support/NetNewsList.
+EXECUTABLE_NAME = NetNewsList
 PRODUCT_MODULE_NAME = NetNewsWire

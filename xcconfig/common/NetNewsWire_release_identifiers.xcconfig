@@ -2,3 +2,6 @@
 
 BUNDLE_ID_SUFFIX =
 APP_GROUP_SUFFIX =
+
+MAC_APP_NAME = NetNewsList
+MAC_URL_SCHEME = netnewslist
