@@ -21,7 +21,8 @@ struct TimelineCellAppearance: Equatable {
 
 	let titleFont: NSFont
 	let titleBottomMargin: CGFloat = 1.0
-	let titleNumberOfLines = 3
+	// One line of text per row, like iOS: the title, or the summary when there is no title.
+	let titleNumberOfLines = 1
 
 	let textFont: NSFont
 
@@ -29,7 +30,7 @@ struct TimelineCellAppearance: Equatable {
 
 	let drawsGrid = false
 
-	let iconSize = NSSize(width: 48, height: 48)
+	let iconSize = NSSize(width: 24, height: 24)
 	let iconMarginLeft: CGFloat = 8.0
 	let iconMarginRight: CGFloat = 8.0
 	let iconAdjustmentTop: CGFloat = 4.0
@@ -41,8 +42,8 @@ struct TimelineCellAppearance: Equatable {
 		let smallItemFontSize = floor(actualFontSize * 0.90)
 		let largeItemFontSize = actualFontSize
 
-		self.feedNameFont = NSFont.systemFont(ofSize: smallItemFontSize, weight: NSFont.Weight.bold)
-		self.dateFont = NSFont.systemFont(ofSize: smallItemFontSize, weight: NSFont.Weight.bold)
+		self.feedNameFont = NSFont.systemFont(ofSize: smallItemFontSize)
+		self.dateFont = NSFont.systemFont(ofSize: smallItemFontSize)
 		self.titleFont = NSFont.systemFont(ofSize: largeItemFontSize, weight: NSFont.Weight.semibold)
 		self.textFont = NSFont.systemFont(ofSize: largeItemFontSize)
 		self.textOnlyFont = NSFont.systemFont(ofSize: largeItemFontSize)
