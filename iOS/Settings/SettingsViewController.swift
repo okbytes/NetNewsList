@@ -37,12 +37,10 @@ final class SettingsViewController: UITableViewController {
 		case timelineLayout = 3
 	}
 
-	private enum ArticlesRow: Int, CaseIterable {
+	private enum ArticlesRow: Int {
 		case theme = 0
 		case openLinksInNetNewsWire = 1
 		case xAccount = 2
-		// Last: the iPad doesn't show it.
-		case enableFullScreenArticles = 3
 	}
 
 	private enum HelpRow: Int {
@@ -57,7 +55,6 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var groupBySiteSwitch: UISwitch!
 	@IBOutlet var articleThemeDetailLabel: UILabel!
 	@IBOutlet var confirmMarkAllAsReadSwitch: UISwitch!
-	@IBOutlet var showFullscreenArticlesSwitch: UISwitch!
 	@IBOutlet var colorPaletteCell: UITableViewCell?
 	@IBOutlet var openLinksInNetNewsWire: UISwitch!
 	@IBOutlet var xAccountDetailLabel: UILabel!
@@ -102,12 +99,6 @@ final class SettingsViewController: UITableViewController {
 			confirmMarkAllAsReadSwitch.isOn = false
 		}
 
-		if AppDefaults.shared.articleFullscreenAvailable {
-			showFullscreenArticlesSwitch.isOn = true
-		} else {
-			showFullscreenArticlesSwitch.isOn = false
-		}
-
 		openLinksInNetNewsWire.isOn = !AppDefaults.shared.useSystemBrowser
 
 		updateXAccountDetailLabel()
@@ -138,17 +129,6 @@ final class SettingsViewController: UITableViewController {
 	}
 
 	// MARK: UITableView
-
-	override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-
-		switch Section(rawValue: section) {
-		case .articles:
-			// The Full Screen Articles row is iPhone-only.
-			return traitCollection.userInterfaceIdiom == .phone ? ArticlesRow.allCases.count : ArticlesRow.allCases.count - 1
-		default:
-			return super.tableView(tableView, numberOfRowsInSection: section)
-		}
-	}
 
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 
@@ -255,14 +235,6 @@ final class SettingsViewController: UITableViewController {
 			AppDefaults.shared.confirmMarkAllAsRead = true
 		} else {
 			AppDefaults.shared.confirmMarkAllAsRead = false
-		}
-	}
-
-	@IBAction func switchFullscreenArticles(_ sender: Any) {
-		if showFullscreenArticlesSwitch.isOn {
-			AppDefaults.shared.articleFullscreenAvailable = true
-		} else {
-			AppDefaults.shared.articleFullscreenAvailable = false
 		}
 	}
 

@@ -13,14 +13,6 @@ final class RootSplitViewController: UISplitViewController {
 
 	var coordinator: SceneCoordinator!
 
-	override var prefersStatusBarHidden: Bool {
-		return coordinator.prefersStatusBarHidden
-	}
-
-	override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
-		return .slide
-	}
-
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
 		coordinator.resetFocus()

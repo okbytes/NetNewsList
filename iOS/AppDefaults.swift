@@ -57,8 +57,6 @@ final class AppDefaults: Sendable {
 		static let timelineNumberOfLines = "timelineNumberOfLines"
 		static let timelineIconDimension = "timelineIconSize"
 		static let timelineSortDirection = "timelineSortDirection"
-		static let articleFullscreenAvailable = "articleFullscreenAvailable"
-		static let articleFullscreenEnabled = "articleFullscreenEnabled"
 		static let confirmMarkAllAsRead = "confirmMarkAllAsRead"
 		static let useSystemBrowser = "useSystemBrowser"
 		static let currentThemeName = "currentThemeName"
@@ -126,28 +124,6 @@ final class AppDefaults: Sendable {
 		set {
 			AppDefaults.setSortDirection(for: Key.timelineSortDirection, newValue)
 		}
-	}
-
-	var articleFullscreenAvailable: Bool {
-		get {
-			return AppDefaults.bool(for: Key.articleFullscreenAvailable)
-		}
-		set {
-			AppDefaults.setBool(for: Key.articleFullscreenAvailable, newValue)
-		}
-	}
-
-	var articleFullscreenEnabled: Bool {
-		get {
-			return articleFullscreenAvailable && AppDefaults.bool(for: Key.articleFullscreenEnabled)
-		}
-		set {
-			AppDefaults.setBool(for: Key.articleFullscreenEnabled, newValue)
-		}
-	}
-
-	var logicalArticleFullscreenEnabled: Bool {
-		articleFullscreenAvailable && articleFullscreenEnabled
 	}
 
 	var confirmMarkAllAsRead: Bool {
@@ -283,8 +259,6 @@ final class AppDefaults: Sendable {
 										Key.timelineIconDimension: IconSize.medium.rawValue,
 										// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
-										Key.articleFullscreenAvailable: false,
-										Key.articleFullscreenEnabled: false,
 										Key.confirmMarkAllAsRead: true,
 										Key.articleContentJavascriptEnabled: true,
 										Key.currentThemeName: Self.defaultThemeName,

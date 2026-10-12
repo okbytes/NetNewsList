@@ -24,21 +24,13 @@ final class WebViewController: UIViewController {
 		static let mediaSourceURLs = "mediaSourceURLs"
 	}
 
-	private var topShowBarsView: UIView!
-	private var bottomShowBarsView: UIView!
-	private var topShowBarsViewConstraint: NSLayoutConstraint!
-	private var bottomShowBarsViewConstraint: NSLayoutConstraint!
-
+	// The web view is inserted at index 0. Before the first one loads, the view has no subviews.
 	private var webView: PreloadedWebView? {
-		return view.subviews[0] as? PreloadedWebView
+		return view.subviews.first as? PreloadedWebView
 	}
 
 	private var webViewProcessDidTerminate = false
 
-	private lazy var contextMenuInteraction = UIContextMenuInteraction(delegate: self)
-	private var isFullScreenAvailable: Bool {
-		return AppDefaults.shared.articleFullscreenAvailable && traitCollection.userInterfaceIdiom == .phone
-	}
 	private lazy var articleIconSchemeHandler = ArticleIconSchemeHandler(coordinator: coordinator)
 	private lazy var transition = ImageTransition(controller: self)
 	private var imageDownloadTask: Task<Void, Never>?
@@ -69,18 +61,7 @@ final class WebViewController: UIViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .AccountDidDownloadArticles, object: nil)
 
-		// Configure the tap zones
-		configureTopShowBarsView()
-		configureBottomShowBarsView()
-
 		loadWebView()
-	}
-
-	override func viewSafeAreaInsetsDidChange() {
-		super.viewSafeAreaInsetsDidChange()
-		if isFullScreenAvailable && AppDefaults.shared.logicalArticleFullscreenEnabled {
-			updateBottomSafeAreaForFullScreen()
-		}
 	}
 
 	override func viewWillDisappear(_ animated: Bool) {
@@ -134,12 +115,6 @@ final class WebViewController: UIViewController {
 				self.loadWebView()
 			}
 		}
-	}
-
-	// MARK: Actions
-
-	@objc func showBars(_ sender: Any) {
-		showBars()
 	}
 
 	// MARK: API
@@ -212,31 +187,6 @@ final class WebViewController: UIViewController {
 		loadWebView(replaceExistingWebView: true)
 	}
 
-	func showBars(animated: Bool = true) {
-		AppDefaults.shared.articleFullscreenEnabled = false
-		coordinator.showStatusBar()
-		topShowBarsViewConstraint?.constant = 0
-		bottomShowBarsViewConstraint?.constant = 0
-		navigationController?.setNavigationBarHidden(false, animated: animated)
-		navigationController?.setToolbarHidden(false, animated: animated)
-		additionalSafeAreaInsets.bottom = 0
-		setBottomScrollEdgeEffectHidden(false)
-		configureContextMenuInteraction()
-	}
-
-	func hideBars() {
-		if isFullScreenAvailable {
-			AppDefaults.shared.articleFullscreenEnabled = true
-			coordinator.hideStatusBar()
-			topShowBarsViewConstraint?.constant = -44.0
-			bottomShowBarsViewConstraint?.constant = 44.0
-			navigationController?.setNavigationBarHidden(true, animated: true)
-			navigationController?.setToolbarHidden(true, animated: true)
-			setBottomScrollEdgeEffectHidden(true)
-			configureContextMenuInteraction()
-		}
-	}
-
 	func stopWebViewActivity() {
 		imageDownloadTask?.cancel()
 		imageDownloadTask = nil
@@ -275,44 +225,6 @@ final class WebViewController: UIViewController {
 			openURLInSafariViewController(url)
 		}
 	}
-}
-
-// MARK: UIContextMenuInteractionDelegate
-
-extension WebViewController: UIContextMenuInteractionDelegate {
-    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-
-		return UIContextMenuConfiguration(identifier: nil, previewProvider: contextMenuPreviewProvider) { [weak self] _ in
-			guard let self = self else { return nil }
-
-			var menus = [UIMenu]()
-
-			var navActions = [UIAction]()
-			if let action = self.prevArticleAction() {
-				navActions.append(action)
-			}
-			if let action = self.nextArticleAction() {
-				navActions.append(action)
-			}
-			if !navActions.isEmpty {
-				menus.append(UIMenu(title: "", options: .displayInline, children: navActions))
-			}
-
-			if let action = self.toggleReadAction() {
-				menus.append(UIMenu(title: "", options: .displayInline, children: [action]))
-			}
-
-			menus.append(UIMenu(title: "", options: .displayInline, children: [self.showOriginalAction()]))
-			menus.append(UIMenu(title: "", options: .displayInline, children: [self.shareAction()]))
-
-			return UIMenu(title: "", children: menus)
-        }
-    }
-
-	func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willPerformPreviewActionForMenuWith configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionCommitAnimating) {
-		coordinator.showBrowserForCurrentArticle()
-	}
-
 }
 
 // MARK: WKNavigationDelegate
@@ -518,7 +430,6 @@ private extension WebViewController {
 				webView.navigationDelegate = self
 				webView.uiDelegate = self
 				webView.scrollView.delegate = self
-				self.configureContextMenuInteraction()
 
 				// Remove possible existing message handlers
 				webView.configuration.userContentController.removeScriptMessageHandler(forName: MessageName.imageWasClicked)
@@ -637,13 +548,7 @@ private extension WebViewController {
 		let y = CGFloat(clickMessage.y) + webView.safeAreaInsets.top
 		let rect = CGRect(x: CGFloat(clickMessage.x), y: y, width: CGFloat(clickMessage.width), height: CGFloat(clickMessage.height))
 		transition.originFrame = webView.convert(rect, to: nil)
-
-		if navigationController?.navigationBar.isHidden ?? false {
-			transition.maskFrame = webView.convert(webView.frame, to: nil)
-		} else {
-			transition.maskFrame = webView.convert(webView.safeAreaLayoutGuide.layoutFrame, to: nil)
-		}
-
+		transition.maskFrame = webView.convert(webView.safeAreaLayoutGuide.layoutFrame, to: nil)
 		transition.originImage = image
 
 		coordinator.showFullScreenImage(image: image, imageTitle: clickMessage.imageTitle, transition: transition)
@@ -655,123 +560,6 @@ private extension WebViewController {
 
 	func cancelImageLoad(_ webView: WKWebView) {
 		webView.evaluateJavaScript("cancelImageLoad();")
-	}
-
-	func configureTopShowBarsView() {
-		topShowBarsView = UIView()
-		topShowBarsView.backgroundColor = .clear
-		topShowBarsView.translatesAutoresizingMaskIntoConstraints = false
-		view.addSubview(topShowBarsView)
-
-		if AppDefaults.shared.logicalArticleFullscreenEnabled {
-			topShowBarsViewConstraint = view.topAnchor.constraint(equalTo: topShowBarsView.bottomAnchor, constant: -44.0)
-		} else {
-			topShowBarsViewConstraint = view.topAnchor.constraint(equalTo: topShowBarsView.bottomAnchor, constant: 0.0)
-		}
-
-		NSLayoutConstraint.activate([
-			topShowBarsViewConstraint,
-			view.leadingAnchor.constraint(equalTo: topShowBarsView.leadingAnchor),
-			view.trailingAnchor.constraint(equalTo: topShowBarsView.trailingAnchor),
-			topShowBarsView.heightAnchor.constraint(equalToConstant: 44.0)
-		])
-		topShowBarsView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showBars(_:))))
-	}
-
-	func configureBottomShowBarsView() {
-		bottomShowBarsView = UIView()
-		bottomShowBarsView.backgroundColor = .clear
-		bottomShowBarsView.translatesAutoresizingMaskIntoConstraints = false
-		view.addSubview(bottomShowBarsView)
-		if AppDefaults.shared.logicalArticleFullscreenEnabled {
-			bottomShowBarsViewConstraint = view.bottomAnchor.constraint(equalTo: bottomShowBarsView.topAnchor, constant: 44.0)
-		} else {
-			bottomShowBarsViewConstraint = view.bottomAnchor.constraint(equalTo: bottomShowBarsView.topAnchor, constant: 0.0)
-		}
-		NSLayoutConstraint.activate([
-			bottomShowBarsViewConstraint,
-			view.leadingAnchor.constraint(equalTo: bottomShowBarsView.leadingAnchor),
-			view.trailingAnchor.constraint(equalTo: bottomShowBarsView.trailingAnchor),
-			bottomShowBarsView.heightAnchor.constraint(equalToConstant: 44.0)
-		])
-		bottomShowBarsView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showBars(_:))))
-	}
-
-	func updateBottomSafeAreaForFullScreen() {
-		let rawBottom = view.safeAreaInsets.bottom - additionalSafeAreaInsets.bottom
-		additionalSafeAreaInsets.bottom = -rawBottom
-	}
-
-	/// Hide or show the toolbar scroll edge effect at the bottom of the web view.
-	///
-	/// Hidden when entering fullscreen so a residual effect doesn't obscure the
-	/// bottom of the article.
-	///
-	/// <https://github.com/Ranchero-Software/NetNewsWire/issues/5298>
-	func setBottomScrollEdgeEffectHidden(_ hidden: Bool) {
-		guard #available(iOS 26, *) else {
-			return
-		}
-		guard let scrollView = webView?.scrollView else {
-			return
-		}
-		scrollView.bottomEdgeEffect.isHidden = hidden
-	}
-
-	func configureContextMenuInteraction() {
-		if isFullScreenAvailable {
-			if navigationController?.isNavigationBarHidden ?? false {
-				webView?.addInteraction(contextMenuInteraction)
-			} else {
-				webView?.removeInteraction(contextMenuInteraction)
-			}
-		}
-	}
-
-	func contextMenuPreviewProvider() -> UIViewController {
-		let previewProvider = UIStoryboard.main.instantiateController(ofType: ContextMenuPreviewViewController.self)
-		previewProvider.article = article
-		return previewProvider
-	}
-
-	func prevArticleAction() -> UIAction? {
-		guard coordinator.isPrevArticleAvailable else { return nil }
-		let title = NSLocalizedString("Previous Article", comment: "Previous Article")
-		return UIAction(title: title, image: Assets.Images.prevArticle) { [weak self] _ in
-			self?.coordinator.selectPrevArticle()
-		}
-	}
-
-	func nextArticleAction() -> UIAction? {
-		guard coordinator.isNextArticleAvailable else { return nil }
-		let title = NSLocalizedString("Next Article", comment: "Next Article")
-		return UIAction(title: title, image: Assets.Images.nextArticle) { [weak self] _ in
-			self?.coordinator.selectNextArticle()
-		}
-	}
-
-	func toggleReadAction() -> UIAction? {
-		guard let article = article, !article.status.read || article.isAvailableToMarkUnread else { return nil }
-
-		let title = article.status.read ? NSLocalizedString("Move to Queue", comment: "Command") : NSLocalizedString("Archive", comment: "Command")
-		let readImage = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
-		return UIAction(title: title, image: readImage) { [weak self] _ in
-			self?.coordinator.toggleReadForCurrentArticle()
-		}
-	}
-
-	func showOriginalAction() -> UIAction {
-		let title = NSLocalizedString("Show Original", comment: "Show Original")
-		return UIAction(title: title, image: Assets.Images.showOriginal) { [weak self] _ in
-			self?.openInAppBrowser()
-		}
-	}
-
-	func shareAction() -> UIAction {
-		let title = NSLocalizedString("Share", comment: "Share button")
-		return UIAction(title: title, image: Assets.Images.share) { [weak self] _ in
-			self?.showActivityDialog()
-		}
 	}
 
 	// If the resource cannot be opened with an installed app, present the web view.

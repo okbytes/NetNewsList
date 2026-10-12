@@ -88,8 +88,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	var prefersStatusBarHidden = false
-
 	private let treeControllerDelegate = SidebarTreeControllerDelegate()
 	private let treeController: TreeController
 
@@ -876,20 +874,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		markArticlesWithUndo([article], statusKey: .read, flag: !article.status.read)
 	}
 
-	func showStatusBar() {
-		prefersStatusBarHidden = false
-		UIView.animate(withDuration: 0.15) {
-			self.rootSplitViewController.setNeedsStatusBarAppearanceUpdate()
-		}
-	}
-
-	func hideStatusBar() {
-		prefersStatusBarHidden = true
-		UIView.animate(withDuration: 0.15) {
-			self.rootSplitViewController.setNeedsStatusBarAppearanceUpdate()
-		}
-	}
-
 	func showSettings(scrollToArticlesSection: Bool = false) {
 		let settingsNavController = UIStoryboard.settings.instantiateInitialViewController() as! UINavigationController
 		let settingsViewController = settingsNavController.topViewController as! SettingsViewController
@@ -1105,11 +1089,6 @@ extension SceneCoordinator: UINavigationControllerDelegate {
 			currentArticle = nil
 			mainTimelineViewController?.updateArticleSelection(animations: [.scroll, .select, .navigation])
 			activityManager.invalidateReading()
-
-			// Restore any bars hidden by the article controller
-			showStatusBar()
-			navigationController.setNavigationBarHidden(false, animated: true)
-			navigationController.setToolbarHidden(false, animated: true)
 			return
 		}
 	}

@@ -100,21 +100,12 @@ final class ArticleViewController: UIViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(statusesDidChange(_:)), name: .StatusesDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange(_:)), name: UIContentSizeCategory.didChangeNotification, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
 
 		let appearance = UINavigationBarAppearance()
 		appearance.configureWithDefaultBackground()
 		navigationItem.standardAppearance = appearance
 		navigationItem.scrollEdgeAppearance = appearance
 		navigationItem.compactAppearance = appearance
-
-		let fullScreenTapZone = UIView()
-		NSLayoutConstraint.activate([
-			fullScreenTapZone.widthAnchor.constraint(equalToConstant: 150),
-			fullScreenTapZone.heightAnchor.constraint(equalToConstant: 44)
-		])
-		fullScreenTapZone.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapNavigationBar)))
-		navigationItem.titleView = fullScreenTapZone
 
 		if #available(iOS 26, *) {
 			// Grouped with Share at the trailing end.
@@ -159,9 +150,6 @@ final class ArticleViewController: UIViewController {
 		}
 
 		self.pageViewController.setViewControllers([controller], direction: .forward, animated: false, completion: nil)
-		if AppDefaults.shared.logicalArticleFullscreenEnabled {
-			controller.hideBars()
-		}
 
 		// Search bar
 		searchBar.translatesAutoresizingMaskIntoConstraints = false
@@ -175,13 +163,8 @@ final class ArticleViewController: UIViewController {
 	}
 
 	override func viewWillAppear(_ animated: Bool) {
-		let hideToolbars = AppDefaults.shared.logicalArticleFullscreenEnabled
-		if hideToolbars {
-			currentWebViewController?.hideBars()
-		} else {
-			currentWebViewController?.showBars()
-		}
 		super.viewWillAppear(animated)
+		navigationController?.setToolbarHidden(false, animated: animated)
 	}
 
 	override func viewDidAppear(_ animated: Bool) {
@@ -208,19 +191,11 @@ final class ArticleViewController: UIViewController {
 			endFind()
 			searchBar.shouldBeginEditing = false
 		}
-		// Pass animated: false — animating the nav bar / toolbar visibility change during the
-		// disappear transition triggers an Auto Layout assertion (NSISEngine) and crashes.
-		currentWebViewController?.showBars(animated: false)
 	}
 
 	override func viewDidDisappear(_ animated: Bool) {
 		super.viewDidDisappear(animated)
 		restoreOriginalPopGestureRecognizerDelegate()
-	}
-
-	override func viewSafeAreaInsetsDidChange() {
-		// This will animate if the show/hide bars animation is happening.
-		view.layoutIfNeeded()
 	}
 
 	func updateUI() {
@@ -275,22 +250,7 @@ final class ArticleViewController: UIViewController {
 		currentWebViewController?.fullReload()
 	}
 
-	@objc func willEnterForeground(_ note: Notification) {
-		// The toolbar will come back on you if you don't hide it again
-		if AppDefaults.shared.logicalArticleFullscreenEnabled {
-			currentWebViewController?.hideBars()
-		}
-	}
-
 	// MARK: Actions
-
-	@objc func didTapNavigationBar() {
-		currentWebViewController?.hideBars()
-	}
-
-	@objc func showBars(_ sender: Any) {
-		currentWebViewController?.showBars()
-	}
 
 	@objc func showOriginal(_ sender: Any?) {
 		currentWebViewController?.openInAppBrowser()
