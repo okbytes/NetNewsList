@@ -13,7 +13,6 @@ import UIKit
 #endif
 
 import RSCore
-import Account
 import Images
 
 #if os(macOS)
@@ -25,7 +24,6 @@ typealias RSColor = UIColor
 struct Assets {
 	@MainActor struct Images {
 		static let copy = RSImage(symbol: "document.on.document")
-		static var markAllAsRead: RSImage { RSImage(named: "markAllAsRead")! }
 
 		nonisolated static var nnwFeedIcon: RSImage { RSImage(named: "nnwFeedIcon")! }
 		static var faviconTemplate: RSImage { RSImage(named: "faviconTemplateImage")! }
@@ -40,15 +38,7 @@ struct Assets {
 
 #if os(macOS)
 		static let addNewSidebarItem = RSImage(symbol: "plus")!
-		static var marsEdit: RSImage { RSImage(named: "MarsEditIcon")! }
-		static var microblog: RSImage { RSImage(named: "MicroblogIcon")! }
 		static let openInBrowser = RSImage(symbol: "safari")!
-		static let preferencesToolbarGeneral = RSImage(symbol: "gearshape")!
-		static let readClosed = RSImage(symbol: "largecircle.fill.circle")!
-		static let readOpen = RSImage(symbol: "circle")!
-		static let refresh = RSImage(symbol: "arrow.clockwise")!
-		static let swipeMarkRead = RSImage(systemSymbolName: "circle", accessibilityDescription: "Mark Read")!
-		static let swipeMarkUnread = RSImage(systemSymbolName: "largecircle.fill.circle", accessibilityDescription: "Mark Unread")!
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.systemBrown)
 
@@ -56,15 +46,8 @@ struct Assets {
 
 		static let circleClosed = RSImage(symbol: "largecircle.fill.circle")!
 		static let more = RSImage(symbol: "ellipsis.circle")!
-		static let nextArticle = RSImage(symbol: "chevron.down")!
 		static let circleOpen = RSImage(symbol: "circle")!
-		static var disclosure: RSImage { RSImage(named: "disclosure")! }
-		static let deactivate = RSImage(symbol: "minus.circle")!
-		static let currentActivity = RSImage(symbol: "text.pad.header")!
-		static let info = RSImage(symbol: "info.circle")!
-		static let prevArticle = RSImage(symbol: "chevron.up")!
 		static let safari = RSImage(symbol: "safari")!
-		static let smartFeed = RSImage(symbol: "gear")!
 		static let trash = RSImage(symbol: "trash")!
 
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
@@ -78,16 +61,12 @@ struct Assets {
 		static let timelineSeparator = NSColor(named: "timelineSeparatorColor")!
 		static let iconLightBackground = NSColor(named: "iconLightBackgroundColor")!
 		static let iconDarkBackground = NSColor(named: "iconDarkBackgroundColor")!
-		static let sidebarUnreadCountBackground = RSColor(named: "SidebarUnreadCountBackground")!
-		static let sidebarUnreadCountText = RSColor(named: "SidebarUnreadCountText")!
 #else // iOS
 		static let primaryAccent = RSColor(named: "primaryAccentColor")!
 		static let secondaryAccent = RSColor(named: "secondaryAccentColor")!
 		static let vibrantText = RSColor(named: "vibrantTextColor")!
-		static let controlBackground = RSColor(named: "controlBackgroundColor")!
 		static let iconBackground = RSColor(named: "iconBackgroundColor")!
 		static let fullScreenBackground = RSColor(named: "fullScreenBackgroundColor")!
-		static let sectionHeader = RSColor(named: "sectionHeaderColor")!
 #endif
 	}
 }

@@ -38,10 +38,6 @@ typealias ArticleArray = [Article]
 		ArticleSorter.sorted(articles: self, parameters: parameters)
 	}
 
-	func canMarkAllAsRead() -> Bool {
-		return anyArticleIsUnread()
-	}
-
 	func anyArticlePassesTest(_ test: ((Article) -> Bool)) -> Bool {
 		for article in self {
 			if test(article) {
