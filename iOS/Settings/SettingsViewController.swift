@@ -33,7 +33,6 @@ final class SettingsViewController: UITableViewController {
 		case sortOrder = 0
 		case groupBySite = 1
 		case confirmMarkAllAsRead = 2
-		case timelineLayout = 3
 	}
 
 	private enum ArticlesRow: Int {
@@ -128,14 +127,6 @@ final class SettingsViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 
 		switch Section(rawValue: indexPath.section) {
-		case .timeline:
-			switch TimelineRow(rawValue: indexPath.row) {
-			case .timelineLayout:
-				let timeline = UIStoryboard.settings.instantiateController(ofType: TimelineCustomizerCollectionViewController.self)
-				self.navigationController?.pushViewController(timeline, animated: true)
-			default:
-				break
-			}
 		case .articles:
 			switch ArticlesRow(rawValue: indexPath.row) {
 			case .theme:

@@ -15,8 +15,6 @@ final class MainTimelineCell: UICollectionViewCell {
 
 	static let reuseIdentifier = "MainTimelineCell"
 
-	var isPreview = false
-
 	private let titleView = MainTimelineCell.multiLineLabel()
 	private let summaryView = MainTimelineCell.multiLineLabel()
 	private let dateView = MainTimelineCell.singleLineLabel()
@@ -71,10 +69,7 @@ final class MainTimelineCell: UICollectionViewCell {
 		} else {
 			backgroundConfig = UIBackgroundConfiguration.listGroupedCell().updated(for: state)
 		}
-		// The Settings timeline preview isn't in the split view hierarchy, so style it
-		// the way the timeline usually looks on the device.
-		let usesExpandedStyle = isPreview ? UIDevice.current.userInterfaceIdiom == .pad : isInExpandedSplitView
-		if !usesExpandedStyle {
+		if !isInExpandedSplitView {
 			// Full-bleed rectangle selection when the timeline has the screen to itself.
 			// When the split view is expanded — iPad, or a large iPhone in landscape —
 			// it gets the rounded, inset selection below.
@@ -86,8 +81,6 @@ final class MainTimelineCell: UICollectionViewCell {
 			backgroundConfig.edgesAddingLayoutMarginsToBackgroundInsets = [.leading, .trailing]
 			if UIDevice.current.userInterfaceIdiom == .pad {
 				backgroundConfig.backgroundInsets = NSDirectionalEdgeInsets(top: 0, leading: -8, bottom: 0, trailing: -8)
-			} else if isPreview {
-				backgroundConfig.backgroundInsets = NSDirectionalEdgeInsets(top: 0, leading: -16, bottom: 0, trailing: -16)
 			} else {
 				backgroundConfig.backgroundInsets = NSDirectionalEdgeInsets(top: 0, leading: -12, bottom: 0, trailing: -12)
 			}
@@ -111,12 +104,9 @@ final class MainTimelineCell: UICollectionViewCell {
 
 		let isActive = state.isSwiped || state.isSelected
 
-		if isPreview {
-			backgroundConfig.backgroundColor = traitCollection.userInterfaceStyle == .dark ? .secondarySystemBackground : .white
-		}
 		backgroundConfiguration = backgroundConfig
 
-		topSeparator.alpha = (isActive || isPreview) ? 0.0 : 1.0
+		topSeparator.alpha = isActive ? 0.0 : 1.0
 
 		// Text goes white only on the accent background. On gray, labels keep their normal colors.
 		updateColors(active: isActiveSelection)

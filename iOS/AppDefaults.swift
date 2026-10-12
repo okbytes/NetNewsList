@@ -32,8 +32,6 @@ enum UserInterfaceColorPalette: Int, CustomStringConvertible, CaseIterable {
 
 extension Notification.Name {
 	public static let userInterfaceColorPaletteDidUpdate = Notification.Name("UserInterfaceColorPaletteDidUpdateNotification")
-	public static let timelineIconSizeDidChange = Notification.Name("TimelineIconSizeDidChangeNotification")
-	public static let timelineNumberOfLinesDidChange = Notification.Name("TimelineNumberOfLinesDidChangeNotification")
 }
 
 final class AppDefaults: Sendable {
@@ -54,8 +52,6 @@ final class AppDefaults: Sendable {
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
 		static let firstRunDate = "firstRunDate"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
-		static let timelineNumberOfLines = "timelineNumberOfLines"
-		static let timelineIconDimension = "timelineIconSize"
 		static let timelineSortDirection = "timelineSortDirection"
 		static let confirmMarkAllAsRead = "confirmMarkAllAsRead"
 		static let currentThemeName = "currentThemeName"
@@ -171,27 +167,6 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var timelineNumberOfLines: Int {
-		get {
-			return AppDefaults.int(for: Key.timelineNumberOfLines)
-		}
-		set {
-			AppDefaults.setInt(for: Key.timelineNumberOfLines, newValue)
-			NotificationCenter.default.post(name: .timelineNumberOfLinesDidChange, object: nil)
-		}
-	}
-
-	var timelineIconSize: IconSize {
-		get {
-			let rawValue = AppDefaults.store.integer(forKey: Key.timelineIconDimension)
-			return IconSize(rawValue: rawValue) ?? IconSize.medium
-		}
-		set {
-			AppDefaults.store.set(newValue.rawValue, forKey: Key.timelineIconDimension)
-			NotificationCenter.default.post(name: .timelineIconSizeDidChange, object: nil)
-		}
-	}
-
 	var currentThemeName: String? {
 		get {
 			return AppDefaults.string(for: Key.currentThemeName)
@@ -245,8 +220,6 @@ final class AppDefaults: Sendable {
 	@MainActor static func registerDefaults() {
 		let defaults: [String: Any] = [Key.userInterfaceColorPalette: UserInterfaceColorPalette.automatic.rawValue,
 										Key.timelineGroupByFeed: false,
-										Key.timelineNumberOfLines: 2,
-										Key.timelineIconDimension: IconSize.medium.rawValue,
 										// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 										Key.confirmMarkAllAsRead: true,

@@ -19,8 +19,6 @@ import Images
 final class MainTimelineViewController: UIViewController, UndoableCommandRunner {
 
 	// MARK: Private Variables
-	private var numberOfTextLines = 0
-	private var iconSize = IconSize.medium
 	private let refreshProgressView = RefreshProgressView(frame: .zero)
 	private lazy var refreshBarItem = UIBarButtonItem(customView: refreshProgressView)
 	private var isToolbarProgressViewShowing = false
@@ -162,9 +160,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 		assert(dataSource != nil)
 		configureCollectionView(dataSource!)
-
-		numberOfTextLines = AppDefaults.shared.timelineNumberOfLines
-		iconSize = AppDefaults.shared.timelineIconSize
 
 		assert(collectionView?.refreshControl != nil)
 		collectionView?.refreshControl = UIRefreshControl()
@@ -623,8 +618,6 @@ private extension MainTimelineViewController {
 		// lets us know that it’s time to request an image.
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .htmlMetadataAvailable, object: nil)
 
-		NotificationCenter.default.addObserver(self, selector: #selector(timelineIconSizeDidChange(_:)), name: .timelineIconSizeDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(timelineNumberOfLinesDidChange(_:)), name: .timelineNumberOfLinesDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(displayNameDidChange), name: .DisplayNameDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
@@ -783,7 +776,7 @@ private extension MainTimelineViewController {
 		let iconImage = iconImageFor(article)
 		let showFeedNames = coordinator?.showFeedNames ?? ShowFeedName.none
 		let showIcon = showIcons && iconImage != nil
-		let cellData = MainTimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcon, numberOfLines: numberOfTextLines, iconSize: iconSize)
+		let cellData = MainTimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcon)
 		return cellData
 	}
 
@@ -911,22 +904,6 @@ private extension MainTimelineViewController {
 			return
 		}
 		queueReloadAvailableCells()
-	}
-
-	@objc func timelineIconSizeDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineViewController: timelineIconSizeDidChange")
-		if iconSize != AppDefaults.shared.timelineIconSize {
-			iconSize = AppDefaults.shared.timelineIconSize
-			reloadVisibleCells()
-		}
-	}
-
-	@objc func timelineNumberOfLinesDidChange(_ note: Notification) {
-		Self.logger.debug("MainTimelineViewController: timelineNumberOfLinesDidChange")
-		if numberOfTextLines != AppDefaults.shared.timelineNumberOfLines {
-			numberOfTextLines = AppDefaults.shared.timelineNumberOfLines
-			reloadVisibleCells()
-		}
 	}
 
 	@objc func contentSizeCategoryDidChange(_ note: Notification) {

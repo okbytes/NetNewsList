@@ -14,6 +14,10 @@ import Images
 
 	private static let noText = NSLocalizedString("(No Text)", comment: "No Text")
 
+	// Every row has the same layout: one line of text and a small icon.
+	private static let rowNumberOfLines = 1
+	private static let rowIconSize = IconSize.small
+
 	let accountID: String
 	let articleID: String
 	let title: String
@@ -28,7 +32,7 @@ import Images
 	let numberOfLines: Int
 	let iconSize: IconSize
 
-	init(article: Article, showFeedName: ShowFeedName, feedName: String?, byline: String?, iconImage: IconImage?, showIcon: Bool, numberOfLines: Int, iconSize: IconSize) {
+	init(article: Article, showFeedName: ShowFeedName, feedName: String?, byline: String?, iconImage: IconImage?, showIcon: Bool) {
 
 		self.accountID = article.accountID
 		self.articleID = article.articleID
@@ -63,8 +67,8 @@ import Images
 		self.showIcon = showIcon
 		self.iconImage = iconImage
 
-		self.numberOfLines = numberOfLines
-		self.iconSize = iconSize
+		self.numberOfLines = Self.rowNumberOfLines
+		self.iconSize = Self.rowIconSize
 
 	}
 
@@ -81,7 +85,7 @@ import Images
 		self.showIcon = false
 		self.iconImage = nil
 		self.numberOfLines = 0
-		self.iconSize = .medium
+		self.iconSize = Self.rowIconSize
 	}
 
 }
