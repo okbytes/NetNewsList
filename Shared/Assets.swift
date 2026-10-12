@@ -44,9 +44,7 @@ struct Assets {
 
 #else // iOS
 
-		static let circleClosed = RSImage(symbol: "largecircle.fill.circle")!
 		static let more = RSImage(symbol: "ellipsis.circle")!
-		static let circleOpen = RSImage(symbol: "circle")!
 		static let safari = RSImage(symbol: "safari")!
 		static let trash = RSImage(symbol: "trash")!
 

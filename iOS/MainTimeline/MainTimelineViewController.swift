@@ -669,7 +669,7 @@ private extension MainTimelineViewController {
 				completion(true)
 			}
 
-			readAction.image = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
+			readAction.image = article.status.read ? Assets.Images.moveToQueue : Assets.Images.archive
 			readAction.backgroundColor = Assets.Colors.primaryAccent
 			actions.append(readAction)
 
@@ -860,7 +860,7 @@ extension MainTimelineViewController {
 		let title = article.status.read ?
 			NSLocalizedString("Move to Queue", comment: "Command") :
 			NSLocalizedString("Archive", comment: "Command")
-		let image = article.status.read ? Assets.Images.circleClosed : Assets.Images.circleOpen
+		let image = article.status.read ? Assets.Images.moveToQueue : Assets.Images.archive
 
 		let action = UIAction(title: title, image: image) { [weak self] _ in
 			// Post the accessibility announcement immediately so VoiceOver
