@@ -30,7 +30,6 @@ final class AppDefaults: Sendable {
 		static let timelineFontSize = "timelineFontSize"
 		static let timelineSortDirection = "timelineSortDirection"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
-		static let useColumnLayout = "useColumnLayout"
 		static let detailFontSize = "detailFontSize"
 		static let openInBrowserInBackground = "openInBrowserInBackground"
 		static let articleTextSize = "articleTextSize"
@@ -226,16 +225,6 @@ final class AppDefaults: Sendable {
 		AppDefaults.bool(for: Key.timelineGroupByFeed)
 	}
 
-	/// Column layout: multi-column timeline table with the article view below it, like Mail’s View > Use Column Layout. Applies to all windows.
-	var useColumnLayout: Bool {
-		get {
-			AppDefaults.bool(for: Key.useColumnLayout)
-		}
-		set {
-			AppDefaults.setBool(for: Key.useColumnLayout, newValue)
-		}
-	}
-
 	var timelineShowsSeparators: Bool {
 		return AppDefaults.bool(for: Key.timelineShowsSeparators)
 	}
@@ -270,7 +259,6 @@ final class AppDefaults: Sendable {
 			// Oldest first, so the Queue reads in the order pages were saved.
 			Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 			Key.timelineGroupByFeed: false,
-			Key.useColumnLayout: false,
 			"NSScrollViewShouldScrollUnderTitlebar": false,
 			Key.showDebugMenu: showDebugMenu,
 			Key.currentThemeName: Self.defaultThemeName

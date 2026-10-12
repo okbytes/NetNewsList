@@ -8,8 +8,6 @@
         <customObject id="-2" userLabel="File's Owner" customClass="TimelineContainerViewController" customModule="NetNewsWire" customModuleProvider="target">
             <connections>
                 <outlet property="containerView" destination="Zpk-pq-9nW" id="Kye-yX-Wyn"/>
-                <outlet property="containerViewTopToHeaderConstraint" destination="KCa-8b-a6y" id="hdr-cn-st1"/>
-                <outlet property="headerSeparator" destination="7p6-pA-iw6" id="hdr-se-p01"/>
                 <outlet property="view" destination="Dnl-L5-xFP" id="T2c-wM-9Hq"/>
                 <outlet property="viewOptionsPopUpButton" destination="lSU-OC-sEC" id="Z8V-rm-n2m"/>
             </connections>

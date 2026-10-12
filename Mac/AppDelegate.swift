@@ -45,7 +45,6 @@ let appName = "NetNewsList"
 	private var isShutDownSyncDone = false
 
 	@IBOutlet var debugMenuItem: NSMenuItem!
-	@IBOutlet var useColumnLayoutMenuItem: NSMenuItem!
 
 	var unreadCount = 0 {
 		didSet {
@@ -153,7 +152,6 @@ let appName = "NetNewsList"
 		if isFirstRun {
 			Self.logger.debug("Is first run.")
 		}
-		updateColumnLayoutMenuItem()
 
 		if mainWindowController == nil {
 			let mainWindowController = createAndShowMainWindow()
@@ -165,11 +163,6 @@ let appName = "NetNewsList"
 		}
 
 		NotificationCenter.default.addObserver(self, selector: #selector(feedSettingDidChange(_:)), name: .feedSettingDidChange, object: nil)
-		NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { _ in
-			MainActor.assumeIsolated {
-				self.userDefaultsDidChange()
-			}
-		}
 
 		DispatchQueue.main.async {
 			self.unreadCount = AccountManager.shared.unreadCount
@@ -314,12 +307,6 @@ let appName = "NetNewsList"
 				_ = FaviconDownloader.shared.favicon(for: feed)
 			}
 		}
-	}
-
-	func userDefaultsDidChange() {
-		updateColumnLayoutMenuItem()
-
-		updateDockBadge()
 	}
 
 	@objc func didWakeNotification(_ note: Notification) {
@@ -607,10 +594,6 @@ let appName = "NetNewsList"
 		aboutWindowController?.showWindow(nil)
 		aboutWindowController?.window?.makeKeyAndOrderFront(nil)
 	}
-
-	@IBAction func toggleColumnLayout(_ sender: Any?) {
-		AppDefaults.shared.useColumnLayout.toggle()
-	}
 }
 
 // MARK: - Debug Menu
@@ -675,10 +658,6 @@ extension AppDelegate {
 		activityWindowController?.saveState()
 		activityLogWindowController?.saveState()
 		errorLogWindowController?.saveState()
-	}
-
-	@MainActor func updateColumnLayoutMenuItem() {
-		useColumnLayoutMenuItem.state = AppDefaults.shared.useColumnLayout ? .on : .off
 	}
 
 	func importTheme(url: URL) {

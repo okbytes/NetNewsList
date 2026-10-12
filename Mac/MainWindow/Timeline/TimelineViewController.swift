@@ -15,7 +15,6 @@ import Images
 @MainActor protocol TimelineDelegate: AnyObject {
 	func timelineSelectionDidChange(_: TimelineViewController, selectedArticles: [Article]?)
 	func timelineInvalidatedRestorationState(_: TimelineViewController)
-	func timelineRequestedSortChange(_: TimelineViewController, parameters: ArticleSortParameters)
 }
 
 enum TimelineShowFeedName: Sendable {
@@ -144,22 +143,9 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		didSet {
 			if isViewLoaded && sortParameters != oldValue {
 				sortParametersDidChange()
-				applySortDescriptorsToTableView()
 			}
 		}
 	}
-	// Also owned by the container, which pushes the current value before and after the view loads.
-	var layout = TimelineLayout.standard {
-		didSet {
-			if isViewLoaded && layout != oldValue {
-				layoutDidChange()
-			}
-		}
-	}
-	// The nib’s single column, kept so standard layout can put it back.
-	var standardColumn: NSTableColumn?
-	// Set while columns are added and autosaved state is restored, which fires sortDescriptorsDidChange.
-	var isConfiguringTableColumns = false
 	private var fontSize: FontSize = AppDefaults.shared.timelineFontSize {
 		didSet {
 			if fontSize != oldValue {
@@ -198,9 +184,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		tableView.registerForDraggedTypes(DroppedWebPages.pasteboardTypes)
 		tableView.keyboardDelegate = keyboardDelegate
 		tableView.style = .inset
-
-		standardColumn = tableView.tableColumns.first
-		configureTableView(for: layout)
 		updateShowIcons()
 
 		if !didRegisterForNotifications {
@@ -577,9 +560,9 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		fontSize = AppDefaults.shared.timelineFontSize
 	}
 
-	/// The one place the row height is set — it depends on the layout and the font size.
+	/// The one place the row height is set. It depends on the font size.
 	func updateTableViewRowHeight() {
-		tableView.rowHeight = layout == .column ? columnRowHeight() : currentRowHeight
+		tableView.rowHeight = currentRowHeight
 	}
 
 	// MARK: - Reloading Data
@@ -751,10 +734,6 @@ extension TimelineViewController: NSTableViewDelegate {
 	private static let rowViewIdentifier = NSUserInterfaceItemIdentifier(rawValue: "timelineRow")
 
 	func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-		if layout == .column {
-			// The standard row view suits column layout. TimelineTableRowView only knows the standard cell.
-			return nil
-		}
 		if let rowView: TimelineTableRowView = tableView.makeView(withIdentifier: TimelineViewController.rowViewIdentifier, owner: nil) as? TimelineTableRowView {
 			return rowView
 		}
@@ -766,10 +745,6 @@ extension TimelineViewController: NSTableViewDelegate {
 	private static let timelineCellIdentifier = NSUserInterfaceItemIdentifier(rawValue: "timelineCell")
 
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		if layout == .column {
-			return columnCellView(for: tableColumn, row: row)
-		}
-
 		func configure(_ cell: TimelineTableCellView) {
 			cell.cellAppearance = showIcons ? cellAppearanceWithIcon : cellAppearance
 			if let article = articles.articleAtRow(row) {
@@ -883,24 +858,7 @@ private extension TimelineViewController {
 		unreadCount = count
 	}
 
-	func layoutDidChange() {
-		performBlockAndRestoreSelection {
-			configureTableView(for: layout)
-			updateShowIcons()
-			tableView.reloadData()
-		}
-		if tableView.selectedRow != -1 {
-			tableView.scrollRowToVisible(tableView.selectedRow)
-		}
-	}
-
 	func updateShowIcons() {
-		if layout == .column {
-			// The Feed column always shows the feed icon.
-			self.showIcons = true
-			return
-		}
-
 		if showFeedNames == .feed {
 			self.showIcons = true
 			return

@@ -18,19 +18,7 @@ import Articles
 final class TimelineContainerViewController: NSViewController {
 
 	@IBOutlet var viewOptionsPopUpButton: NSPopUpButton!
-	@IBOutlet var headerSeparator: NSBox!
-	@IBOutlet var containerViewTopToHeaderConstraint: NSLayoutConstraint!
 	@IBOutlet var containerView: TimelineContainerView!
-
-	private var layout = AppDefaults.shared.timelineLayout {
-		didSet {
-			if layout != oldValue {
-				layoutDidChange()
-			}
-		}
-	}
-	// Column layout hides the sort header, and this pins the timeline to the top instead.
-	private lazy var containerViewTopToViewConstraint = containerView.topAnchor.constraint(equalTo: view.topAnchor)
 
 	var windowState: TimelineWindowState {
 		timelineViewController.windowState
@@ -53,7 +41,6 @@ final class TimelineContainerViewController: NSViewController {
 	lazy var timelineViewController = {
 		let viewController = TimelineViewController(delegate: self)
 		viewController.sortParameters = sortParameters
-		viewController.layout = layout
 		return viewController
 	}()
 
@@ -61,8 +48,8 @@ final class TimelineContainerViewController: NSViewController {
 		self.init(nibName: "TimelineContainerView", bundle: nil)
 	}
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+	override func viewDidLoad() {
+		super.viewDidLoad()
 		containerView.contentView = timelineViewController.view
 
 		// The first item is the pop-up’s hidden title.
@@ -70,21 +57,6 @@ final class TimelineContainerViewController: NSViewController {
 			makeMenuItemTitleLarger(menuItem)
 		}
 		updateViewOptionsPopUpButton()
-		updateHeaderVisibility()
-
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUserDefaultsDidChange(_:)), name: UserDefaults.didChangeNotification, object: nil)
-    }
-
-	// MARK: - Notifications
-
-	@objc nonisolated func handleUserDefaultsDidChange(_ note: Notification) {
-		Task { @MainActor in
-			self.userDefaultsDidChange()
-		}
-	}
-
-	private func userDefaultsDidChange() {
-		layout = AppDefaults.shared.timelineLayout
 	}
 
 	// MARK: - API
@@ -134,10 +106,6 @@ extension TimelineContainerViewController: TimelineDelegate {
 	func timelineInvalidatedRestorationState(_: TimelineViewController) {
 		delegate?.timelineInvalidatedRestorationState(self)
 	}
-
-	func timelineRequestedSortChange(_: TimelineViewController, parameters: ArticleSortParameters) {
-		sortParameters = parameters
-	}
 }
 
 private extension TimelineContainerViewController {
@@ -162,18 +130,5 @@ private extension TimelineContainerViewController {
 			return ArticleSortParameters(key: .feed, direction: .orderedAscending)
 		}
 		return ArticleSortParameters(key: .date, direction: AppDefaults.shared.timelineSortDirection)
-	}
-
-	func layoutDidChange() {
-		timelineViewController.layout = layout
-		updateHeaderVisibility()
-	}
-
-	func updateHeaderVisibility() {
-		let isHeaderHidden = layout == .column
-		viewOptionsPopUpButton.isHidden = isHeaderHidden
-		headerSeparator.isHidden = isHeaderHidden
-		containerViewTopToHeaderConstraint.isActive = !isHeaderHidden
-		containerViewTopToViewConstraint.isActive = isHeaderHidden
 	}
 }
