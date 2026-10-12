@@ -42,6 +42,12 @@ struct Assets {
 		}()
 		static let share = RSImage(symbol: "square.and.arrow.up")!
 		static let folder = RSImage(symbol: "folder")!
+		/// Archive an article: from the Queue to the Archive.
+		static let archive = RSImage(symbol: "archivebox")!
+		/// Move an archived article back to the Queue.
+		static let moveToQueue = RSImage(symbol: "tray.and.arrow.up")!
+		/// The "…" menu with the Archive (and Settings on iOS).
+		static let listMenu = RSImage(symbol: "ellipsis")!
 
 #if os(macOS)
 		static let addNewSidebarItem = RSImage(symbol: "plus")!
