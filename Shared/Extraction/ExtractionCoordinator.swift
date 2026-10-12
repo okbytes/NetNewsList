@@ -109,15 +109,16 @@ extension Notification {
 
 	/// Saves a page to the reading list and starts extracting it. A `body` supplied by the
 	/// caller (a Shortcut using Safari Reader, for instance) is stored instead, and the page isn’t fetched.
+	/// `dateSaved` is when the person saved it, which for a share is earlier than now.
 	@discardableResult
-	func saveArticle(url urlString: String, title: String?, body: String? = nil) async throws -> Article {
+	func saveArticle(url urlString: String, title: String?, body: String? = nil, dateSaved: Date = Date()) async throws -> Article {
 		var content: ReadingListContent?
 		// An X page is read by the X extractor, which gets the whole thread, photos and
 		// quoted posts; a body captured from it (Safari runs Readability) has only part.
 		if URLCanonicalizer.xPage(for: urlString) == nil, let contentHTML = ExtractedContentFormatter.storedHTML(forSuppliedBody: body) {
 			content = ReadingListContent(title: title, contentHTML: contentHTML)
 		}
-		let article = try await account.saveArticle(url: urlString, title: title, content: content)
+		let article = try await account.saveArticle(url: urlString, title: title, content: content, dateSaved: dateSaved)
 		if article.contentHTML == nil {
 			enqueue(Job(articleID: article.articleID, usesLivePage: false, isManual: false))
 		}

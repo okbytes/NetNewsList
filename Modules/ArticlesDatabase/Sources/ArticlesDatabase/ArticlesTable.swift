@@ -260,7 +260,7 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 			let fetchedArticles = storedArticles ?? self.fetchArticlesForFeedID(feedID, database) // 3
 			let fetchedArticlesDictionary = fetchedArticles.dictionary()
-			let incomingArticles = parsedArticles.keepingContent(of: keptArticleIDs, fetchedArticlesDictionary)
+			let incomingArticles = parsedArticles.keepingContent(of: keptArticleIDs, fetchedArticlesDictionary).keepingDates(fetchedArticlesDictionary)
 
 			let newArticles = self.findAndSaveNewArticles(incomingArticles, fetchedArticlesDictionary, database) // 4
 			let updatedArticles = self.findAndSaveUpdatedArticles(incomingArticles, fetchedArticlesDictionary, database) // 5
@@ -472,6 +472,55 @@ final class ArticlesTable: DatabaseTable, Sendable {
 			let articleIDs = resultSet.mapToSet { $0.swiftString(forColumnIndex: 0) }
 			DispatchQueue.main.async {
 				completion(articleIDs)
+			}
+		}
+	}
+
+	// MARK: - Dates
+
+	/// The `dateArrived` of the articles in these feeds that have no date, or whose date is more
+	/// than `tolerance` seconds later than their arrival, by article ID.
+	func fetchEarlierArrivalDates(_ feedIDs: Set<String>, tolerance: TimeInterval, _ completion: @escaping @Sendable ([String: Date]) -> Void) {
+		guard !feedIDs.isEmpty else {
+			completion([String: Date]())
+			return
+		}
+		queue.runInDatabase { database in
+			let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(feedIDs.count))
+			let sql = "select articleID, dateArrived from articles natural join statuses where feedID in \(placeholders) and (coalesce(datePublished, dateModified) is null or coalesce(datePublished, dateModified) > dateArrived + ?);"
+			var datesArrived = [String: Date]()
+			if let resultSet = database.executeQuery(sql, withArgumentsIn: Array(feedIDs) + [tolerance]) {
+				while resultSet.next() {
+					if let articleID = resultSet.swiftString(forColumn: DatabaseKey.articleID), let dateArrived = resultSet.date(forColumn: DatabaseKey.dateArrived) {
+						datesArrived[articleID] = dateArrived
+					}
+				}
+				resultSet.close()
+			}
+			DispatchQueue.main.async {
+				completion(datesArrived)
+			}
+		}
+	}
+
+	/// Sets the `datePublished` of stored articles and calls back with their IDs. Articles that
+	/// aren’t stored are skipped.
+	func updateDatesPublished(_ datesByArticleID: [String: Date], _ completion: @escaping ArticleIDsCompletionBlock) {
+		guard !datesByArticleID.isEmpty else {
+			completion(Set<String>())
+			return
+		}
+		queue.runInTransaction { database in
+			var updatedArticleIDs = Set<String>()
+			for (articleID, date) in datesByArticleID {
+				database.executeUpdate("update articles set datePublished = ? where articleID = ?;", withArgumentsIn: [date, articleID])
+				if database.changes() > 0 {
+					updatedArticleIDs.insert(articleID)
+				}
+			}
+			self.removeArticleIDsFromCache(updatedArticleIDs)
+			DispatchQueue.main.async {
+				completion(updatedArticleIDs)
 			}
 		}
 	}
@@ -954,6 +1003,19 @@ private extension Set where Element == Article {
 				return article
 			}
 			return article.keepingContent(of: stored)
+		})
+	}
+
+	/// These articles, except that one arriving without a date keeps the stored date, as the
+	/// row written for it does (`changesFrom`). Without this, the cache, the change notifications
+	/// and the next upload would see no date: in NetNewsList `datePublished` is the date saved.
+	func keepingDates(_ storedArticles: [String: Article]) -> Set<Article> {
+		Set(map { article in
+			guard let stored = storedArticles[article.articleID],
+				  (article.datePublished == nil && stored.datePublished != nil) || (article.dateModified == nil && stored.dateModified != nil) else {
+				return article
+			}
+			return article.keepingDates(of: stored)
 		})
 	}
 }

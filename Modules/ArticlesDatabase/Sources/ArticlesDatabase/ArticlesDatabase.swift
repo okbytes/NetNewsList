@@ -339,6 +339,26 @@ public struct ArticleCounts: Sendable {
 		}
 	}
 
+	/// The `dateArrived` of the articles in these feeds that have no date, or whose date is more
+	/// than `tolerance` seconds later than their arrival, by article ID.
+	public func fetchEarlierArrivalDatesAsync(feedIDs: Set<String>, tolerance: TimeInterval) async -> [String: Date] {
+		await withCheckedContinuation { continuation in
+			articlesTable.fetchEarlierArrivalDates(feedIDs, tolerance: tolerance) { datesArrived in
+				continuation.resume(returning: datesArrived)
+			}
+		}
+	}
+
+	/// Sets the `datePublished` of stored articles, leaving everything else as it is, and
+	/// returns the IDs of the articles that are stored.
+	public func updateDatesPublishedAsync(_ datesByArticleID: [String: Date]) async -> Set<String> {
+		await withCheckedContinuation { continuation in
+			articlesTable.updateDatesPublished(datesByArticleID) { articleIDs in
+				continuation.resume(returning: articleIDs)
+			}
+		}
+	}
+
 	/// Delete articles
 	public func deleteAsync(articleIDs: Set<String>) async {
 		await withCheckedContinuation { continuation in

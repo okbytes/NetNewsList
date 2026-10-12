@@ -12,6 +12,7 @@ import CloudKit
 import Testing
 import Articles
 import SyncDatabase
+import RSParser
 @testable import Account
 
 @MainActor struct CloudKitContentSyncTests {
@@ -218,6 +219,76 @@ import SyncDatabase
 		#expect(fresh.contentHTML == nil)
 		#expect(fresh.title == nil)
 		#expect(await account.pendingExtractionArticleIDs() == [uploaded.articleID])
+	}
+
+	@Test func savedDatesSettleOnTheEarliestTimeAnyDeviceHadThePage() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		// Pages as iCloud delivered them here: three saved before saved dates synced, one dated by a
+		// device that received it an hour after this one, one saved elsewhere yesterday.
+		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+		let feed = account.ensureReadingListFeed()
+		let anHourLater = Date().addingTimeInterval(60 * 60)
+		let received: [(path: String, datePublished: Date?)] = [("undated", nil), ("notInICloud", nil), ("changedMeanwhile", nil), ("datedLater", anHourLater), ("savedElsewhere", Date().addingTimeInterval(-24 * 60 * 60))]
+		var items = Set<ParsedItem>()
+		for (path, datePublished) in received {
+			let record = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType)
+			record[Fields.feedURL] = feed.feedID
+			record[Fields.uniqueID] = "https://example.com/\(path)"
+			record[Fields.url] = "https://example.com/\(path)"
+			record[Fields.datePublished] = datePublished
+			items.insert(try #require(makeParsedItem(record)))
+		}
+		_ = await account.updateAsync(feedID: feed.feedID, parsedItems: items)
+		func articleID(_ path: String) -> String {
+			Article.calculatedArticleID(feedID: feed.feedID, uniqueID: "https://example.com/\(path)")
+		}
+		let (undated, notInICloud, changedMeanwhile, datedLater) = (articleID("undated"), articleID("notInICloud"), articleID("changedMeanwhile"), articleID("datedLater"))
+		_ = try await account.saveArticle(url: "https://example.com/savedHere", title: nil, content: nil)
+
+		// This device offers the time each page arrived here, for the undated pages and the one dated
+		// later. Pages saved since carry the time they were saved, and aren't offered.
+		let proposals = await account.savedDateProposals()
+		#expect(Set(proposals.keys) == [undated, notInICloud, changedMeanwhile, datedLater])
+
+		// iCloud now has an earlier date for one undated page (a device that had it earlier settled
+		// it after this device's last fetch), no record of another, and the later date for a third.
+		let zoneID = CKRecordZone.ID(zoneName: "Articles", ownerName: CKCurrentUserDefaultName)
+		func iCloudRecord(_ articleID: String, datePublished: Date?) -> CKRecord {
+			let record = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType, recordID: CKRecord.ID(recordName: "a|\(articleID)", zoneID: zoneID))
+			record[Fields.datePublished] = datePublished
+			return record
+		}
+		let earlierElsewhere = Date().addingTimeInterval(-2 * 60 * 60)
+		let plan = CloudKitArticlesZone.SavedDatePlan(proposals: proposals, fetchedRecords: [
+			undated: iCloudRecord(undated, datePublished: earlierElsewhere),
+			changedMeanwhile: iCloudRecord(changedMeanwhile, datePublished: nil),
+			datedLater: iCloudRecord(datedLater, datePublished: anHourLater)
+		], missingArticleIDs: [notInICloud])
+
+		// An earlier date in iCloud is never overwritten, and a record iCloud lacks is never created.
+		#expect(Set(plan.recordsToSave.map(\.recordID.recordName)) == ["a|\(changedMeanwhile)", "a|\(datedLater)"])
+		for record in plan.recordsToSave {
+			#expect(record[Fields.datePublished] as? Date == proposals[String(record.recordID.recordName.dropFirst(2))])
+		}
+
+		// iCloud refuses one save: another device changed the record after it was read.
+		let unsaved = [CKRecord.ID(recordName: "a|\(changedMeanwhile)", zoneID: zoneID): CKError(.serverRecordChanged)]
+		let settled = plan.settledDates(unsaved: unsaved)
+		#expect(settled == [undated: earlierElsewhere, notInICloud: try #require(proposals[notInICloud]), datedLater: try #require(proposals[datedLater])])
+
+		// Stored here, every settled page keeps its date (to the millisecond: SQLite stores seconds
+		// since 1970, so the last bits of a Date can change); the refused one is offered again next launch.
+		await account.updateSavedDates(settled)
+		let stored = await account.fetchArticlesAsync(.articleIDs(Set(settled.keys)))
+		func milliseconds(_ date: Date?) -> Int64? {
+			date.map { Int64(($0.timeIntervalSince1970 * 1000).rounded()) }
+		}
+		#expect(Dictionary(uniqueKeysWithValues: stored.map { ($0.articleID, milliseconds($0.datePublished)) }) == settled.mapValues { milliseconds($0) })
+		#expect(Set(await account.savedDateProposals().keys) == [changedMeanwhile])
 	}
 }
 

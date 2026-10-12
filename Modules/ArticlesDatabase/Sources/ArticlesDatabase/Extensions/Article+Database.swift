@@ -145,6 +145,26 @@ extension Article {
 				status: status)
 	}
 
+	/// This article with `stored`’s dates where it has none.
+	func keepingDates(of stored: Article) -> Article {
+		Article(accountID: accountID,
+				articleID: articleID,
+				feedID: feedID,
+				uniqueID: uniqueID,
+				title: title,
+				contentHTML: contentHTML,
+				contentText: contentText,
+				markdown: markdown,
+				url: rawLink,
+				externalURL: rawExternalLink,
+				summary: summary,
+				imageURL: rawImageLink,
+				datePublished: datePublished ?? stored.datePublished,
+				dateModified: dateModified ?? stored.dateModified,
+				authors: authors,
+				status: status)
+	}
+
 //	static func articlesWithParsedItems(_ parsedItems: Set<ParsedItem>, _ accountID: String, _ feedID: String, _ statusesDictionary: [String: ArticleStatus]) -> Set<Article> {
 //		let maximumDateAllowed = Date().addingTimeInterval(60 * 60 * 24) // Allow dates up to about 24 hours ahead of now
 //		return Set(parsedItems.map{ Article(parsedItem: $0, maximumDateAllowed: maximumDateAllowed, accountID: accountID, feedID: feedID, status: statusesDictionary[$0.articleID]!) })

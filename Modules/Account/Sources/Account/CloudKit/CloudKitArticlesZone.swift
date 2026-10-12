@@ -8,6 +8,7 @@
 
 import Foundation
 import os
+import RSCore
 import RSParser
 import CloudKit
 import Articles
@@ -272,6 +273,89 @@ final class CloudKitArticlesZone: CloudKitZone {
 
 		return result
 	}
+
+	/// How this device’s proposed saved dates (`Account.savedDateProposals`) meet iCloud’s, so
+	/// the earliest wins without a later date overwriting it: a pure part that can be tested
+	/// without CloudKit.
+	struct SavedDatePlan {
+		/// Dates settled without saving anything: iCloud’s when it isn’t more than a minute later
+		/// than the proposal, and the proposal for an article iCloud doesn’t have (not uploaded
+		/// yet, or deleted; its first upload, if any, carries the date).
+		private(set) var settledWithoutSaving = [String: Date]()
+		/// iCloud’s records with the proposed date, to be saved only if nothing changed them since
+		/// they were fetched.
+		private(set) var recordsToSave = [CKRecord]()
+		private var proposedDates = [String: Date]()
+
+		/// `fetchedRecords` holds iCloud’s Article records by article ID, `missingArticleIDs` the
+		/// articles iCloud has no record of. An article in neither (its fetch failed) isn’t settled.
+		init(proposals: [String: Date], fetchedRecords: [String: CKRecord], missingArticleIDs: Set<String>) {
+			for (articleID, proposedDate) in proposals {
+				if missingArticleIDs.contains(articleID) {
+					settledWithoutSaving[articleID] = proposedDate
+					continue
+				}
+				guard let record = fetchedRecords[articleID] else {
+					continue
+				}
+				if let iCloudDate = record[CloudKitArticle.Fields.datePublished] as? Date, iCloudDate.timeIntervalSince(proposedDate) <= Account.savedDateTolerance {
+					settledWithoutSaving[articleID] = iCloudDate
+					continue
+				}
+				record[CloudKitArticle.Fields.datePublished] = proposedDate
+				recordsToSave.append(record)
+				proposedDates[articleID] = proposedDate
+			}
+		}
+
+		/// Every settled date once the records are saved. A record iCloud didn’t save (another
+		/// device changed it meanwhile) stays as it is; the next launch tries again with what
+		/// that change brings here.
+		func settledDates(unsaved: CloudKitUnsavedRecords) -> [String: Date] {
+			let unsavedRecordNames = Set(unsaved.keys.map(\.recordName))
+			var dates = settledWithoutSaving
+			for (articleID, date) in proposedDates where !unsavedRecordNames.contains(CloudKitArticlesZone.articleRecordName(articleID)) {
+				dates[articleID] = date
+			}
+			return dates
+		}
+	}
+
+	/// Settles this device’s proposed saved dates with iCloud (`SavedDatePlan`) and returns the
+	/// dates to store here. Only the `datePublished` of iCloud’s records is read and written.
+	@MainActor func settleSavedDates(_ proposals: [String: Date]) async throws -> [String: Date] {
+		guard !proposals.isEmpty, let database else {
+			return [String: Date]()
+		}
+		var fetchedRecords = [String: CKRecord]()
+		var missingArticleIDs = Set<String>()
+		for chunk in Array(proposals.keys).chunked(into: 200) {
+			let recordIDs = chunk.map { CKRecord.ID(recordName: Self.articleRecordName($0), zoneID: zoneID) }
+			let results = try await database.records(for: recordIDs, desiredKeys: [CloudKitArticle.Fields.datePublished])
+			for (articleID, recordID) in zip(chunk, recordIDs) {
+				switch results[recordID] {
+				case .success(let record):
+					fetchedRecords[articleID] = record
+				case .failure(let error as CKError) where error.code == .unknownItem:
+					missingArticleIDs.insert(articleID)
+				case .failure(let error):
+					Self.logger.error("CloudKitArticlesZone: couldn’t read the saved date of \(recordID.recordName, privacy: .public): \(error.localizedDescription, privacy: .public)")
+				case nil:
+					break
+				}
+			}
+		}
+
+		let plan = SavedDatePlan(proposals: proposals, fetchedRecords: fetchedRecords, missingArticleIDs: missingArticleIDs)
+		var unsaved = CloudKitUnsavedRecords()
+		if !plan.recordsToSave.isEmpty {
+			// Save-if-new saves a fetched record only if iCloud’s copy is unchanged since the fetch.
+			unsaved = try await saveIfNew(plan.recordsToSave)
+		}
+		let settledDates = plan.settledDates(unsaved: unsaved)
+		Self.logger.info("CloudKitArticlesZone: settled \(settledDates.count, privacy: .public) of \(proposals.count, privacy: .public) proposed saved dates, \(plan.recordsToSave.count - unsaved.count, privacy: .public) of them in iCloud")
+		return settledDates
+	}
 }
 
 private extension CloudKitArticlesZone {
@@ -332,8 +416,15 @@ private extension CloudKitArticlesZone {
 		record[CloudKitArticle.Fields.externalURL] = article.rawExternalLink
 		record[CloudKitArticle.Fields.summary] = article.summary
 		record[CloudKitArticle.Fields.imageURL] = article.rawImageLink
-		record[CloudKitArticle.Fields.datePublished] = article.datePublished
-		record[CloudKitArticle.Fields.dateModified] = article.dateModified
+		// A missing date is left out rather than sent as nil, which would erase iCloud’s:
+		// `datePublished` is the date saved, and a device that hasn’t received it yet
+		// mustn’t remove it everywhere when it uploads a body.
+		if let datePublished = article.datePublished {
+			record[CloudKitArticle.Fields.datePublished] = datePublished
+		}
+		if let dateModified = article.dateModified {
+			record[CloudKitArticle.Fields.dateModified] = dateModified
+		}
 
 		if let authors = article.authors, !authors.isEmpty {
 			var parsedAuthors = [String]()

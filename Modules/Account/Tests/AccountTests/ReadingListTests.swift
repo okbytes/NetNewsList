@@ -33,18 +33,22 @@ import Articles
 
 	private let accountManager = TestAccountManager()
 
-	@Test func savedArticleIsUnreadInTheReadingListWithNoPublishDate() async throws {
+	@Test func savedArticleIsUnreadInTheReadingListWithItsSavedDate() async throws {
 		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
 			accountManager.deleteAccount(account)
 		}
 
-		let article = try await account.saveArticle(url: "https://Example.com/post?utm_source=x", title: "Post", content: nil)
+		// Shared earlier; the app is only now processing the share.
+		let dateSaved = Date(timeIntervalSince1970: 1_790_000_000)
+		let article = try await account.saveArticle(url: "https://Example.com/post?utm_source=x", title: "Post", content: nil, dateSaved: dateSaved)
 
 		#expect(article.feedID == Account.readingListFeedURL)
 		#expect(article.uniqueID == "https://example.com/post")
 		#expect(article.rawExternalLink == "https://Example.com/post?utm_source=x")
-		#expect(article.datePublished == nil)
+		// The saved date goes to iCloud as datePublished. dateArrived doesn't sync: each device sets
+		// it when the article reaches it, so a new device would show its own install time.
+		#expect(article.datePublished == dateSaved)
 		#expect(!article.status.read)
 		#expect(article.contentHTML == nil)
 		#expect(await account.pendingExtractionArticleIDs() == [article.articleID])
@@ -126,7 +130,7 @@ import Articles
 		#expect(articles.compactMap { $0["url"] as? String } == ["https://example.com/queued", "https://example.com/archived"])
 		#expect(articles.map { $0["isArchived"] as? Bool } == [false, true])
 		#expect(articles[0]["contentHTML"] as? String == "<p>Queued body</p>")
-		#expect(articles[0]["dateSaved"] as? String == queued.status.dateArrived.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
+		#expect(articles[0]["dateSaved"] as? String == queued.datePublished?.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
 		// Unchanged lists give identical bytes, so an unchanged day writes no new backup.
 		#expect(try await account.readingListBackupData() == data)
 	}

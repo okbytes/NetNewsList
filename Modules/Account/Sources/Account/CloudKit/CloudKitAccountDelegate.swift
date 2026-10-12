@@ -55,6 +55,9 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 	private var lastNoChangeSyncDate: Date?
 	private static let noChangeBackoffInterval: TimeInterval = 30 * 60
 
+	/// Whether this launch has settled saved dates with iCloud, or is doing it (`settleSavedDatesIfNeeded`).
+	private var didSettleSavedDates = false
+
 	// Set when CKContainer reports the iCloud account isn’t available — signed out,
 	// restricted, or paused pending Terms and Conditions acceptance. While set, iCloud
 	// stages are skipped and one Error Log entry is posted.
@@ -956,6 +959,29 @@ private extension CloudKitAccountDelegate {
 
 		account.lastRefreshCompletedDate = Date()
 		refreshFinishedSuccessfully = true
+
+		await settleSavedDatesIfNeeded(account: account)
+	}
+
+	/// Once a launch, after a fetch, so this device knows the saved dates iCloud has: offers this
+	/// device’s arrival times as saved dates (`Account.savedDateProposals()`) and stores the
+	/// dates iCloud settles on. A failure is tried again at the next refresh.
+	func settleSavedDatesIfNeeded(account: Account) async {
+		guard !didSettleSavedDates else {
+			return
+		}
+		didSettleSavedDates = true
+		let proposals = await account.savedDateProposals()
+		guard !proposals.isEmpty else {
+			return
+		}
+		do {
+			let settledDates = try await articlesZone.settleSavedDates(proposals)
+			await account.updateSavedDates(settledDates)
+		} catch {
+			Self.logger.error("CloudKitAccountDelegate: couldn’t settle saved dates: \(error.localizedDescription, privacy: .public)")
+			didSettleSavedDates = false
+		}
 	}
 
 	func addDeadFeed(account: Account, url: URL, editedName: String?, container: Container) async throws -> Feed {

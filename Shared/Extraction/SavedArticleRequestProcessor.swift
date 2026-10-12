@@ -132,7 +132,7 @@ private extension SavedArticleRequestProcessor {
 				return
 			}
 			do {
-				try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title, body: request.body)
+				try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title, body: request.body, dateSaved: request.dateRequested)
 				SavedArticleRequestProcessor.logger.info("SavedArticleRequestProcessor: saved \(request.url, privacy: .public)")
 			} catch {
 				SavedArticleRequestProcessor.logger.error("SavedArticleRequestProcessor: couldn’t save \(request.url, privacy: .public): \(error.localizedDescription, privacy: .public)")
