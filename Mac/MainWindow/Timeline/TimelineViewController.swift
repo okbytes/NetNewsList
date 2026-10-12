@@ -198,8 +198,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 		sharingServiceDelegate = SharingServiceDelegate(self.view.window)
 	}
 
-	// MARK: - API
-
 	// MARK: State Restoration
 
 	/// Selects the article that was selected when the state was saved, if it’s still in this list.

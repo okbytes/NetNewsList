@@ -295,7 +295,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	@IBAction func sortArticlesDescending(_ sender: Any?) {
 		timelineContainerViewController?.setSortDirection(.orderedDescending)
 	}
-
 }
 
 // MARK: NSWindowDelegate

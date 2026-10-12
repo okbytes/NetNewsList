@@ -16,8 +16,7 @@ final class DetailWebView: WKWebView {
 
 	private static let estimatedToolbarHeight: CGFloat = 52 // Height of macOS 26.2 icon-only toolbar
 
-	// How much of the web view sits under the titlebar and toolbar: the toolbar height when the article view
-	// is beside the timeline, zero when it’s below the timeline in column layout.
+	// How much of the web view sits under the titlebar and toolbar.
 	private var obscuredTopInset: CGFloat {
 		guard let window, let toolbar = window.toolbar, toolbar.isVisible, superview != nil else {
 			return lastObscuredTopInset ?? Self.estimatedToolbarHeight
@@ -75,7 +74,7 @@ final class DetailWebView: WKWebView {
 
 	override func layout() {
 		super.layout()
-		// The frame moves when the layout switches or the split view divider is dragged.
+		// The frame moves when the split view divider is dragged.
 		updateObscuredContentInsets()
 	}
 
