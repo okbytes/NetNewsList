@@ -24,23 +24,32 @@ function addButton(title, action) {
   actions.append(button);
 }
 
-// Hands the page to the app. The first time, the browser asks whether to open
-// NetNewsList: tick "Always allow" and choose Open. The window closes once the focus
-// comes back to it after leaving (the app saved the page and handed the focus back, or
-// the question was answered), and after 20 seconds in any case.
+// Hands the page to the app. When the browser opens the link straight away (the app
+// saves in the background), the window says so and closes. When something takes the
+// focus instead (the browser asks whether to open NetNewsList, or the app launches),
+// it waits until the focus comes back, and closes after 20 seconds in any case.
 function saveLocally(page) {
   const link = addURL(page.url, page.title);
-  status.textContent = "Opening NetNewsList…";
-  const hint = document.createElement("div");
-  hint.id = "hint";
-  hint.textContent = "If the browser asks, tick “Always allow” and choose Open.";
-  detail.after(hint);
-  addButton("Open Again", () => {
-    location.href = link;
-  });
+  status.textContent = "Sending to NetNewsList…";
+  let lostFocus = false;
   window.addEventListener("blur", () => {
+    lostFocus = true;
+    status.textContent = "Opening NetNewsList…";
+    const hint = document.createElement("div");
+    hint.id = "hint";
+    hint.textContent = "If the browser asks, tick “Always allow” and choose Open.";
+    detail.after(hint);
+    addButton("Open Again", () => {
+      location.href = link;
+    });
     window.addEventListener("focus", () => setTimeout(() => window.close(), 400), { once: true });
   }, { once: true });
+  setTimeout(() => {
+    if (!lostFocus) {
+      status.textContent = "Sent to NetNewsList";
+      setTimeout(() => window.close(), 900);
+    }
+  }, 1200);
   setTimeout(() => window.close(), 20000);
   location.href = link;
 }
