@@ -102,6 +102,12 @@
                                     <action selector="refreshAll:" target="-1" id="gIc-Zj-9tB"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Show Backups in Finder" id="sBk-mn-01a">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showBackupsInFinder:" target="-1" id="sBk-ac-01b"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="FYN-zt-6dI"/>
                             <menuItem title="Close Window" keyEquivalent="w" id="DVo-aG-piG">
                                 <connections>

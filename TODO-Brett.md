@@ -44,6 +44,7 @@ Not needed while the apps are installed from Xcode: those builds use CloudKit's 
 
 ## 5. Decisions (no rush)
 
+- [ ] Backups (File > Show Backups in Finder) stay on this Mac, which has no Time Machine. Copy the folder somewhere else now and then, or ask Claude to have the app write them to a folder you choose (iCloud Drive, Google Drive). Keep `~/Downloads/matter_data_brett_1791749808` too: it's the original text of the 93 Matter pages.
 - [ ] Both apps ask for notification permission at launch, only to badge the app icon with the Queue count. Keep the badge, or drop it and the prompt?
 - [ ] The `mine.sh` scripts in verbatim, scanner-ios and browser-ios can't install on a phone that isn't registered with your team yet (they lack `-allowProvisioningDeviceRegistration`, which workout-ios and this repo pass). Want Claude to add it there?
 - [ ] Should pages that come back nearly empty (JavaScript-built sites) automatically retry with the live page? Today it's manual (Retry with Live Page) because the live page runs the site's own scripts.

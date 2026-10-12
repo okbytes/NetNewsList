@@ -195,6 +195,7 @@ let appName = "NetNewsList"
 			ExtractionCoordinator.shared.start()
 			ArticleAssetCoordinator.shared.start()
 			SavedArticleRequestProcessor.shared.start()
+			ReadingListBackups.shared.start()
 		}
 
 		ArticleStatusSyncTimer.shared.start()
@@ -498,6 +499,10 @@ let appName = "NetNewsList"
 				mainWindowController?.presentError(error)
 			}
 		}
+	}
+
+	@IBAction func showBackupsInFinder(_ sender: Any?) {
+		ReadingListBackups.shared.showInFinder()
 	}
 
 	@IBAction func showErrorLog(_ sender: Any?) {

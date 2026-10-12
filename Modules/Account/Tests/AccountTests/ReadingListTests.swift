@@ -110,6 +110,27 @@ import Articles
 		#expect(article.datePublished == dateSaved)
 	}
 
+	@Test func backupHoldsEveryArticleWithItsTextDateAndList() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		let queued = try await account.saveArticle(url: "https://example.com/queued", title: "Queued", content: ReadingListContent(contentHTML: "<p>Queued body</p>"))
+		let archived = try await account.saveArticle(url: "https://example.com/archived", title: "Archived", content: nil)
+		try await account.markArticles(articleIDs: [archived.articleID], statusKey: .read, flag: true)
+
+		let data = try await account.readingListBackupData()
+		let backup = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+		let articles = try #require(backup["articles"] as? [[String: Any]])
+		#expect(articles.compactMap { $0["url"] as? String } == ["https://example.com/queued", "https://example.com/archived"])
+		#expect(articles.map { $0["isArchived"] as? Bool } == [false, true])
+		#expect(articles[0]["contentHTML"] as? String == "<p>Queued body</p>")
+		#expect(articles[0]["dateSaved"] as? String == queued.status.dateArrived.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
+		// Unchanged lists give identical bytes, so an unchanged day writes no new backup.
+		#expect(try await account.readingListBackupData() == data)
+	}
+
 	@Test func archiveListsReadArticles() async throws {
 		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
