@@ -15,14 +15,8 @@ import Articles
 
 final class ArticleViewController: UIViewController {
 
-	@IBOutlet private weak var prevArticleBarButtonItem: UIBarButtonItem!
-	@IBOutlet private weak var nextArticleBarButtonItem: UIBarButtonItem!
-	@IBOutlet private weak var readBarButtonItem: UIBarButtonItem!
-	@IBOutlet private weak var actionBarButtonItem: UIBarButtonItem!
-
 	@IBOutlet private var searchBar: ArticleSearchBar!
 	@IBOutlet private var searchBarBottomConstraint: NSLayoutConstraint!
-	private var defaultControls: [UIBarButtonItem]?
 
 	private var pageViewController: UIPageViewController!
 	private var isPageTransitionInProgress = false
@@ -32,11 +26,10 @@ final class ArticleViewController: UIViewController {
 		return pageViewController?.viewControllers?.first as? WebViewController
 	}
 
-	private lazy var openInBrowserBarButtonItem: UIBarButtonItem = {
-		let item = UIBarButtonItem(image: Assets.Images.safari, style: .plain, target: self, action: #selector(openInBrowser(_:)))
-		item.accessibilityLabel = NSLocalizedString("Open in Browser", comment: "Command")
-		return item
-	}()
+	// The article's actions are all in the navigation bar: Archive or Move to Queue, Open in Browser and Share.
+	private lazy var archiveBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Archive", comment: "Command"), image: Assets.Images.archive, target: self, action: #selector(toggleRead(_:)))
+	private lazy var openInBrowserBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Open in Browser", comment: "Command"), image: Assets.Images.safari, target: self, action: #selector(openInBrowser(_:)))
+	private lazy var shareBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Share", comment: "Share button"), image: Assets.Images.share, target: self, action: #selector(showActivityDialog(_:)))
 
 	weak var coordinator: SceneCoordinator!
 
@@ -106,21 +99,8 @@ final class ArticleViewController: UIViewController {
 		navigationItem.scrollEdgeAppearance = appearance
 		navigationItem.compactAppearance = appearance
 
-		if #available(iOS 26, *) {
-			// Grouped with Share at the trailing end.
-			if let shareIndex = toolbarItems?.firstIndex(of: actionBarButtonItem) {
-				toolbarItems?.insert(openInBrowserBarButtonItem, at: shareIndex)
-			}
-		} else {
-			let flex = { UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil) }
-			toolbarItems = [
-				readBarButtonItem,
-				flex(),
-				openInBrowserBarButtonItem,
-				flex(),
-				actionBarButtonItem
-			]
-		}
+		// Right to left: Share at the trailing edge, Archive leftmost.
+		navigationItem.rightBarButtonItems = [shareBarButtonItem, openInBrowserBarButtonItem, archiveBarButtonItem]
 
 		pageViewController = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: [:])
 		pageViewController.delegate = self
@@ -163,7 +143,7 @@ final class ArticleViewController: UIViewController {
 
 	override func viewWillAppear(_ animated: Bool) {
 		super.viewWillAppear(animated)
-		navigationController?.setToolbarHidden(false, animated: animated)
+		navigationController?.setToolbarHidden(true, animated: animated)
 	}
 
 	override func viewDidAppear(_ animated: Bool) {
@@ -200,31 +180,28 @@ final class ArticleViewController: UIViewController {
 	func updateUI() {
 
 		guard let article = article else {
+			archiveBarButtonItem.isEnabled = false
 			openInBrowserBarButtonItem.isEnabled = false
-			prevArticleBarButtonItem.isEnabled = false
-			nextArticleBarButtonItem.isEnabled = false
-			readBarButtonItem.isEnabled = false
-			actionBarButtonItem.isEnabled = false
+			shareBarButtonItem.isEnabled = false
 			return
 		}
 
-		prevArticleBarButtonItem.isEnabled = coordinator.isPrevArticleAvailable
-		nextArticleBarButtonItem.isEnabled = coordinator.isNextArticleAvailable
-		readBarButtonItem.isEnabled = true
-
 		let permalinkPresent = article.preferredLink != nil
 		openInBrowserBarButtonItem.isEnabled = permalinkPresent
-		actionBarButtonItem.isEnabled = permalinkPresent
+		shareBarButtonItem.isEnabled = permalinkPresent
 
+		let title: String
 		if article.status.read {
-			readBarButtonItem.image = Assets.Images.circleOpen
-			readBarButtonItem.isEnabled = article.isAvailableToMarkUnread
-			readBarButtonItem.accLabelText = NSLocalizedString("Move to Queue", comment: "Command")
+			title = NSLocalizedString("Move to Queue", comment: "Command")
+			archiveBarButtonItem.image = Assets.Images.moveToQueue
+			archiveBarButtonItem.isEnabled = article.isAvailableToMarkUnread
 		} else {
-			readBarButtonItem.image = Assets.Images.circleClosed
-			readBarButtonItem.isEnabled = true
-			readBarButtonItem.accLabelText = NSLocalizedString("Archive", comment: "Command")
+			title = NSLocalizedString("Archive", comment: "Command")
+			archiveBarButtonItem.image = Assets.Images.archive
+			archiveBarButtonItem.isEnabled = true
 		}
+		archiveBarButtonItem.title = title
+		archiveBarButtonItem.accessibilityLabel = title
 	}
 
 	// MARK: Notifications
@@ -255,20 +232,12 @@ final class ArticleViewController: UIViewController {
 		coordinator.showBrowserForCurrentArticle()
 	}
 
-	@IBAction func prevArticle(_ sender: Any) {
-		coordinator.selectPrevArticle()
-	}
-
-	@IBAction func nextArticle(_ sender: Any) {
-		coordinator.selectNextArticle()
-	}
-
-	@IBAction func toggleRead(_ sender: Any) {
+	@objc func toggleRead(_ sender: Any?) {
 		coordinator.toggleReadForCurrentArticle()
 	}
 
-	@IBAction func showActivityDialog(_ sender: Any) {
-		currentWebViewController?.showActivityDialog(popOverBarButtonItem: actionBarButtonItem)
+	@objc func showActivityDialog(_ sender: Any?) {
+		currentWebViewController?.showActivityDialog(popOverBarButtonItem: shareBarButtonItem)
 	}
 
 	// MARK: Keyboard Shortcuts
@@ -345,7 +314,6 @@ extension ArticleViewController {
 
 	@objc func beginFind(_ _: Any? = nil) {
 		searchBar.isHidden = false
-		navigationController?.setToolbarHidden(true, animated: true)
 		currentWebViewController?.additionalSafeAreaInsets.bottom = searchBar.frame.height
 		searchBar.becomeFirstResponder()
 	}
@@ -353,7 +321,6 @@ extension ArticleViewController {
 	@objc func endFind(_ _: Any? = nil) {
 		searchBar.resignFirstResponder()
 		searchBar.isHidden = true
-		navigationController?.setToolbarHidden(false, animated: true)
 		currentWebViewController?.additionalSafeAreaInsets.bottom = 0
 		currentWebViewController?.endSearch()
 	}
@@ -458,6 +425,13 @@ extension ArticleViewController: UIGestureRecognizerDelegate {
 // MARK: Private
 
 private extension ArticleViewController {
+
+	static func barButtonItem(title: String, image: UIImage, target: ArticleViewController, action: Selector) -> UIBarButtonItem {
+		let item = UIBarButtonItem(image: image, style: .plain, target: target, action: action)
+		item.title = title
+		item.accessibilityLabel = title
+		return item
+	}
 
 	func createWebViewController(_ article: Article?, updateView: Bool = true) -> WebViewController {
 		let controller = WebViewController()

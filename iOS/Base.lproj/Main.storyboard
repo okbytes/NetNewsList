@@ -33,55 +33,9 @@
                             <constraint firstItem="VUw-jc-0yf" firstAttribute="bottom" secondItem="h1Q-FS-jlg" secondAttribute="bottom" id="XyH-A7-Trj"/>
                         </constraints>
                     </view>
-                    <toolbarItems>
-                        <barButtonItem title="Archive" image="circle" catalog="system" id="hy0-LS-MzE">
-                            <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Archive"/>
-                            </userDefinedRuntimeAttributes>
-                            <connections>
-                                <action selector="toggleRead:" destination="JEX-9P-axG" id="A8V-r1-o9u"/>
-                            </connections>
-                        </barButtonItem>
-                        <barButtonItem style="plain" systemItem="flexibleSpace" id="vAq-iW-Yyo"/>
-                        <barButtonItem image="square.and.arrow.up" catalog="system" id="9Ut-5B-JKP">
-                            <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="boolean" keyPath="accEnabled" value="YES"/>
-                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Share"/>
-                            </userDefinedRuntimeAttributes>
-                            <connections>
-                                <action selector="showActivityDialog:" destination="JEX-9P-axG" id="t7U-uT-fs5"/>
-                            </connections>
-                        </barButtonItem>
-                    </toolbarItems>
-                    <navigationItem key="navigationItem" largeTitleDisplayMode="never" id="mOI-FS-AaM">
-                        <rightBarButtonItems>
-                            <barButtonItem title="Next Article" image="chevron.down" catalog="system" id="2qz-M5-Yhk">
-                                <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="boolean" keyPath="accEnabled" value="YES"/>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Next Article"/>
-                                </userDefinedRuntimeAttributes>
-                                <connections>
-                                    <action selector="nextArticle:" destination="JEX-9P-axG" id="P77-KM-j8D"/>
-                                </connections>
-                            </barButtonItem>
-                            <barButtonItem title="Previous Article" image="chevron.up" catalog="system" id="v4j-fq-23N">
-                                <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="boolean" keyPath="accEnabled" value="YES"/>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Previous Article"/>
-                                </userDefinedRuntimeAttributes>
-                                <connections>
-                                    <action selector="prevArticle:" destination="JEX-9P-axG" id="cMZ-tk-I4W"/>
-                                </connections>
-                            </barButtonItem>
-                        </rightBarButtonItems>
-                    </navigationItem>
+                    <navigationItem key="navigationItem" largeTitleDisplayMode="never" id="mOI-FS-AaM"/>
                     <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
-                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
                     <connections>
-                        <outlet property="actionBarButtonItem" destination="9Ut-5B-JKP" id="9bO-kz-cTz"/>
-                        <outlet property="nextArticleBarButtonItem" destination="2qz-M5-Yhk" id="IQd-jx-qEr"/>
-                        <outlet property="prevArticleBarButtonItem" destination="v4j-fq-23N" id="Gny-Oh-cQa"/>
-                        <outlet property="readBarButtonItem" destination="hy0-LS-MzE" id="BzM-x9-tuj"/>
                         <outlet property="searchBar" destination="h1Q-FS-jlg" id="IQA-Wt-BB8"/>
                         <outlet property="searchBarBottomConstraint" destination="XyH-A7-Trj" id="5gH-az-8vg"/>
                     </connections>
@@ -314,15 +268,11 @@
         </scene>
     </scenes>
     <resources>
-        <image name="chevron.down" catalog="system" width="128" height="70"/>
-        <image name="chevron.up" catalog="system" width="128" height="70"/>
-        <image name="circle" catalog="system" width="128" height="123"/>
         <image name="gear" catalog="system" width="128" height="122"/>
         <image name="markAllAsRead" width="13" height="20"/>
         <image name="multiply.circle" catalog="system" width="128" height="123"/>
         <image name="multiply.circle.fill" catalog="system" width="128" height="123"/>
         <image name="plus" catalog="system" width="128" height="113"/>
-        <image name="square.and.arrow.up" catalog="system" width="110" height="128"/>
         <image name="square.and.arrow.up.fill" catalog="system" width="117" height="128"/>
         <namedColor name="barBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
