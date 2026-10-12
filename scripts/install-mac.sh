@@ -26,6 +26,7 @@ DEV_DATA="$HOME/Library/Containers/$DEV_BUNDLE_ID/Data"
 REL_DATA="$HOME/Library/Containers/$BUNDLE_ID/Data"
 # Present from the start of a copy until it finishes, so a run that stops partway copies again.
 PORT_PENDING="$ROOT/build/install-mac-port-pending"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 fail() {
     echo "✗ $1" >&2
@@ -95,6 +96,9 @@ echo "▸ Installing $DEST"
 mkdir -p "$HOME/Applications"
 rm -rf "$DEST"
 ditto "$BUILT" "$DEST"
+# xcodebuild registers every app it builds; only the installed copy should answer netnewslist:// links.
+"$LSREGISTER" -u "$BUILT"
+"$LSREGISTER" -f "$DEST"
 
 if [ "$PORT" -eq 1 ]; then
     touch "$PORT_PENDING"
