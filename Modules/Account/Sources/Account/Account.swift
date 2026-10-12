@@ -56,8 +56,6 @@ public enum FetchType {
 	case folder(Folder, Bool)
 	case feed(Feed)
 	case articleIDs(Set<String>)
-	case search(String)
-	case searchWithArticleIDs(String, Set<String>)
 }
 
 @MainActor public final class Account: ProgressInfoReporter, DisplayNameProvider, UnreadCountProvider, Container, Hashable {
@@ -684,10 +682,6 @@ public enum FetchType {
 			return _fetchArticles(feed: feed)
 		case .articleIDs(let articleIDs):
 			return _fetchArticles(articleIDs: articleIDs)
-		case .search(let searchString):
-			return _fetchArticlesMatching(searchString: searchString)
-		case .searchWithArticleIDs(let searchString, let articleIDs):
-			return _fetchArticlesMatchingWithArticleIDs(searchString: searchString, articleIDs: articleIDs)
 		}
 	}
 
@@ -711,10 +705,6 @@ public enum FetchType {
 			return await _fetchArticlesAsync(feed: feed)
 		case .articleIDs(let articleIDs):
 			return await _fetchArticlesAsync(articleIDs: articleIDs)
-		case .search(let searchString):
-			return await _fetchArticlesMatchingAsync(searchString: searchString)
-		case .searchWithArticleIDs(let searchString, let articleIDs):
-			return await _fetchArticlesMatchingWithArticleIDsAsync(searchString: searchString, articleIDs: articleIDs)
 		}
 	}
 
@@ -1137,20 +1127,9 @@ private extension Account {
 
 	// MARK: - Search Articles
 
+	/// Only Debug > Debug Search uses this: the apps have no search.
 	func _fetchArticlesMatching(searchString: String) -> Set<Article> {
 		database.fetchArticlesMatching(searchString: searchString, feedIDs: flattenedFeedsIDs)
-	}
-
-	func _fetchArticlesMatchingAsync(searchString: String) async -> Set<Article> {
-		await database.fetchArticlesMatchingAsync(searchString: searchString, feedIDs: flattenedFeedsIDs)
-	}
-
-	func _fetchArticlesMatchingWithArticleIDs(searchString: String, articleIDs: Set<String>) -> Set<Article> {
-		database.fetchArticlesMatchingWithArticleIDs(searchString: searchString, articleIDs: articleIDs)
-	}
-
-	func _fetchArticlesMatchingWithArticleIDsAsync(searchString: String, articleIDs: Set<String>) async -> Set<Article> {
-		await database.fetchArticlesMatchingWithArticleIDsAsync(searchString: searchString, articleIDs: articleIDs)
 	}
 
 	// MARK: - Unread Counts
