@@ -1,6 +1,6 @@
 import { isWebPage } from "./common.js";
-import { SignInRequiredError, currentUser, setWebAuthToken, signInURL } from "./lib/cloudkit.js";
-import { drainQueue, enqueue, queueLength } from "./lib/remote.js";
+import { SignInRequiredError, currentUser, setWebAuthToken, signInURL, useSignInToken } from "./lib/cloudkit.js";
+import { clearDroppedPages, drainQueue, droppedPages, enqueue, queueLength } from "./lib/remote.js";
 import { loadSettings } from "./lib/settings.js";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -16,13 +16,24 @@ chrome.runtime.onStartup.addListener(() => {
   drainAndUpdateBadge();
 });
 
+// The badge shows "!" while something needs attention (signed out, pages that
+// can't be sent, pages that were dropped), otherwise how many pages are waiting.
 async function updateBadge() {
-  const { needsSignIn } = await chrome.storage.local.get("needsSignIn");
+  const { needsSignIn, lastError } = await chrome.storage.local.get(["needsSignIn", "lastError"]);
   const waiting = await queueLength();
-  const text = needsSignIn ? "!" : waiting > 0 ? String(waiting) : "";
-  await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({ color: needsSignIn ? "#d93025" : "#5f6368" });
-  await chrome.action.setTitle({ title: needsSignIn ? "NetNewsList: sign in to iCloud to save pages" : "Save to NetNewsList" });
+  const dropped = (await droppedPages()).length;
+  const failed = Boolean(needsSignIn || lastError || dropped > 0);
+  let title = "Save to NetNewsList";
+  if (lastError) {
+    title = `NetNewsList: ${lastError}`;
+  } else if (needsSignIn) {
+    title = "NetNewsList: sign in to iCloud to save pages";
+  } else if (dropped > 0) {
+    title = `NetNewsList: ${dropped === 1 ? "a page" : `${dropped} pages`} couldn’t be saved; see the extension’s options`;
+  }
+  await chrome.action.setBadgeText({ text: failed ? "!" : waiting > 0 ? String(waiting) : "" });
+  await chrome.action.setBadgeBackgroundColor({ color: failed ? "#d93025" : "#5f6368" });
+  await chrome.action.setTitle({ title });
 }
 
 async function drainAndUpdateBadge() {
@@ -42,8 +53,8 @@ async function saveRemotely(page) {
   if (outcome === "saved") {
     return { state: "saved", message: "Saved to NetNewsList" };
   }
-  if (outcome === "movedToInbox") {
-    return { state: "saved", message: "Already saved; moved back to the Inbox" };
+  if (outcome === "movedToQueue") {
+    return { state: "saved", message: "Already saved; moved back to the Queue" };
   }
   if (outcome === "alreadySaved") {
     return { state: "saved", message: "Already in NetNewsList" };
@@ -57,6 +68,20 @@ async function saveRemotely(page) {
   return { state: "queued", message: `Saved for later: ${stoppedBy ? stoppedBy.message : "not sent yet"}` };
 }
 
+// The context menu has no window to report in, so its outcome goes on the badge:
+// a tick for a few seconds when the page is saved; otherwise updateBadge's "!"
+// stays until the problem is gone, and the options page says what it was.
+async function showOutcomeOnBadge(result) {
+  if (result.state !== "saved") {
+    await updateBadge();
+    return;
+  }
+  await chrome.action.setBadgeText({ text: "✓" });
+  await chrome.action.setBadgeBackgroundColor({ color: "#188038" });
+  await chrome.action.setTitle({ title: `NetNewsList: ${result.message}` });
+  setTimeout(updateBadge, 3000);
+}
+
 async function openSignIn() {
   const settings = await loadSettings();
   const url = await signInURL(settings);
@@ -66,7 +91,20 @@ async function openSignIn() {
 async function status() {
   const settings = await loadSettings();
   const { webAuthToken, needsSignIn, lastError } = await chrome.storage.local.get(["webAuthToken", "needsSignIn", "lastError"]);
-  return { mode: settings.mode, signedIn: Boolean(webAuthToken) && !needsSignIn, waiting: await queueLength(), lastError: lastError || null };
+  return {
+    mode: settings.mode,
+    signedIn: Boolean(webAuthToken) && !needsSignIn,
+    waiting: await queueLength(),
+    lastError: lastError || null,
+    dropped: await droppedPages()
+  };
+}
+
+// After CloudKit accepts the sign-in: clear the old problem and send what's waiting
+// (which records a new problem if pages still can't be sent).
+async function signedIn() {
+  await chrome.storage.local.set({ needsSignIn: false, lastError: null });
+  await drainAndUpdateBadge();
 }
 
 const handlers = {
@@ -84,9 +122,13 @@ const handlers = {
   },
   checkAccount: async () => {
     const user = await currentUser(await loadSettings());
-    await chrome.storage.local.set({ needsSignIn: false });
-    await updateBadge();
+    await signedIn();
     return { ok: true, userRecordName: user.userRecordName };
+  },
+  clearDropped: async () => {
+    await clearDroppedPages();
+    await updateBadge();
+    return { ok: true };
   },
   status
 };
@@ -102,24 +144,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+// Only the callback URL's own origin counts: a prefix check would also accept
+// https://callback.example.attacker.example/.
+function isSignInCallback(url, callbackURL) {
+  if (!isWebPage(callbackURL)) {
+    return false;
+  }
+  try {
+    return new URL(url).origin === new URL(callbackURL).origin;
+  } catch {
+    return false;
+  }
+}
+
+function signInFailure(error) {
+  if (error instanceof SignInRequiredError) {
+    return "iCloud didn’t accept the sign-in. In CloudKit Console, check the API token’s environment, sign-in callback and allowed origins, then sign in again.";
+  }
+  return `Couldn’t check the sign-in with iCloud: ${error.message}`;
+}
+
 // Apple's sign-in page ends by sending the browser to the API token's callback
-// URL with ?ckWebAuthToken=…. Take the token and close the tab.
+// URL with ?ckWebAuthToken=…. Take the token, close the tab, and spend the token at
+// once (see useSignInToken), which also checks that CloudKit accepts it.
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (details.frameId !== 0) {
     return;
   }
   const settings = await loadSettings();
-  if (!settings.callbackURL || !details.url.startsWith(new URL(settings.callbackURL).origin)) {
+  if (!isSignInCallback(details.url, settings.callbackURL)) {
     return;
   }
   const token = new URL(details.url).searchParams.get("ckWebAuthToken");
   if (!token) {
     return;
   }
-  await setWebAuthToken(token);
-  await chrome.storage.local.set({ needsSignIn: false, lastError: null });
   chrome.tabs.remove(details.tabId).catch(() => {});
-  await drainAndUpdateBadge();
+  try {
+    await useSignInToken(settings, token);
+  } catch (error) {
+    await chrome.storage.local.set({ needsSignIn: true, lastError: signInFailure(error) });
+    await updateBadge();
+    return;
+  }
+  await signedIn();
 }, { url: [{ queryContains: "ckWebAuthToken=" }] });
 
 chrome.contextMenus.onClicked.addListener(async (info) => {
@@ -128,7 +196,14 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   }
   const settings = await loadSettings();
   if (settings.mode === "remote") {
-    await saveRemotely({ url: info.linkUrl, title: info.selectionText || "" });
+    let result;
+    try {
+      result = await saveRemotely({ url: info.linkUrl, title: info.selectionText || "" });
+    } catch (error) {
+      await chrome.storage.local.set({ lastError: error.message });
+      result = { state: "error", message: error.message };
+    }
+    await showOutcomeOnBadge(result);
     return;
   }
   const query = new URLSearchParams({ url: info.linkUrl, title: info.selectionText || "" });

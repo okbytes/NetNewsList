@@ -26,6 +26,16 @@ export class CloudKitError extends Error {
   }
 }
 
+// A failure records/modify reports for one record, as opposed to a request
+// CloudKit refused as a whole (which send() throws as a plain CloudKitError).
+export class RecordError extends CloudKitError {
+  constructor(recordName, serverErrorCode, reason) {
+    super(serverErrorCode, reason);
+    this.name = "RecordError";
+    this.recordName = recordName;
+  }
+}
+
 let lastRequest = Promise.resolve();
 
 function serially(operation) {
@@ -109,6 +119,17 @@ export function currentUser(settings) {
   return serially(() => send(settings, "users/current", null));
 }
 
+// Takes the token from the sign-in callback and spends it at once on users/current.
+// The callback URL carried it to the callback's server, which may log it; using it
+// here swaps it for the replacement in the response, so a logged copy is worthless.
+// It also proves the sign-in works: this throws if CloudKit doesn't accept it.
+export function useSignInToken(settings, token) {
+  return serially(async () => {
+    await setWebAuthToken(token);
+    return send(settings, "users/current", null);
+  });
+}
+
 export function lookupRecords(settings, recordNames) {
   return serially(() => send(settings, "records/lookup", {
     records: recordNames.map((recordName) => ({ recordName })),
@@ -121,7 +142,7 @@ export async function modifyRecords(settings, operations) {
   const failures = (json.records || []).filter((record) => record.serverErrorCode);
   const failure = failures.find((record) => record.serverErrorCode !== "ATOMIC_ERROR") || failures[0];
   if (failure) {
-    throw new CloudKitError(failure.serverErrorCode, failure.reason);
+    throw new RecordError(failure.recordName, failure.serverErrorCode, failure.reason);
   }
   return json;
 }

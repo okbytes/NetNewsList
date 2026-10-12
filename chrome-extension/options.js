@@ -1,3 +1,4 @@
+import { isWebPage } from "./common.js";
 import { loadSettings, saveSettings } from "./lib/settings.js";
 
 const fields = ["containerID", "environment", "apiToken", "callbackURL"];
@@ -16,12 +17,42 @@ async function send(type) {
   return response;
 }
 
+function hint(text) {
+  const line = document.createElement("div");
+  line.className = "hint";
+  line.textContent = text;
+  return line;
+}
+
+function droppedItem(page) {
+  const item = document.createElement("li");
+  const name = page.title || page.url;
+  if (isWebPage(page.url)) {
+    const link = document.createElement("a");
+    link.href = page.url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = name;
+    item.append(link);
+  } else {
+    item.append(name);
+  }
+  if (page.title) {
+    item.append(hint(page.url));
+  }
+  item.append(hint(`${new Date(page.droppedAt).toLocaleString()}: ${page.reason}`));
+  return item;
+}
+
 async function refresh() {
   const status = await chrome.runtime.sendMessage({ type: "status" });
+  document.getElementById("problem").textContent = status.lastError || "";
   document.getElementById("account").textContent = status.signedIn ? "Signed in." : "Not signed in.";
   document.getElementById("queue").textContent = status.waiting === 0
     ? "Nothing is waiting."
-    : `${status.waiting} ${status.waiting === 1 ? "page is" : "pages are"} waiting.${status.lastError ? ` Last problem: ${status.lastError}` : ""}`;
+    : `${status.waiting} ${status.waiting === 1 ? "page is" : "pages are"} waiting.`;
+  document.getElementById("dropped").replaceChildren(...status.dropped.map(droppedItem));
+  document.getElementById("droppedSection").hidden = status.dropped.length === 0;
 }
 
 async function load() {
@@ -56,10 +87,19 @@ document.getElementById("save").addEventListener("click", async () => {
 document.getElementById("signIn").addEventListener("click", () => send("signIn"));
 document.getElementById("signOut").addEventListener("click", () => send("signOut"));
 document.getElementById("retry").addEventListener("click", () => send("retry"));
+document.getElementById("clearDropped").addEventListener("click", () => send("clearDropped"));
 document.getElementById("check").addEventListener("click", async () => {
   const response = await send("checkAccount");
   if (response?.ok) {
     show("iCloud accepted the sign-in.");
+  }
+});
+
+// The sign-in finishes in another tab, and saves happen from the toolbar and the
+// context menu: show what they changed.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local") {
+    refresh();
   }
 });
 

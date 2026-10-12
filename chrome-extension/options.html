@@ -16,6 +16,10 @@
   #remote[hidden] { display: none; }
   button { font: inherit; }
   #message { min-height: 1.4em; }
+  #problem { color: #d93025; font-weight: 600; }
+  #problem:empty { display: none; }
+  #dropped { margin: 8px 0 0; padding-left: 20px; }
+  #dropped li { margin: 6px 0; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -29,6 +33,8 @@
   </fieldset>
 
   <div id="remote">
+    <p id="problem" role="alert"></p>
+
     <fieldset>
       <legend>iCloud</legend>
       <label>CloudKit container <input type="text" id="containerID" spellcheck="false"></label>
@@ -41,7 +47,7 @@
       <label>API token <input type="password" id="apiToken" spellcheck="false" autocomplete="off"></label>
       <p class="hint">From CloudKit Console: the container’s Tokens &amp; Keys. Each environment has its own token.</p>
       <label>Sign-in callback URL <input type="text" id="callbackURL" spellcheck="false" placeholder="https://"></label>
-      <p class="hint">Must match the API token’s callback URL. The extension reads the sign-in token from it; the page itself is never loaded.</p>
+      <p class="hint">Must match the API token’s sign-in callback (a URL redirect). The extension takes the sign-in token from it and closes the tab, then swaps the token for a fresh one at once, because the request may already have carried it to that server.</p>
       <div class="row"><button id="save">Save Settings</button></div>
     </fieldset>
 
@@ -60,6 +66,13 @@
       <legend>Waiting to be saved</legend>
       <div id="queue">…</div>
       <div class="row"><button id="retry">Try Again Now</button></div>
+    </fieldset>
+
+    <fieldset id="droppedSection" hidden>
+      <legend>Not saved</legend>
+      <p class="hint">These were taken out of the queue because they couldn’t be saved as they were; the reason is under each. Open a page to save it again.</p>
+      <ul id="dropped"></ul>
+      <div class="row"><button id="clearDropped">Clear List</button></div>
     </fieldset>
   </div>
 
