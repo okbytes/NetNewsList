@@ -380,29 +380,7 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 		return !isAnimating
 	}
 
-	override func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-		guard let archiveAllAction = archiveAllAction(indexPath: indexPath) else {
-			return nil
-		}
-		return UIContextMenuConfiguration(identifier: MainFeedRowIdentifier(indexPath: indexPath), previewProvider: nil) { _ in
-			UIMenu(title: "", children: [archiveAllAction])
-		}
-	}
-
 	// MARK: - Keyboard shortcuts
-
-	@objc func markAllAsRead(_ sender: Any) {
-		guard let indexPath = collectionView.indexPathsForSelectedItems?.first, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-			return
-		}
-
-		let title = NSLocalizedString("Archive All", comment: "Command")
-		let articlesToMark = coordinator.articles
-
-		MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-			self?.coordinator.markAsReadAndShowSidebar(articlesToMark)
-		}
-	}
 
 	@objc func navigateToTimeline(_ sender: Any?) {
 		coordinator.navigateToTimeline()
@@ -557,27 +535,6 @@ final class MainFeedCollectionViewController: UICollectionViewController {
 
 	@IBAction func add(_ sender: UIBarButtonItem) {
 		coordinator.showAddArticle()
-	}
-}
-
-// MARK: - Context Menu
-
-private extension MainFeedCollectionViewController {
-
-	func archiveAllAction(indexPath: IndexPath) -> UIAction? {
-		guard let sidebarItem = dataSource.itemIdentifier(for: indexPath)?.node.representedObject as? SidebarItem,
-			  let contentView = collectionView.cellForItem(at: indexPath)?.contentView,
-			  sidebarItem.unreadCount > 0 else {
-			return nil
-		}
-
-		let title = NSLocalizedString("Archive All", comment: "Command")
-		return UIAction(title: title, image: Assets.Images.markAllAsRead) { [weak self] _ in
-			MarkAsReadAlertController.confirm(self, coordinator: self?.coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-				let articles = sidebarItem.fetchUnreadArticles()
-				self?.coordinator.markAllAsRead(Array(articles))
-			}
-		}
 	}
 }
 

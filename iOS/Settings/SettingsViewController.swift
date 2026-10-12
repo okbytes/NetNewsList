@@ -32,7 +32,6 @@ final class SettingsViewController: UITableViewController {
 	private enum TimelineRow: Int {
 		case sortOrder = 0
 		case groupBySite = 1
-		case confirmMarkAllAsRead = 2
 	}
 
 	private enum ArticlesRow: Int {
@@ -51,11 +50,9 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var timelineSortOrderSwitch: UISwitch!
 	@IBOutlet var groupBySiteSwitch: UISwitch!
 	@IBOutlet var articleThemeDetailLabel: UILabel!
-	@IBOutlet var confirmMarkAllAsReadSwitch: UISwitch!
 	@IBOutlet var colorPaletteCell: UITableViewCell?
 	@IBOutlet var xAccountDetailLabel: UILabel!
 
-	var scrollToArticlesSection = false
 	weak var presentingParentController: UIViewController?
 
 	private lazy var colorPalettePopUpButton = Self.makePopUpButton()
@@ -89,12 +86,6 @@ final class SettingsViewController: UITableViewController {
 
 		articleThemeDetailLabel.text = ArticleThemesManager.shared.currentTheme.name
 
-		if AppDefaults.shared.confirmMarkAllAsRead {
-			confirmMarkAllAsReadSwitch.isOn = true
-		} else {
-			confirmMarkAllAsReadSwitch.isOn = false
-		}
-
 		updateXAccountDetailLabel()
 
 		let buildLabel = NonIntrinsicLabel(frame: CGRect(x: 32.0, y: 0.0, width: 0.0, height: 0.0))
@@ -114,12 +105,6 @@ final class SettingsViewController: UITableViewController {
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
 		self.tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-
-		if scrollToArticlesSection {
-			tableView.scrollToRow(at: IndexPath(row: 0, section: Section.articles.rawValue), at: .top, animated: true)
-			scrollToArticlesSection = false
-		}
-
 	}
 
 	// MARK: UITableView
@@ -214,14 +199,6 @@ final class SettingsViewController: UITableViewController {
 
 	@IBAction func switchGroupBySite(_ sender: Any) {
 		AppDefaults.shared.timelineGroupByFeed = groupBySiteSwitch.isOn
-	}
-
-	@IBAction func switchConfirmMarkAllAsRead(_ sender: Any) {
-		if confirmMarkAllAsReadSwitch.isOn {
-			AppDefaults.shared.confirmMarkAllAsRead = true
-		} else {
-			AppDefaults.shared.confirmMarkAllAsRead = false
-		}
 	}
 
 	// MARK: - Notifications

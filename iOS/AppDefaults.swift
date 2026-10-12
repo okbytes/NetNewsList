@@ -53,7 +53,6 @@ final class AppDefaults: Sendable {
 		static let firstRunDate = "firstRunDate"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
 		static let timelineSortDirection = "timelineSortDirection"
-		static let confirmMarkAllAsRead = "confirmMarkAllAsRead"
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
@@ -109,15 +108,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setSortDirection(for: Key.timelineSortDirection, newValue)
-		}
-	}
-
-	var confirmMarkAllAsRead: Bool {
-		get {
-			return AppDefaults.bool(for: Key.confirmMarkAllAsRead)
-		}
-		set {
-			AppDefaults.setBool(for: Key.confirmMarkAllAsRead, newValue)
 		}
 	}
 
@@ -222,7 +212,6 @@ final class AppDefaults: Sendable {
 										Key.timelineGroupByFeed: false,
 										// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
-										Key.confirmMarkAllAsRead: true,
 										Key.articleContentJavascriptEnabled: true,
 										Key.currentThemeName: Self.defaultThemeName,
 									   Key.splitViewPreferredDisplayMode: UISplitViewController.DisplayMode.oneBesideSecondary.rawValue]

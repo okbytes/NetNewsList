@@ -77,23 +77,9 @@
                             <constraint firstItem="YPO-ig-3vA" firstAttribute="leading" secondItem="NY8-Yd-8Av" secondAttribute="leading" id="pjD-oI-QEj"/>
                         </constraints>
                     </view>
-                    <toolbarItems>
-                        <barButtonItem title="Item" image="markAllAsRead" id="jGC-TX-BdL">
-                            <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="accLabelText" value="Archive All"/>
-                            </userDefinedRuntimeAttributes>
-                            <connections>
-                                <action selector="markAllAsRead:" destination="QJM-al-rDe" id="wU6-dU-tbq"/>
-                            </connections>
-                        </barButtonItem>
-                        <barButtonItem style="plain" systemItem="flexibleSpace" id="b7y-Z8-Lsi"/>
-                        <barButtonItem style="plain" systemItem="flexibleSpace" id="mBD-F8-H07"/>
-                    </toolbarItems>
                     <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
-                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
                     <connections>
                         <outlet property="collectionView" destination="YPO-ig-3vA" id="ZNY-s8-9N7"/>
-                        <outlet property="markAllAsReadButton" destination="jGC-TX-BdL" id="k4R-i9-0dE"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="WXZ-fR-d1z" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -269,7 +255,6 @@
     </scenes>
     <resources>
         <image name="gear" catalog="system" width="128" height="122"/>
-        <image name="markAllAsRead" width="13" height="20"/>
         <image name="multiply.circle" catalog="system" width="128" height="123"/>
         <image name="multiply.circle.fill" catalog="system" width="128" height="123"/>
         <image name="plus" catalog="system" width="128" height="113"/>

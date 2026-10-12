@@ -19,9 +19,6 @@ import Images
 final class MainTimelineViewController: UIViewController, UndoableCommandRunner {
 
 	// MARK: Private Variables
-	private let refreshProgressView = RefreshProgressView(frame: .zero)
-	private lazy var refreshBarItem = UIBarButtonItem(customView: refreshProgressView)
-	private var isToolbarProgressViewShowing = false
 	private var dataSource: UICollectionViewDiffableDataSource<Int, Article>?
 	var didPushArticleViewController = false
 
@@ -63,24 +60,9 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		return coordinator?.timelineIconImage
 	}
 
-	private var isTimelineUnreadAvailable: Bool {
-		assert(coordinator != nil)
-		return coordinator?.isTimelineUnreadAvailable ?? false
-	}
-
 	private var isRootSplitCollapsed: Bool {
 		assert(coordinator != nil)
 		return coordinator?.isRootSplitCollapsed ?? false
-	}
-
-	private func isSidebarHidden(for displayMode: UISplitViewController.DisplayMode? = nil) -> Bool {
-		if isRootSplitCollapsed {
-			return true
-		}
-		let mode = displayMode ?? splitViewController?.displayMode ?? .automatic
-		// Sidebar is hidden only in these specific modes
-		let sidebarHidden = mode == .secondaryOnly || mode == .oneBesideSecondary || mode == .oneOverSecondary
-		return sidebarHidden
 	}
 
 	private var articles: ArticleArray? {
@@ -147,7 +129,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	private let updateQueue = CoalescingQueue(name: "Timeline Update Queue", interval: 0.5, maxInterval: 1.0)
 
 	// MARK: - IBOutlets
-	@IBOutlet var markAllAsReadButton: UIBarButtonItem?
 	@IBOutlet var collectionView: UICollectionView?
 
     override func viewDidLoad() {
@@ -165,7 +146,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		collectionView?.refreshControl = UIRefreshControl()
 		collectionView?.refreshControl?.addTarget(self, action: #selector(sync(_:)), for: .valueChanged)
 
-		configureToolbar()
 		resetUI(resetScroll: true)
 
 		// Load the table and then scroll to the saved position if available
@@ -192,7 +172,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 	override func viewDidLayoutSubviews() {
 		super.viewDidLayoutSubviews()
-		updateToolbarProgressView()
 		coordinator?.timelineDidLayout()
 	}
 
@@ -200,7 +179,7 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewWillAppear")
 
 		super.viewWillAppear(animated)
-		self.navigationController?.isToolbarHidden = false
+		navigationController?.setToolbarHidden(true, animated: animated)
 
 		// If the nav bar is hidden, fade it in to avoid it showing stuff as it is getting laid out
 		if navigationController?.navigationBar.isHidden ?? false {
@@ -213,7 +192,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 		updateNavigationBarTitle(coordinator?.timelineFeed?.nameForDisplay ?? "")
 		coordinator?.updateNavigationBarSubtitles(nil)
-		updateToolbarProgressView()
 
 		// Articles can change while this view is off screen, so always show what the model holds.
 		applyChanges(animated: false)
@@ -326,18 +304,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		} else {
 			collectionView.selectItem(at: nil, animated: animations.contains(.select), scrollPosition: .centeredVertically)
 		}
-
-		queueUpdateUI()
-	}
-
-	func queueUpdateUI() {
-		updateQueue.add(self, #selector(updateUI))
-	}
-
-	@objc func updateUI() {
-		Self.logger.debug("MainTimelineViewController: updateUI")
-
-		updateToolbar()
 	}
 
 	func focus() {
@@ -425,35 +391,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	@objc func openInBrowser(_ sender: Any?) {
 		assert(coordinator != nil)
 		coordinator?.showBrowserForCurrentArticle()
-	}
-
-	@IBAction func markAllAsRead(_ sender: Any?) {
-		guard let coordinator else {
-			assertionFailure("Expected coordinator")
-			return
-		}
-		let title = NSLocalizedString("Archive All", comment: "Command")
-
-		let articlesToMark = coordinator.articles
-
-		if let source = sender as? UIBarButtonItem {
-			MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: source) { [weak self] in
-				self?.coordinator?.markAsReadAndShowSidebar(articlesToMark)
-			}
-		}
-
-		if sender is UIKeyCommand {
-			guard let collectionView else {
-				return
-			}
-			guard let indexPath = collectionView.indexPathsForSelectedItems?.first, let contentView = collectionView.cellForItem(at: indexPath)?.contentView else {
-				return
-			}
-
-			MarkAsReadAlertController.confirm(self, coordinator: coordinator, confirmTitle: title, sourceType: contentView) { [weak self] in
-				self?.coordinator?.markAsReadAndShowSidebar(articlesToMark)
-			}
-		}
 	}
 
     /*
@@ -566,20 +503,6 @@ extension MainTimelineViewController: UICollectionViewDelegate {
 
 }
 
-// MARK: - Toolbar Progress View
-
-extension MainTimelineViewController {
-
-	func updateToolbarProgressView(for displayMode: UISplitViewController.DisplayMode? = nil) {
-		if #available(iOS 26, *) {
-			return
-		}
-
-		isToolbarProgressViewShowing = isSidebarHidden(for: displayMode)
-		rebuildToolbarItems()
-	}
-}
-
 // MARK: - Split View State
 
 extension MainTimelineViewController {
@@ -605,7 +528,6 @@ private extension MainTimelineViewController {
 	}
 
 	func addNotificationObservers() {
-		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(statusesDidChange(_:)), name: .StatusesDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(statusesDidChange(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
@@ -620,7 +542,6 @@ private extension MainTimelineViewController {
 
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(displayNameDidChange), name: .DisplayNameDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleLowMemory(_:)), name: .lowMemory, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleAppDidGoToBackground(_:)), name: .appDidGoToBackground, object: nil)
 	}
@@ -787,14 +708,6 @@ private extension MainTimelineViewController {
 		return article.iconImage()
 	}
 
-	func configureToolbar() {
-		// Remove storyboard placeholder flex spaces so rebuildToolbarItems starts clean.
-		if traitCollection.userInterfaceIdiom == .phone, let markAllAsRead = toolbarItems?.first {
-			toolbarItems = [markAllAsRead]
-		}
-		updateToolbarProgressView()
-	}
-
 	func resetUI(resetScroll: Bool) {
 		collectionView?.selectItem(at: nil, animated: false, scrollPosition: .top)
 
@@ -806,33 +719,6 @@ private extension MainTimelineViewController {
 				}
 			}
 		}
-
-		updateToolbar()
-	}
-
-	func updateToolbar() {
-		markAllAsReadButton?.isEnabled = isTimelineUnreadAvailable
-		if #unavailable(iOS 26) {
-			rebuildToolbarItems()
-		}
-	}
-
-	/// Rebuilds toolbar items from scratch based on current state.
-	private func rebuildToolbarItems() {
-		guard let markAllAsReadButton else {
-			return
-		}
-
-		var items = [UIBarButtonItem]()
-		items.append(markAllAsReadButton)
-
-		if isToolbarProgressViewShowing {
-			items.append(.flexibleSpace())
-			items.append(refreshBarItem)
-			items.append(.flexibleSpace())
-		}
-
-		setToolbarItems(items, animated: false)
 	}
 
 	func applyChanges(animated: Bool, completion: (() -> Void)? = nil) {
@@ -855,11 +741,6 @@ private extension MainTimelineViewController {
 
 // MARK: - Notifications API
 private extension MainTimelineViewController {
-	@objc dynamic func unreadCountDidChange(_ notification: Notification) {
-		Self.logger.debug("MainTimelineViewController: unreadCountDidChange")
-		queueUpdateUI()
-	}
-
 	@objc func statusesDidChange(_ note: Notification) {
 		Self.logger.debug("MainTimelineViewController: statusesDidChange")
 
@@ -914,11 +795,6 @@ private extension MainTimelineViewController {
 	@objc func displayNameDidChange(_ note: Notification) {
 		Self.logger.debug("MainTimelineViewController: displayNameDidChange")
 		updateNavigationBarTitle(timelineFeed?.nameForDisplay ?? "")
-	}
-
-	@objc func willEnterForeground(_ note: Notification) {
-		Self.logger.debug("MainTimelineViewController: willEnterForeground")
-		queueUpdateUI()
 	}
 
 	@objc func handleLowMemory(_ note: Notification) {

@@ -214,10 +214,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		return articles.firstIndex(of: article)
 	}
 
-	var isTimelineUnreadAvailable: Bool {
-		return timelineUnreadCount > 0
-	}
-
 	var timelineUnreadCount: Int = 0 {
 		didSet {
 			updateNavigationBarSubtitles(nil)
@@ -840,19 +836,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	/// Archives the articles. They leave the Queue through `keepOnlyListMembers`; undo brings them back.
-	func markAllAsRead(_ articles: [Article], completion: (() -> Void)? = nil) {
-		markArticlesWithUndo(articles, statusKey: .read, flag: true, completion: completion)
-	}
-
-	func markAsReadAndShowSidebar(_ articlesToMark: [Article], completion: (() -> Void)? = nil) {
-		markAllAsRead(articlesToMark) {
-			self.rootSplitViewController.preferredDisplayMode = .twoBesideSecondary
-			self.rootSplitViewController.showColumn(.primary, bypassDisplayModeRestriction: true)
-			completion?()
-		}
-	}
-
 	func toggleReadForCurrentArticle() {
 		if let article = currentArticle {
 			toggleRead(article)
@@ -866,10 +849,9 @@ struct SidebarItemNode: Hashable, Sendable {
 		markArticlesWithUndo([article], statusKey: .read, flag: !article.status.read)
 	}
 
-	func showSettings(scrollToArticlesSection: Bool = false) {
+	func showSettings() {
 		let settingsNavController = UIStoryboard.settings.instantiateInitialViewController() as! UINavigationController
 		let settingsViewController = settingsNavController.topViewController as! SettingsViewController
-		settingsViewController.scrollToArticlesSection = scrollToArticlesSection
 		settingsNavController.modalPresentationStyle = .formSheet
 		settingsViewController.presentingParentController = rootSplitViewController
 		rootSplitViewController.present(settingsNavController, animated: true)
@@ -1020,7 +1002,6 @@ extension SceneCoordinator: UISplitViewControllerDelegate {
 
 	func splitViewController(_ svc: UISplitViewController, willChangeTo displayMode: UISplitViewController.DisplayMode) {
 		AppDefaults.shared.splitViewPreferredDisplayMode = displayMode.rawValue
-		mainTimelineViewController?.updateToolbarProgressView(for: displayMode)
 	}
 
 	func splitViewControllerDidCollapse(_ svc: UISplitViewController) {

@@ -144,9 +144,6 @@ private extension KeyboardManager {
 		let gotoSettings = NSLocalizedString("Go To Settings", comment: "Go To Settings")
 			keys.append(KeyboardManager.createKeyCommand(title: gotoSettings, action: "goToSettings:", input: ",", modifiers: [.command]))
 
-		let markAllAsReadTitle = NSLocalizedString("Archive All", comment: "Command")
-		keys.append(KeyboardManager.createKeyCommand(title: markAllAsReadTitle, action: "markAllAsRead:", input: "k", modifiers: [.command]))
-
 		return keys
 	}
 
