@@ -307,24 +307,6 @@
         }
       }
     },
-    "24r-2i-fXR.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Info\"; ObjectID = \"24r-2i-fXR\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Info"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Información"
-          }
-        }
-      }
-    },
     "57V-gv-vEw.title" : {
       "comment" : "Class = \"NSMenu\"; title = \"Article\"; ObjectID = \"57V-gv-vEw\";",
       "extractionState" : "extracted_with_value",

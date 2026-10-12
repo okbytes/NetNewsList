@@ -500,11 +500,6 @@
                                     <action selector="showMainWindow:" target="-1" id="yQt-yi-4JX"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Info" keyEquivalent="i" id="24r-2i-fXR">
-                                <connections>
-                                    <action selector="toggleInspectorWindow:" target="-1" id="Bw5-4R-iWP"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Current Activity" keyEquivalent="7" id="act-Wn-d0w">
                                 <connections>
                                     <action selector="showActivityWindow:" target="-1" id="act-Cn-x1a"/>
