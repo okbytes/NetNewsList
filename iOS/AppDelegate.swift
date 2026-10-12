@@ -222,15 +222,11 @@ private extension AppDelegate {
 		let queueIcon = UIApplicationShortcutIcon(systemImageName: "tray.fill")
 		let queueItem = UIApplicationShortcutItem(type: "NetNewsList.ShowQueue", localizedTitle: queueTitle, localizedSubtitle: nil, icon: queueIcon, userInfo: nil)
 
-		let searchTitle = NSLocalizedString("Search", comment: "Search")
-		let searchIcon = UIApplicationShortcutIcon(systemImageName: "magnifyingglass")
-		let searchItem = UIApplicationShortcutItem(type: "NetNewsList.ShowSearch", localizedTitle: searchTitle, localizedSubtitle: nil, icon: searchIcon, userInfo: nil)
-
 		let addTitle = NSLocalizedString("Add Article", comment: "Add Article")
 		let addIcon = UIApplicationShortcutIcon(systemImageName: "plus")
 		let addItem = UIApplicationShortcutItem(type: "NetNewsList.ShowAdd", localizedTitle: addTitle, localizedSubtitle: nil, icon: addIcon, userInfo: nil)
 
-		UIApplication.shared.shortcutItems = [addItem, searchItem, queueItem]
+		UIApplication.shared.shortcutItems = [addItem, queueItem]
 	}
 
 }

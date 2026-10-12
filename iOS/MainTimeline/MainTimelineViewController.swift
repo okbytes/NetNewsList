@@ -141,7 +141,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	}
 
 	// MARK: Private Constants
-	private let searchController = UISearchController(searchResultsController: nil)
 	private let keyboardManager = KeyboardManager(type: .timeline)
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "MainTimelineViewController")
 
@@ -163,9 +162,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 		assert(dataSource != nil)
 		configureCollectionView(dataSource!)
-
-		configureSearchController()
-		definesPresentationContext = true
 
 		numberOfTextLines = AppDefaults.shared.timelineNumberOfLines
 		iconSize = AppDefaults.shared.timelineIconSize
@@ -347,27 +343,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: updateUI")
 
 		updateToolbar()
-	}
-
-	func hideSearch(completion: (() -> Void)? = nil) {
-		guard let searchController = navigationItem.searchController, searchController.isActive else {
-			completion?()
-			return
-		}
-		searchController.isActive = false
-		guard let transitionCoordinator = searchController.transitionCoordinator else {
-			completion?()
-			return
-		}
-		transitionCoordinator.animate(alongsideTransition: nil) { _ in
-			completion?()
-		}
-	}
-
-	func showSearchAll() {
-		navigationItem.searchController?.isActive = true
-		navigationItem.searchController?.searchBar.selectedScopeButtonIndex = 1
-		navigationItem.searchController?.searchBar.becomeFirstResponder()
 	}
 
 	func focus() {
@@ -662,30 +637,6 @@ private extension MainTimelineViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(handleAppDidGoToBackground(_:)), name: .appDidGoToBackground, object: nil)
 	}
 
-	private func configureSearchController() {
-		// Setup the Search Controller
-		searchController.delegate = self
-		searchController.searchResultsUpdater = self
-		searchController.obscuresBackgroundDuringPresentation = false
-		searchController.searchBar.delegate = self
-		searchController.searchBar.placeholder = NSLocalizedString("Search Articles", comment: "Search Articles")
-		searchController.searchBar.scopeButtonTitles = [
-			NSLocalizedString("Here", comment: "Here"),
-			NSLocalizedString("All Articles", comment: "All Articles")
-		]
-		searchController.searchBar.barTintColor = .clear
-		searchController.searchBar.scopeBarBackgroundImage = UIImage()
-		searchController.searchBar.autocapitalizationType = .none
-		navigationItem.searchController = searchController
-
-		if traitCollection.userInterfaceIdiom == .pad {
-			searchController.searchBar.selectedScopeButtonIndex = 1
-			if #available(iOS 26, *) {
-				navigationItem.searchBarPlacementAllowsExternalIntegration = true
-			}
-		}
-	}
-
 	private func configureCollectionView(_ dataSource: UICollectionViewDiffableDataSource<Int, Article>) {
 		var config = UICollectionLayoutListConfiguration(appearance: .plain)
 		config.showsSeparators = false
@@ -848,27 +799,10 @@ private extension MainTimelineViewController {
 		return article.iconImage()
 	}
 
-	func searchArticles(_ searchString: String, _ searchScope: SearchScope) {
-		assert(coordinator != nil)
-		coordinator?.searchArticles(searchString, searchScope)
-	}
-
 	func configureToolbar() {
-		if traitCollection.userInterfaceIdiom == .phone {
-			if #available(iOS 26, *) {
-				if let markAllAsRead = toolbarItems?.first {
-					toolbarItems = [
-						markAllAsRead,
-						.flexibleSpace(),
-						navigationItem.searchBarPlacementBarButtonItem
-					]
-				}
-			} else {
-				// Remove storyboard placeholder flex spaces so rebuildToolbarItems starts clean.
-				if let markAllAsRead = toolbarItems?.first {
-					toolbarItems = [markAllAsRead]
-				}
-			}
+		// Remove storyboard placeholder flex spaces so rebuildToolbarItems starts clean.
+		if traitCollection.userInterfaceIdiom == .phone, let markAllAsRead = toolbarItems?.first {
+			toolbarItems = [markAllAsRead]
 		}
 		updateToolbarProgressView()
 	}
@@ -1033,40 +967,6 @@ private extension MainTimelineViewController {
 		timelineMiddleIndexPath = collectionView?.middleVisibleRow()
 	}
 
-}
-
-extension MainTimelineViewController: UISearchControllerDelegate {
-
-	func willPresentSearchController(_ searchController: UISearchController) {
-		coordinator?.beginSearching()
-		searchController.searchBar.showsScopeBar = true
-	}
-
-	func willDismissSearchController(_ searchController: UISearchController) {
-		searchController.searchBar.showsScopeBar = false
-		// Async to avoid iOS 26 UINavigationBar crashes during the search-bar dismissal
-		// transition — endSearching() mutates the timeline and the navigation stack.
-		DispatchQueue.main.async {
-			self.coordinator?.endSearching()
-			self.updateToolbar()
-		}
-	}
-}
-
-extension MainTimelineViewController: UISearchResultsUpdating {
-
-	func updateSearchResults(for searchController: UISearchController) {
-		let searchScope = SearchScope(rawValue: searchController.searchBar.selectedScopeButtonIndex)!
-		searchArticles(searchController.searchBar.text!, searchScope)
-	}
-
-}
-
-extension MainTimelineViewController: UISearchBarDelegate {
-	func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
-		let searchScope = SearchScope(rawValue: selectedScope)!
-		searchArticles(searchBar.text!, searchScope)
-	}
 }
 
 // MARK: Article Actions

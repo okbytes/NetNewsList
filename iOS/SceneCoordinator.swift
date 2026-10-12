@@ -17,11 +17,6 @@ import SafariServices
 import SwiftUI
 import Images
 
-enum SearchScope: Int {
-	case timeline = 0
-	case global = 1
-}
-
 enum ShowFeedName {
 	case none
 	case byline
@@ -69,12 +64,6 @@ struct SidebarItemNode: Hashable, Sendable {
 
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "SceneCoordinator")
 
-	private(set) var preSearchTimelineFeed: SidebarItem?
-	private var lastSearchString = ""
-	private var lastSearchScope: SearchScope?
-	private var isSearching: Bool = false
-	private var savedSearchArticles: ArticleArray?
-	private var savedSearchArticleIDs: Set<String>?
 	private var isRestoringState = false
 
 	var isTimelineViewControllerPending = false
@@ -416,15 +405,6 @@ struct SidebarItemNode: Hashable, Sendable {
 			mainTimelineViewController?.focus()
 		} else {
 			mainFeedCollectionViewController?.focus()
-		}
-	}
-
-	func showSearch() {
-		selectSidebarItem(indexPath: nil) {
-			self.rootSplitViewController.showColumn(.supplementary)
-			DispatchQueue.main.asyncAfter(deadline: .now()) {
-				self.mainTimelineViewController!.showSearchAll()
-			}
 		}
 	}
 
@@ -824,61 +804,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func beginSearching() {
-		isSearching = true
-		preSearchTimelineFeed = timelineFeed
-		savedSearchArticles = articles
-		savedSearchArticleIDs = Set(articles.map { $0.articleID })
-		setTimelineFeed(nil, animated: true)
-		selectArticle(nil)
-	}
-
-	func endSearching() {
-		if let oldTimelineFeed = preSearchTimelineFeed {
-			emptyTheTimeline()
-			timelineFeed = oldTimelineFeed
-			mainTimelineViewController?.reinitializeArticles(resetScroll: true)
-			replaceArticles(with: savedSearchArticles!, animated: true)
-		} else {
-			setTimelineFeed(nil, animated: true)
-		}
-
-		lastSearchString = ""
-		lastSearchScope = nil
-		preSearchTimelineFeed = nil
-		savedSearchArticleIDs = nil
-		savedSearchArticles = nil
-		isSearching = false
-		selectArticle(nil)
-		mainTimelineViewController?.focus()
-	}
-
-	func searchArticles(_ searchString: String, _ searchScope: SearchScope) {
-
-		guard isSearching else {
-			return
-		}
-
-		if searchString.count < 3 {
-			setTimelineFeed(nil, animated: true)
-			return
-		}
-
-		if searchString != lastSearchString || searchScope != lastSearchScope {
-
-			switch searchScope {
-			case .global:
-				setTimelineFeed(SmartFeed(delegate: SearchFeedDelegate(searchString: searchString)), animated: true)
-			case .timeline:
-				setTimelineFeed(SmartFeed(delegate: SearchTimelineFeedDelegate(searchString: searchString, articleIDs: savedSearchArticleIDs!)), animated: true)
-			}
-
-			lastSearchString = searchString
-			lastSearchScope = searchScope
-		}
-
-	}
-
 	func findPrevArticle(_ article: Article) -> Article? {
 		guard let index = articles.firstIndex(of: article), index > 0 else {
 			return nil
@@ -995,15 +920,7 @@ struct SidebarItemNode: Hashable, Sendable {
 		let hostingController = UIHostingController(rootView: addArticleView)
 		hostingController.modalPresentationStyle = .formSheet
 		presentedController = hostingController
-
-		// Presenting over an active nav-bar-hosted search bar crashes inside UIKit.
-		guard let mainTimelineViewController else {
-			rootSplitViewController.present(hostingController, animated: true)
-			return
-		}
-		mainTimelineViewController.hideSearch {
-			self.rootSplitViewController.present(hostingController, animated: true)
-		}
+		rootSplitViewController.present(hostingController, animated: true)
 	}
 
 	func showFullScreenImage(image: UIImage, imageTitle: String?, transition: ImageTransition) {

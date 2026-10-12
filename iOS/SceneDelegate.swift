@@ -181,8 +181,6 @@ private extension SceneDelegate {
 		switch shortcutItem.type {
 		case "NetNewsList.ShowQueue":
 			coordinator.selectQueue()
-		case "NetNewsList.ShowSearch":
-			coordinator.showSearch()
 		case "NetNewsList.ShowAdd":
 			coordinator.showAddArticle()
 		default:
