@@ -655,7 +655,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		account.ensureReadingListFeed()
 
 		accountZone.delegate = CloudKitAcountZoneDelegate(account: account, articlesZone: articlesZone)
-		articlesZone.delegate = CloudKitArticlesZoneDelegate(account: account, database: syncDatabase, articlesZone: articlesZone, syncErrorHandler: syncErrorHandler)
+		articlesZone.delegate = CloudKitArticlesZoneDelegate(account: account, database: syncDatabase, syncErrorHandler: syncErrorHandler)
 
 		let accountID = account.accountID
 		let accountDisplayName = account.nameForDisplay

@@ -23,7 +23,6 @@ final class CloudKitArticlesZoneDelegate: CloudKitZoneDelegate {
 
 	weak var account: Account?
 	var syncDatabase: SyncDatabase
-	weak var articlesZone: CloudKitArticlesZone?
 	let syncErrorHandler: CloudKitSyncErrorHandler?
 
 	/// Number of records changed in the most recent sync.
@@ -36,10 +35,9 @@ final class CloudKitArticlesZoneDelegate: CloudKitZoneDelegate {
 	private(set) var accumulatedChangedCount = 0
 	private(set) var accumulatedDeletedCount = 0
 
-	init(account: Account, database: SyncDatabase, articlesZone: CloudKitArticlesZone, syncErrorHandler: CloudKitSyncErrorHandler?) {
+	init(account: Account, database: SyncDatabase, syncErrorHandler: CloudKitSyncErrorHandler?) {
 		self.account = account
 		self.syncDatabase = database
-		self.articlesZone = articlesZone
 		self.syncErrorHandler = syncErrorHandler
 	}
 
