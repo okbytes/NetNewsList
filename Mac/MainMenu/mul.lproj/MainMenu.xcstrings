@@ -1081,24 +1081,6 @@
         }
       }
     },
-    "kIP-vf-haE.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Show Sidebar\"; ObjectID = \"kIP-vf-haE\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Show Sidebar"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar barra lateral"
-          }
-        }
-      }
-    },
     "L20-jv-7c9.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Today\"; ObjectID = \"L20-jv-7c9\";",
       "extractionState" : "extracted_with_value",

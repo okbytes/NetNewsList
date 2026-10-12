@@ -23,7 +23,7 @@ enum TimelineShowFeedName: Sendable {
 	case feed
 }
 
-final class TimelineViewController: NSViewController, UndoableCommandRunner, UnreadCountProvider {
+final class TimelineViewController: NSViewController, UndoableCommandRunner {
 
 	@IBOutlet var tableView: TimelineTableView!
 
@@ -36,14 +36,11 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 	var representedObjects: [AnyObject]? {
 		didSet {
 			if !representedObjectArraysAreEqual(oldValue, representedObjects) {
-				unreadCount = 0
-
 				selectionDidChange(nil)
 				fetchAndReplaceArticlesSync()
 				if articles.count > 0 {
 					tableView.scrollRowToVisible(0)
 				}
-				updateUnreadCount()
 			}
 		}
 	}
@@ -69,10 +66,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 
 	var articles = ArticleArray() {
 		didSet {
-			defer {
-				updateUnreadCount()
-			}
-
 			if articles == oldValue {
 				return
 			}
@@ -102,14 +95,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 			articleRowMap = [String: [Int]]()
 			tableView.reloadData()
 			IconImageCache.shared.prefetchImagesForArticles(articles)
-		}
-	}
-
-	var unreadCount: Int = 0 {
-		didSet {
-			if unreadCount != oldValue {
-				postUnreadCountDidChangeNotification()
-			}
 		}
 	}
 
@@ -215,60 +200,19 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 
 	// MARK: - API
 
-	func representsThisObjectOnly(_ object: AnyObject) -> Bool {
-		guard let representedObjects = representedObjects else {
-			return false
-		}
-		if representedObjects.count != 1 {
-			return false
-		}
-		return representedObjects.first! === object
-	}
-
 	// MARK: State Restoration
 
+	/// Selects the article that was selected when the state was saved, if it’s still in this list.
 	func restoreState(from state: TimelineWindowState) {
-		if let selectedAccountID = state.selectedAccountID,
-		   let account = AccountManager.shared.existingAccount(accountID: selectedAccountID),
-		   let selectedArticleID = state.selectedArticleID {
-
-			exceptionArticleFetcher = SingleArticleFetcher(account: account, articleID: selectedArticleID)
-			fetchAndReplaceArticlesSync()
-
-			if let selectedIndex = articles.firstIndex(where: { $0.articleID == selectedArticleID }) {
-				tableView.selectRow(selectedIndex)
-				DispatchQueue.main.async {
-					self.tableView.scrollTo(row: selectedIndex)
-				}
-				focus()
-			}
-		} else {
-			fetchAndReplaceArticlesSync()
+		guard let selectedArticleID = state.selectedArticleID,
+			  let selectedIndex = articles.firstIndex(where: { $0.articleID == selectedArticleID }) else {
+			return
 		}
-	}
-
-	/// Restore state using legacy state restoration data.
-	///
-	/// TODO: Delete for NetNewsWire 7.
-	func restoreLegacyState(from state: [AnyHashable: Any]) {
-		if let articlePathUserInfo = state[UserInfoKey.articlePath] as? [AnyHashable: Any],
-			let accountID = articlePathUserInfo[ArticlePathKey.accountID] as? String,
-			let account = AccountManager.shared.existingAccount(accountID: accountID),
-			let articleID = articlePathUserInfo[ArticlePathKey.articleID] as? String {
-
-			exceptionArticleFetcher = SingleArticleFetcher(account: account, articleID: articleID)
-			fetchAndReplaceArticlesSync()
-
-			if let selectedIndex = articles.firstIndex(where: { $0.articleID == articleID }) {
-				tableView.selectRow(selectedIndex)
-				DispatchQueue.main.async {
-					self.tableView.scrollTo(row: selectedIndex)
-				}
-				focus()
-			}
-		} else {
-			fetchAndReplaceArticlesSync()
+		tableView.selectRow(selectedIndex)
+		DispatchQueue.main.async {
+			self.tableView.scrollTo(row: selectedIndex)
 		}
+		focus()
 	}
 
 	// MARK: - Actions
@@ -314,6 +258,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 
 	@IBAction func selectNextUp(_ sender: Any?) {
 		guard let lastSelectedRow = tableView.selectedRowIndexes.last else {
+			selectFirstRowIfNoneSelected()
 			return
 		}
 
@@ -335,6 +280,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 
 	@IBAction func selectNextDown(_ sender: Any?) {
 		guard let firstSelectedRow = tableView.selectedRowIndexes.first else {
+			selectFirstRowIfNoneSelected()
 			return
 		}
 
@@ -409,6 +355,11 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 		}
 
 		window.makeFirstResponderUnlessDescendantIsFirstResponder(tableView)
+		selectFirstRowIfNoneSelected()
+	}
+
+	/// With nothing selected, the arrow keys start at the top of the list.
+	func selectFirstRowIfNoneSelected() {
 		if !hasAtLeastOneSelectedArticle && articles.count > 0 {
 			tableView.selectRowAndScrollToVisible(0)
 		}
@@ -421,7 +372,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 			return
 		}
 		reloadVisibleCells(for: articleIDs)
-		updateUnreadCount()
 		keepOnlyListMembers(changed: articleIDs)
 	}
 
@@ -836,7 +786,7 @@ extension TimelineViewController: NSTableViewDelegate {
 private extension TimelineViewController {
 
 	// The current article should stay in the timeline, and stay selected,
-	// when the timeline updates and the sidebar selection hasn't changed —
+	// when the timeline updates and the list hasn't changed —
 	// even if the new fetch wouldn't otherwise include it.
 	func fetchAndReplacePreservingSelectionAsync() {
 		if let article = oneSelectedArticle, let account = article.account {
@@ -846,16 +796,6 @@ private extension TimelineViewController {
 		fetchAndReplaceArticlesAsync { [weak self] in
 			self?.restoreSelection(savedSelection)
 		}
-	}
-
-	func updateUnreadCount() {
-		var count = 0
-		for article in articles {
-			if !article.status.read {
-				count += 1
-			}
-		}
-		unreadCount = count
 	}
 
 	func updateShowIcons() {
@@ -972,7 +912,7 @@ private extension TimelineViewController {
 	// MARK: - Fetching Articles
 
 	func fetchAndReplaceArticlesSync() {
-		// To be called when the user has made a change of selection in the sidebar.
+		// To be called when the window switches lists.
 		// It blocks the main thread, so that there’s no async delay,
 		// so that the entire display refreshes at once.
 		// It’s a better user experience this way.

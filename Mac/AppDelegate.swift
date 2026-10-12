@@ -385,6 +385,11 @@ let appName = "NetNewsList"
 			(item as! NSMenuItem).state = AppDefaults.shared.webInspectorEnabled ? .on : .off
 		}
 
+		// A main window checks the list it shows. Without one, neither is checked.
+		if item.action == #selector(gotoQueue(_:)) || item.action == #selector(gotoArchive(_:)), let menuItem = item as? NSMenuItem {
+			menuItem.state = .off
+		}
+
 		if item.action == #selector(signInOrOutOfX(_:)), let menuItem = item as? NSMenuItem {
 			menuItem.title = XAccount.shared.isSignedIn ? NSLocalizedString("Sign Out of X…", comment: "Menu item") : NSLocalizedString("Sign In to X…", comment: "Menu item")
 		}

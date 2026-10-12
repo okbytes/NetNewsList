@@ -2,8 +2,8 @@
 //  DroppedWebPages.swift
 //  NetNewsList
 //
-//  Web addresses dragged onto the sidebar or the timeline, from a browser’s
-//  address bar, a link or text. Each one is saved.
+//  Web addresses dragged onto the timeline, from a browser’s address bar,
+//  a link or text. Each one is saved.
 //
 
 import AppKit

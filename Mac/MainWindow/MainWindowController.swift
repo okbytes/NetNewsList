@@ -21,29 +21,15 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	private var sharingServicePickerDelegate: SharingServicePickerDelegate?
 
 	private let windowAutosaveName = NSWindow.FrameAutosaveName("MainWindow")
-	private static let mainWindowWidthsStateKey = "mainWindowWidthsStateKey"
-
-	private var currentFeedOrFolder: AnyObject? {
-		// Nil for none or multiple selection.
-		guard let selectedObjects = selectedObjectsInSidebar(), selectedObjects.count == 1 else {
-			return nil
-		}
-		return selectedObjects.first
-	}
 
 	private var shareToolbarItem: NSToolbarItem? {
 		return window?.toolbar?.existingItem(withIdentifier: .share)
 	}
 
 	private static let detailViewMinimumWidth = 384
-	private static let sidebarMinimumWidth: CGFloat = 96
-	private static let sidebarHoldingPriority: Float = 260
 	private static let timelineHoldingPriority: Float = 255
 	private static let toolbarIdentifier = "MainWindowToolbar"
 	private var splitViewController: NSSplitViewController?
-	// The split view’s widths: sidebar, timeline, article view.
-	private var rememberedStandardLayoutWidths = [Int]()
-	private var sidebarViewController: SidebarViewController?
 	private var timelineContainerViewController: TimelineContainerViewController?
 	private var detailViewController: DetailViewController?
 	private var restoreArticleWindowScrollY: CGFloat?
@@ -64,12 +50,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			window.setPointAndSizeAdjustingForScreen(point: point, size: size, minimumSize: minSize)
 		}
 
-		let sidebarViewController = SidebarViewController()
-		sidebarViewController.delegate = self
-		sidebarViewController.view.translatesAutoresizingMaskIntoConstraints = false
-		sidebarViewController.view.widthAnchor.constraint(greaterThanOrEqualToConstant: Self.sidebarMinimumWidth).isActive = true
-		self.sidebarViewController = sidebarViewController
-
 		let timelineContainerViewController = TimelineContainerViewController()
 		timelineContainerViewController.delegate = self
 		self.timelineContainerViewController = timelineContainerViewController
@@ -77,6 +57,8 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		detailViewController = DetailViewController()
 
 		installSplitViewController()
+		// Every window opens on the Queue.
+		show(SmartFeedsController.shared.unreadFeed)
 
 		sharingServicePickerDelegate = SharingServicePickerDelegate(self.window)
 
@@ -85,35 +67,26 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		NotificationCenter.default.addObserver(self, selector: #selector(refreshProgressDidChange(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(displayNameDidChange(_:)), name: .DisplayNameDidChange, object: nil)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(articleThemeNamesDidChangeNotification(_:)), name: .ArticleThemeNamesDidChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(currentArticleThemeDidChangeNotification(_:)), name: .CurrentArticleThemeDidChangeNotification, object: nil)
-
-		DispatchQueue.main.async {
-			self.updateWindowTitle()
-		}
-
 	}
 
 	// MARK: - API
 
-	func selectedObjectsInSidebar() -> [AnyObject]? {
-		return sidebarViewController?.selectedObjects
-	}
-
 	func handle(_ response: UNNotificationResponse) {
 		let userInfo = response.notification.request.content.userInfo
-		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any] else { return }
-		sidebarViewController?.deepLinkRevealAndSelect(for: articlePathUserInfo)
-		currentTimelineViewController?.goToDeepLink(for: articlePathUserInfo)
+		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any] else {
+			return
+		}
+		revealArticle(for: articlePathUserInfo)
 	}
 
 	func handle(_ activity: NSUserActivity) {
-		guard let userInfo = activity.userInfo else { return }
-		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any] else { return }
-		sidebarViewController?.deepLinkRevealAndSelect(for: articlePathUserInfo)
-		currentTimelineViewController?.goToDeepLink(for: articlePathUserInfo)
+		guard let articlePathUserInfo = activity.userInfo?[UserInfoKey.articlePath] as? [AnyHashable: Any] else {
+			return
+		}
+		revealArticle(for: articlePathUserInfo)
 	}
 
 	func saveStateToUserDefaults() {
@@ -133,11 +106,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			Self.logger.debug("MainWindowController: restoring state from UserDefaults: \(state)")
 			window?.setFrameUsingName(windowAutosaveName, force: true)
 			restoreState(from: state)
-		} else if let state = AppDefaults.shared.legacyWindowState {
-			// Migrate from previous window state data. Delete data when finished.
-			window?.setFrameUsingName(windowAutosaveName, force: true)
-			restoreLegacyState(from: state)
-			AppDefaults.shared.deleteLegacyWindowState()
 		}
 	}
 
@@ -155,43 +123,12 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		updateWindowTitle()
 	}
 
-	@objc func displayNameDidChange(_ note: Notification) {
-		updateWindowTitleIfNecessary(note.object)
-	}
-
 	@objc func articleThemeNamesDidChangeNotification(_ note: Notification) {
 		updateArticleThemeMenu()
 	}
 
 	@objc func currentArticleThemeDidChangeNotification(_ note: Notification) {
 		updateArticleThemeMenu()
-	}
-
-	private func updateWindowTitleIfNecessary(_ noteObject: Any?) {
-
-		if let folder = currentFeedOrFolder as? Folder, let noteObject = noteObject as? Folder {
-			if folder == noteObject {
-				updateWindowTitle()
-				return
-			}
-		}
-
-		if let feed = currentFeedOrFolder as? Feed, let noteObject = noteObject as? Feed {
-			if feed == noteObject {
-				updateWindowTitle()
-				return
-			}
-		}
-
-		// If we don't recognize the changed object, we will test it for identity instead
-		// of equality.  This works well for us if the window title is displaying a
-		// PsuedoFeed object.
-		if let currentObject = currentFeedOrFolder, let noteObject = noteObject {
-			if currentObject === noteObject as AnyObject {
-				updateWindowTitle()
-			}
-		}
-
 	}
 
 	// MARK: - Toolbar
@@ -227,6 +164,14 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 		if item.action == #selector(toggleRead(_:)) {
 			return validateToggleRead(item)
+		}
+
+		if item.action == #selector(gotoQueue(_:)) {
+			return validateList(item, SmartFeedsController.shared.unreadFeed)
+		}
+
+		if item.action == #selector(gotoArchive(_:)) {
+			return validateList(item, SmartFeedsController.shared.archiveFeed)
 		}
 
 		if item.action == #selector(toolbarShowShareMenu(_:)) {
@@ -354,28 +299,18 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		currentTimelineViewController?.focus()
 	}
 
-	@IBAction func navigateToSidebar(_ sender: Any?) {
-		sidebarViewController?.focus()
-	}
-
 	@IBAction func navigateToDetail(_ sender: Any?) {
 		detailViewController?.focus()
 	}
 
-	@IBAction func goToPreviousSubscription(_ sender: Any?) {
-		sidebarViewController?.outlineView.selectPreviousRow(sender)
-	}
-
-	@IBAction func goToNextSubscription(_ sender: Any?) {
-		sidebarViewController?.outlineView.selectNextRow(sender)
-	}
-
 	@IBAction func gotoQueue(_ sender: Any?) {
-		sidebarViewController?.gotoQueue(sender)
+		show(SmartFeedsController.shared.unreadFeed)
+		currentTimelineViewController?.focus()
 	}
 
 	@IBAction func gotoArchive(_ sender: Any?) {
-		sidebarViewController?.gotoArchive(sender)
+		show(SmartFeedsController.shared.archiveFeed)
+		currentTimelineViewController?.focus()
 	}
 
 	@IBAction func toolbarShowShareMenu(_ sender: Any?) {
@@ -468,31 +403,6 @@ extension MainWindowController: NSWindowDelegate {
 	}
 }
 
-// MARK: - SidebarDelegate
-
-extension MainWindowController: SidebarDelegate {
-
-	func sidebarSelectionDidChange(_: SidebarViewController, selectedObjects: [AnyObject]?) {
-		timelineContainerViewController?.setRepresentedObjects(selectedObjects)
-		updateWindowTitle()
-	}
-
-	func unreadCount(for representedObject: AnyObject) -> Int {
-		guard let timelineViewController = currentTimelineViewController else {
-			return 0
-		}
-		guard timelineViewController.representsThisObjectOnly(representedObject) else {
-			return 0
-		}
-		return timelineViewController.unreadCount
-	}
-
-	func sidebarInvalidatedRestorationState(_: SidebarViewController) {
-		Self.logger.debug("MainWindowController: sidebarInvalidatedRestorationState")
-		invalidateRestorableState()
-	}
-}
-
 // MARK: - TimelineContainerViewControllerDelegate
 
 extension MainWindowController: TimelineContainerViewControllerDelegate {
@@ -529,7 +439,6 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 extension NSToolbarItem.Identifier {
 	static let addArticle = NSToolbarItem.Identifier("addArticle")
 	static let refresh = NSToolbarItem.Identifier("refresh")
-	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
 	static let share = NSToolbarItem.Identifier("share")
@@ -549,12 +458,6 @@ extension MainWindowController: NSToolbarDelegate {
 		case .addArticle:
 			let title = NSLocalizedString("Add Article", comment: "Add Article")
 			return buildToolbarButton(.addArticle, title, Assets.Images.addNewSidebarItem, "showAddArticleWindow:")
-
-		case .timelineTrackingSeparator:
-			guard let splitView = splitViewController?.splitView else {
-				return nil
-			}
-			return NSTrackingSeparatorToolbarItem(identifier: .timelineTrackingSeparator, splitView: splitView, dividerIndex: 1)
 
 		case .markRead:
 			let title = NSLocalizedString("Archive", comment: "command")
@@ -587,11 +490,8 @@ extension MainWindowController: NSToolbarDelegate {
 
 	func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		[
-			NSToolbarItem.Identifier.toggleSidebar,
 			.refresh,
 			.addArticle,
-			.sidebarTrackingSeparator,
-			.timelineTrackingSeparator,
 			.flexibleSpace,
 			.markRead,
 			.openInBrowser,
@@ -602,12 +502,9 @@ extension MainWindowController: NSToolbarDelegate {
 
 	func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		[
-			NSToolbarItem.Identifier.toggleSidebar,
-			.flexibleSpace,
 			.refresh,
 			.addArticle,
-			.sidebarTrackingSeparator,
-			.timelineTrackingSeparator,
+			.flexibleSpace,
 			.markRead,
 			.share,
 			.openInBrowser
@@ -632,14 +529,14 @@ private extension MainWindowController {
 
 	// MARK: - Layout
 
-	/// Puts the three panes in the window’s split view, then adds the toolbar, whose tracking separators follow its dividers.
+	/// Puts the list and the article view side by side in the window’s split view, then adds the toolbar.
 	func installSplitViewController() {
-		guard let window, let sidebarViewController, let timelineContainerViewController, let detailViewController else {
+		guard let window, let timelineContainerViewController, let detailViewController else {
 			return
 		}
 
 		let savedFrame = window.frame
-		let splitViewController = makeSplitViewController(sidebar: sidebarViewController, timeline: timelineContainerViewController, detail: detailViewController)
+		let splitViewController = makeSplitViewController(timeline: timelineContainerViewController, detail: detailViewController)
 		self.splitViewController = splitViewController
 		window.contentViewController = splitViewController
 		if window.frame != savedFrame {
@@ -651,20 +548,14 @@ private extension MainWindowController {
 		window.recalculateKeyViewLoop()
 	}
 
-	func makeSplitViewController(sidebar: SidebarViewController, timeline: TimelineContainerViewController, detail: DetailViewController) -> NSSplitViewController {
+	func makeSplitViewController(timeline: TimelineContainerViewController, detail: DetailViewController) -> NSSplitViewController {
 		let splitViewController = NSSplitViewController()
 		splitViewController.splitView.isVertical = true
 		splitViewController.splitView.dividerStyle = .thin
 		splitViewController.splitView.wantsLayer = true
 
-		let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebar)
-		sidebarItem.holdingPriority = NSLayoutConstraint.Priority(Self.sidebarHoldingPriority)
-
 		let timelineItem = NSSplitViewItem(contentListWithViewController: timeline)
 		timelineItem.holdingPriority = NSLayoutConstraint.Priority(Self.timelineHoldingPriority)
-		if #available(macOS 26.0, *) {
-			timelineItem.automaticallyAdjustsSafeAreaInsets = true
-		}
 
 		let detailItem = NSSplitViewItem(viewController: detail)
 		detailItem.minimumThickness = CGFloat(Self.detailViewMinimumWidth)
@@ -672,8 +563,7 @@ private extension MainWindowController {
 			detailItem.titlebarSeparatorStyle = .line
 		}
 
-		splitViewController.splitViewItems = [sidebarItem, timelineItem, detailItem]
-		sidebar.splitViewItem = sidebarItem
+		splitViewController.splitViewItems = [timelineItem, detailItem]
 		return splitViewController
 	}
 
@@ -688,10 +578,6 @@ private extension MainWindowController {
 
 	var currentTimelineViewController: TimelineViewController? {
 		timelineContainerViewController?.timelineViewController
-	}
-
-	var sidebarSplitViewItem: NSSplitViewItem? {
-		splitViewController?.splitViewItems.first
 	}
 
 	var selectedArticles: [Article]? {
@@ -709,66 +595,49 @@ private extension MainWindowController {
 		return oneSelectedArticle?.preferredLink
 	}
 
+	// MARK: - Lists
+
+	/// The list the window shows: the Queue (`unreadFeed`) or the Archive.
+	var currentList: PseudoFeed? {
+		currentTimelineViewController?.representedObjects?.first as? PseudoFeed
+	}
+
+	/// Shows the Queue or the Archive in the timeline.
+	func show(_ list: PseudoFeed) {
+		timelineContainerViewController?.setRepresentedObjects([list])
+		updateWindowTitle()
+	}
+
+	/// Handoff and notifications name an article: show the list it’s in, and select it.
+	func revealArticle(for articlePathUserInfo: [AnyHashable: Any]) {
+		let smartFeeds = SmartFeedsController.shared
+		guard let articleID = articlePathUserInfo[ArticlePathKey.articleID] as? String,
+			  let article = AccountManager.shared.fetchArticles(.articleIDs([articleID])).first else {
+			show(smartFeeds.unreadFeed)
+			return
+		}
+		show(smartFeeds.list(for: article))
+		currentTimelineViewController?.goToDeepLink(for: articlePathUserInfo)
+	}
+
 	// MARK: - State Restoration
 
 	func savableState() -> MainWindowState {
 		let isFullScreen = window?.styleMask.contains(.fullScreen) ?? false
-		let isSidebarHidden = sidebarSplitViewItem?.isCollapsed ?? false
-
-		rememberCurrentLayoutGeometry()
-
 		return MainWindowState(isFullScreen: isFullScreen,
-							   splitViewWidths: rememberedStandardLayoutWidths,
-							   isSidebarHidden: isSidebarHidden,
-							   sidebarWindowState: sidebarViewController?.windowState,
+							   timelineWidth: timelineWidth,
 							   timelineWindowState: timelineContainerViewController?.windowState,
 							   detailWindowState: detailViewController?.windowState)
 	}
 
-	/// Reads the live split view positions into the remembered geometry.
-	func rememberCurrentLayoutGeometry() {
-		guard let splitView = splitViewController?.splitView, let window, let sidebarView = splitView.arrangedSubviews.first else {
-			return
+	var timelineWidth: Int {
+		guard let timelineView = splitViewController?.splitView.arrangedSubviews.first else {
+			return 0
 		}
-		let dividerThickness = splitView.dividerThickness
-		let isSidebarHidden = sidebarSplitViewItem?.isCollapsed ?? false
-		let visibleSidebarWidth = isSidebarHidden ? 0.0 : sidebarView.frame.width
-		// While collapsed, keep the last visible width so a rebuilt split view can reopen the sidebar at that width.
-		let previousSidebarWidth = rememberedStandardLayoutWidths.count == 3 ? rememberedStandardLayoutWidths[0] : 0
-		let sidebarWidth = isSidebarHidden ? previousSidebarWidth : Int(floor(visibleSidebarWidth))
-
-		guard splitView.arrangedSubviews.count == 3 else {
-			return
-		}
-		let detailWidth = splitView.arrangedSubviews[2].frame.width
-		// Starting with macOS 26, timelineWidth has to be calculated —
-		// because its width is greater than its apparent width,
-		// so that things can slide under the sidebar.
-		let dividerCount: CGFloat = isSidebarHidden ? 1.0 : 2.0
-		let timelineWidth = window.frame.width - (visibleSidebarWidth + detailWidth + (dividerThickness * dividerCount))
-		rememberedStandardLayoutWidths = [sidebarWidth, Int(floor(timelineWidth)), Int(floor(detailWidth))]
+		return Int(floor(timelineView.frame.width))
 	}
 
-	func applyRememberedGeometry() {
-		guard let splitView = splitViewController?.splitView else {
-			return
-		}
-		let widths = rememberedStandardLayoutWidths
-		guard widths.count == 3 else {
-			return
-		}
-		let sidebarWidth = CGFloat(widths[0])
-		let timelineWidth = CGFloat(widths[1])
-		splitView.setPosition(sidebarWidth, ofDividerAt: 0)
-		// A zero timeline width means the timeline has never been laid out — leave it to the holding priorities.
-		// The sidebar is positioned expanded here and collapsed by the caller afterward, so a zero width only
-		// comes from state saved before the collapsed width was kept.
-		if timelineWidth > 0 {
-			let secondDividerPosition = sidebarWidth > 0 ? sidebarWidth + splitView.dividerThickness + timelineWidth : timelineWidth
-			splitView.setPosition(secondDividerPosition, ofDividerAt: 1)
-		}
-	}
-
+	/// Restores the window’s size, the list’s width, the sort and the selected article. The window stays on the Queue.
 	func restoreState(from state: MainWindowState) {
 		if state.isFullScreen {
 			// Defer the toggle — during launch the window isn't on screen yet,
@@ -780,32 +649,14 @@ private extension MainWindowController {
 				window.toggleFullScreen(nil)
 			}
 		}
-		restoreSplitViewState(from: state)
-
-		sidebarViewController?.restoreState(from: state.sidebarWindowState)
-
-		timelineContainerViewController?.restoreState(from: state.timelineWindowState)
-		restoreArticleWindowScrollY = state.detailWindowState?.windowScrollY
-	}
-
-	/// Restore state using pre-secure-state-restoration data.
-	///
-	/// It’s up to the caller to call this only when:
-	/// 1. Legacy state exists, and
-	/// 2. Secure state data does not exist.
-	///
-	/// TODO: delete this for NetNewsWire 7.
-	func restoreLegacyState(from state: [AnyHashable: Any]) {
-		if let fullScreen = state[UserInfoKey.windowFullScreenState] as? Bool, fullScreen {
-			window?.toggleFullScreen(self)
+		if state.timelineWidth > 0 {
+			splitViewController?.splitView.setPosition(CGFloat(state.timelineWidth), ofDividerAt: 0)
 		}
-		restoreLegacySplitViewState(from: state)
 
-		sidebarViewController?.restoreLegacyState(from: state)
-
-		let articleWindowScrollY = state[UserInfoKey.articleWindowScrollY] as? CGFloat
-		restoreArticleWindowScrollY = articleWindowScrollY
-		timelineContainerViewController?.restoreLegacyState(from: state)
+		// The saved scroll position belongs to the restored article, and to no other.
+		restoreArticleWindowScrollY = state.detailWindowState?.windowScrollY
+		timelineContainerViewController?.restoreState(from: state.timelineWindowState)
+		restoreArticleWindowScrollY = nil
 	}
 
 	// MARK: - Command Validation
@@ -883,6 +734,14 @@ private extension MainWindowController {
 		return !selectedArticles.isEmpty
 	}
 
+	/// Go › Queue and Go › Archive are checked when their list is showing.
+	func validateList(_ item: NSValidatedUserInterfaceItem, _ list: PseudoFeed) -> Bool {
+		if let menuItem = item as? NSMenuItem {
+			menuItem.state = currentList === list ? .on : .off
+		}
+		return true
+	}
+
 	func validateSortArticlesByField(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		guard let sortParameters = timelineContainerViewController?.sortParameters, let menuItem = item as? NSMenuItem, let identifier = menuItem.identifier, let key = ArticleSortKey(rawValue: identifier.rawValue) else {
 			return false
@@ -904,65 +763,21 @@ private extension MainWindowController {
 	// MARK: - Misc.
 
 	func updateWindowTitle() {
-		let selectedObjects = selectedObjectsInSidebar() ?? []
-		switch selectedObjects.count {
-		case 0:
+		guard let list = currentList else {
 			window?.title = appName
-		case 1:
-			if let displayNameProvider = selectedObjects.first as? DisplayNameProvider {
-				window?.title = displayNameProvider.nameForDisplay
-			}
-		default:
-			window?.title = NSLocalizedString("Multiple", comment: "Multiple")
+			window?.subtitle = ""
+			return
 		}
+		window?.title = list.nameForDisplay
 
 		// Only the Queue has a count. Archive is everything already read, so it has none.
 		let queue = SmartFeedsController.shared.unreadFeed
-		guard selectedObjects.contains(where: { $0 === queue }) else {
+		guard list === queue else {
 			window?.subtitle = ""
 			return
 		}
 		let localizedLabel = NSLocalizedString("%d in Queue", comment: "Window subtitle: the number of articles in the Queue")
 		window?.subtitle = NSString.localizedStringWithFormat(localizedLabel as NSString, queue.unreadCount) as String
-	}
-
-	func restoreSplitViewState(from state: MainWindowState) {
-		if state.splitViewWidths.count == 3 {
-			rememberedStandardLayoutWidths = state.splitViewWidths
-		}
-		applyRememberedGeometry()
-		sidebarSplitViewItem?.isCollapsed = state.isSidebarHidden
-	}
-
-	/// Restore main window split view using legacy state restoration data.
-	///
-	/// TODO: Delete this for NetNewsWire 7.
-	func restoreLegacySplitViewState(from state: [AnyHashable: Any]) {
-		guard let splitView = splitViewController?.splitView,
-			  let widths = state[MainWindowController.mainWindowWidthsStateKey] as? [Int],
-			  widths.count == 3,
-			  let window = window else {
-			return
-		}
-
-		let windowWidth = Int(floor(window.frame.width))
-		let dividerThickness: Int = Int(splitView.dividerThickness)
-		let sidebarWidth: Int = widths[0]
-		let timelineWidth: Int = widths[1]
-
-		// Make sure the detail view has its minimum thickness, at least.
-		if windowWidth < sidebarWidth + dividerThickness + timelineWidth + dividerThickness + Self.detailViewMinimumWidth {
-			return
-		}
-
-		rememberedStandardLayoutWidths = widths
-		applyRememberedGeometry()
-
-		let isSidebarHidden = state[UserInfoKey.isSidebarHidden] as? Bool ?? false
-
-		if !(sidebarSplitViewItem?.isCollapsed ?? false) && isSidebarHidden {
-			sidebarSplitViewItem?.isCollapsed = true
-		}
 	}
 
 	func buildToolbarButton(_ itemIdentifier: NSToolbarItem.Identifier, _ title: String, _ image: NSImage, _ selector: String) -> NSToolbarItem {

@@ -88,13 +88,6 @@ final class TimelineContainerViewController: NSViewController {
 		}
 		timelineViewController.restoreState(from: state)
 	}
-
-	/// Restore state using legacy state restoration data.
-	///
-	/// TODO: Delete for NetNewsWire 7.
-	func restoreLegacyState(from state: [AnyHashable: Any]) {
-		timelineViewController.restoreLegacyState(from: state)
-	}
 }
 
 extension TimelineContainerViewController: TimelineDelegate {

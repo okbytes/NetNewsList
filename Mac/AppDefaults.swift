@@ -23,10 +23,8 @@ final class AppDefaults: Sendable {
 
 	struct Key {
 		static let firstRunDate = "firstRunDate"
-		static let legacyWindowState = "windowState"
 		static let secureWindowState = "secureWindowState"
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
-		static let sidebarFontSize = "sidebarFontSize"
 		static let timelineFontSize = "timelineFontSize"
 		static let timelineSortDirection = "timelineSortDirection"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
@@ -60,18 +58,6 @@ final class AppDefaults: Sendable {
 		return true
 	}()
 
-	/// Stores window state prior to switching to secure state restoration.
-	///
-	/// This is referenced temporarily, only to be able to provide migration from legacy to secure window state.
-	/// TODO: delete for NetNewsWire 7.
-	var legacyWindowState: [AnyHashable: Any]? {
-		UserDefaults.standard.object(forKey: Key.legacyWindowState) as? [AnyHashable: Any]
-	}
-
-	func deleteLegacyWindowState() {
-		UserDefaults.standard.removeObject(forKey: Key.legacyWindowState)
-	}
-
 	var secureWindowState: Data? {
 		get {
 			UserDefaults.standard.object(forKey: Key.secureWindowState) as? Data
@@ -96,15 +82,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setBool(for: Key.openInBrowserInBackground, newValue)
-		}
-	}
-
-	var sidebarFontSize: FontSize {
-		get {
-			return fontSize(for: Key.sidebarFontSize)
-		}
-		set {
-			AppDefaults.setFontSize(for: Key.sidebarFontSize, newValue)
 		}
 	}
 
@@ -253,7 +230,6 @@ final class AppDefaults: Sendable {
  		#endif
 
 		let defaults: [String: Any] = [
-			Key.sidebarFontSize: FontSize.medium.rawValue,
 			Key.timelineFontSize: FontSize.medium.rawValue,
 			Key.detailFontSize: FontSize.medium.rawValue,
 			// Oldest first, so the Queue reads in the order pages were saved.
