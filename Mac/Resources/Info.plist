@@ -66,46 +66,5 @@
 	<string>NetNewsList</string>
 	<key>UserAgentExtended</key>
 	<string>NetNewsList ([platform]; [version] ([build]))</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>nnwtheme</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>NetNewsWire Theme</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.ranchero.netnewswire.theme</string>
-			</array>
-			<key>LSTypeIsPackage</key>
-			<true/>
-		</dict>
-	</array>
-	<key>UTImportedTypeDeclarations</key>
-	<array>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>com.apple.package</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>NetNewsWire Theme</string>
-			<key>UTTypeIconFiles</key>
-			<array/>
-			<key>UTTypeIdentifier</key>
-			<string>com.ranchero.netnewswire.theme</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>nnwtheme</string>
-				</array>
-			</dict>
-		</dict>
-	</array>
 </dict>
 </plist>

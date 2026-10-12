@@ -81,8 +81,6 @@ let appName = "NetNewsList"
 	private var xSignInWindowController: XSignInWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
 
-	private var themeImportPath: String?
-
 	@MainActor override init() {
 		NSMenuItem.rs_disableIcons()
 		NSWindow.allowsAutomaticWindowTabbing = false
@@ -93,8 +91,6 @@ let appName = "NetNewsList"
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: AccountManager.shared)
-		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(themeImportError(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWakeNotification(_:)), name: NSWorkspace.didWakeNotification, object: nil)
 	}
 
@@ -263,23 +259,11 @@ let appName = "NetNewsList"
 		}
 	}
 
-	func application(_ sender: NSApplication, openFile filename: String) -> Bool {
-		guard filename.hasSuffix(ArticleTheme.nnwThemeSuffix) else {
-			return false
-		}
-
-		let url = URL(filePath: filename)
-		importTheme(url: url)
-		return true
-	}
-
 	func applicationWillTerminate(_ notification: Notification) {
 		shuttingDown = true
 		saveState()
 
 		AccountManager.shared.saveAllIfNeeded()
-
-		ArticleThemeDownloader.shared.cleanUp()
 
 		Task { @MainActor in
 			await AccountManager.shared.sendArticleStatusAll()
@@ -311,16 +295,6 @@ let appName = "NetNewsList"
 	@objc func didWakeNotification(_ note: Notification) {
 		Task { @MainActor in
 			ArticleStatusSyncTimer.shared.fireOldTimer()
-		}
-	}
-
-	@objc func importDownloadedTheme(_ note: Notification) {
-		guard let userInfo = note.userInfo,
-			let url = userInfo["url"] as? URL else {
-			return
-		}
-		DispatchQueue.main.async {
-			self.importTheme(url: url)
 		}
 	}
 
@@ -660,135 +634,6 @@ extension AppDelegate {
 		activityLogWindowController?.saveState()
 		errorLogWindowController?.saveState()
 	}
-
-	func importTheme(url: URL) {
-		guard let window = mainWindowController?.window else { return }
-
-		do {
-			let theme = try ArticleTheme(url: url, isAppTheme: false)
-			let alert = NSAlert()
-			alert.alertStyle = .informational
-
-			let localizedMessageText = NSLocalizedString("Install theme “%@” by %@?", comment: "Theme message text")
-			alert.messageText = NSString.localizedStringWithFormat(localizedMessageText as NSString, theme.name, theme.creatorName) as String
-
-			var attributes = [NSAttributedString.Key: Any]()
-			attributes[.font] = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-			attributes[.foregroundColor] = NSColor.textColor
-
-			let titleParagraphStyle = NSMutableParagraphStyle()
-			titleParagraphStyle.alignment = .center
-			attributes[.paragraphStyle] = titleParagraphStyle
-
-			let websiteText = NSMutableAttributedString()
-			websiteText.append(NSAttributedString(string: NSLocalizedString("Author‘s website:", comment: "Author's Website"), attributes: attributes))
-
-			websiteText.append(NSAttributedString(string: "\n"))
-
-			if let homePageURL = URL(string: theme.creatorHomePage), homePageURL.isHTTPOrHTTPSURL() {
-				attributes[.link] = theme.creatorHomePage
-			}
-			websiteText.append(NSAttributedString(string: theme.creatorHomePage, attributes: attributes))
-
-			let textViewWidth: CGFloat
-			textViewWidth = 200
-
-			let textView = NSTextView(frame: CGRect(x: 0, y: 0, width: textViewWidth, height: 15))
-			textView.isEditable = false
-			textView.drawsBackground = false
-			textView.textStorage?.setAttributedString(websiteText)
-			alert.accessoryView = textView
-
-			alert.addButton(withTitle: NSLocalizedString("Install Theme", comment: "Install Theme"))
-			alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-
-			func importTheme() {
-				do {
-					try ArticleThemesManager.shared.importTheme(filename: url.path)
-					confirmImportSuccess(themeName: theme.name)
-				} catch {
-					NSApplication.shared.presentError(error)
-				}
-			}
-
-			alert.beginSheetModal(for: window) { result in
-				if result == NSApplication.ModalResponse.alertFirstButtonReturn {
-
-					if ArticleThemesManager.shared.themeExists(filename: url.path) {
-						let alert = NSAlert()
-						alert.alertStyle = .warning
-
-						let localizedMessageText = NSLocalizedString("The theme “%@” already exists. Overwrite it?", comment: "Overwrite theme")
-						alert.messageText = NSString.localizedStringWithFormat(localizedMessageText as NSString, theme.name) as String
-
-						alert.addButton(withTitle: NSLocalizedString("Overwrite", comment: "Overwrite"))
-						alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-
-						alert.beginSheetModal(for: window) { result in
-							if result == NSApplication.ModalResponse.alertFirstButtonReturn {
-								importTheme()
-							}
-						}
-					} else {
-						importTheme()
-					}
-				}
-			}
-		} catch {
-			NotificationCenter.default.post(name: .didFailToImportThemeWithError, object: nil, userInfo: ["error": error, "path": url.path])
-		}
-	}
-
-	func confirmImportSuccess(themeName: String) {
-		guard let window = mainWindowController?.window else { return }
-
-		let alert = NSAlert()
-		alert.alertStyle = .informational
-		alert.messageText = NSLocalizedString("Theme installed", comment: "Theme installed")
-
-		let localizedInformativeText = NSLocalizedString("The theme “%@” has been installed.", comment: "Theme installed")
-		alert.informativeText = NSString.localizedStringWithFormat(localizedInformativeText as NSString, themeName) as String
-
-		alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
-
-		alert.beginSheetModal(for: window)
-	}
-
-	@objc func themeImportError(_ note: Notification) {
-		guard let userInfo = note.userInfo,
-			  let error = userInfo["error"] as? Error else {
-				  return
-			  }
-		themeImportPath = userInfo["path"] as? String
-		let informativeText = ArticleThemesManager.importErrorMessage(for: error)
-
-		DispatchQueue.main.async {
-			let alert = NSAlert()
-			alert.alertStyle = .warning
-			alert.messageText = NSLocalizedString("Theme Error", comment: "Theme download error")
-			alert.informativeText = informativeText
-			alert.addButton(withTitle: NSLocalizedString("Open Theme Folder", comment: "Open Theme Folder"))
-			alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
-
-			let button = alert.buttons.first
-			button?.target = self
-			button?.action = #selector(self.openThemesFolder(_:))
-			alert.buttons[0].keyEquivalent = "\033"
-			alert.buttons[1].keyEquivalent = "\r"
-			alert.runModal()
-		}
-	}
-
-	@objc func openThemesFolder(_ sender: Any) {
-		if themeImportPath == nil {
-			let url = URL(fileURLWithPath: ArticleThemesManager.shared.folderPath)
-			NSWorkspace.shared.open(url)
-		} else {
-			let url = URL(fileURLWithPath: themeImportPath!)
-			NSWorkspace.shared.open(url.deletingLastPathComponent())
-		}
-	}
-
 }
 
 extension AppDelegate: NSWindowRestoration {

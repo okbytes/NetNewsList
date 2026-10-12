@@ -22,21 +22,6 @@ extension AppDelegate {
 		// Save a page: netnewslist://add?url={url}&title={title}
 		if let url = URL(string: urlString), let request = AddArticleURLScheme.request(from: url) {
 			saveArticle(from: request)
-			return
-		}
-
-		// Handle themes
-		if urlString.hasPrefix("netnewslist://theme/") {
-			guard let comps = URLComponents(string: urlString),
-				  let queryItems = comps.queryItems,
-				  let themeURLString = queryItems.first(where: { $0.name == "url" })?.value else {
-				return
-			}
-
-			if let themeURL = URL(string: themeURLString) {
-				ArticleThemeDownloader.shared.downloadTheme(from: themeURL)
-			}
-			return
 		}
 	}
 
