@@ -13,10 +13,6 @@ import Articles
 import Account
 import RSCore
 
-enum TimelineSourceMode {
-	case regular, search
-}
-
 final class MainWindowController: NSWindowController, NSUserInterfaceValidations {
 	static private let logger = Logger(subsystem: Logger.nnwSubsystem, category: "MainWindowController")
 
@@ -58,16 +54,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	private var sidebarViewController: SidebarViewController?
 	private var timelineContainerViewController: TimelineContainerViewController?
 	private var detailViewController: DetailViewController?
-	private var currentSearchField: NSSearchField?
-	private var searchString: String?
-	private var lastSentSearchString: String?
-	private var timelineSourceMode: TimelineSourceMode = .regular {
-		didSet {
-			timelineContainerViewController?.showTimeline(for: timelineSourceMode)
-			detailViewController?.showDetail(for: timelineSourceMode)
-		}
-	}
-	private var searchSmartFeed: SmartFeed?
 	private var restoreArticleWindowScrollY: CGFloat?
 
 	// MARK: - NSWindowController
@@ -270,10 +256,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return canShowShareMenu()
 		}
 
-		if item.action == #selector(moveFocusToSearchField(_:)) {
-			return currentSearchField != nil
-		}
-
 		if item.action == #selector(sortArticlesByField(_:)) {
 			return validateSortArticlesByField(item)
 		}
@@ -449,18 +431,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		sharingServicePicker.show(relativeTo: anchorRect, of: anchorView, preferredEdge: .minY)
 	}
 
-	@IBAction func moveFocusToSearchField(_ sender: Any?) {
-		// The search field lives in the toolbar — show it if hidden.
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/4896>
-		if let toolbar = window?.toolbar, !toolbar.isVisible {
-			toolbar.isVisible = true
-		}
-		guard let searchField = currentSearchField else {
-			return
-		}
-		window?.makeFirstResponder(searchField)
-	}
-
 	/// Deletes the selected articles here and on every other device, after asking.
 	@IBAction func deleteArticles(_ sender: Any?) {
 		guard let articles = selectedArticles, let window else {
@@ -526,17 +496,12 @@ extension MainWindowController: NSWindowDelegate {
 extension MainWindowController: SidebarDelegate {
 
 	func sidebarSelectionDidChange(_: SidebarViewController, selectedObjects: [AnyObject]?) {
-		// Don’t update the timeline if it already has those objects.
-		let representedObjectsAreTheSame = timelineContainerViewController?.regularTimelineViewControllerHasRepresentedObjects(selectedObjects) ?? false
-		if !representedObjectsAreTheSame {
-			timelineContainerViewController?.setRepresentedObjects(selectedObjects, mode: .regular)
-			forceSearchToEnd()
-		}
+		timelineContainerViewController?.setRepresentedObjects(selectedObjects)
 		updateWindowTitle()
 	}
 
 	func unreadCount(for representedObject: AnyObject) -> Int {
-		guard let timelineViewController = regularTimelineViewController else {
+		guard let timelineViewController = currentTimelineViewController else {
 			return 0
 		}
 		guard timelineViewController.representsThisObjectOnly(representedObject) else {
@@ -555,7 +520,7 @@ extension MainWindowController: SidebarDelegate {
 
 extension MainWindowController: TimelineContainerViewControllerDelegate {
 
-	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?, mode: TimelineSourceMode) {
+	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?) {
 		activityManager.invalidateReading()
 
 		makeToolbarValidate()
@@ -573,7 +538,7 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 			detailState = .noSelection
 		}
 
-		detailViewController?.setState(detailState, mode: mode)
+		detailViewController?.setState(detailState)
 	}
 
 	func timelineInvalidatedRestorationState(_: TimelineContainerViewController) {
@@ -582,80 +547,12 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 
 }
 
-// MARK: - NSSearchFieldDelegate
-
-extension MainWindowController: NSSearchFieldDelegate {
-
-	func searchFieldDidStartSearching(_ sender: NSSearchField) {
-		startSearchingIfNeeded()
-	}
-
-	func searchFieldDidEndSearching(_ sender: NSSearchField) {
-		stopSearchingIfNeeded()
-	}
-
-	@IBAction func runSearch(_ sender: NSSearchField) {
-		if sender.stringValue == "" {
-			return
-		}
-		startSearchingIfNeeded()
-		handleSearchFieldTextChange(sender)
-	}
-
-	private func handleSearchFieldTextChange(_ searchField: NSSearchField) {
-		let s = searchField.stringValue
-		if s == searchString {
-			return
-		}
-		searchString = s
-		updateSmartFeed()
-	}
-
-	func updateSmartFeed() {
-		guard timelineSourceMode == .search, let searchString = searchString else {
-			return
-		}
-		if searchString == lastSentSearchString {
-			return
-		}
-		lastSentSearchString = searchString
-		let smartFeed = SmartFeed(delegate: SearchFeedDelegate(searchString: searchString))
-		timelineContainerViewController?.setRepresentedObjects([smartFeed], mode: .search)
-		searchSmartFeed = smartFeed
-		updateWindowTitle()
-	}
-
-	func forceSearchToEnd() {
-		timelineSourceMode = .regular
-		searchString = nil
-		lastSentSearchString = nil
-		if let searchField = currentSearchField {
-			searchField.stringValue = ""
-		}
-		updateWindowTitle()
-	}
-
-	private func startSearchingIfNeeded() {
-		timelineSourceMode = .search
-		updateWindowTitle()
-	}
-
-	private func stopSearchingIfNeeded() {
-		searchString = nil
-		lastSentSearchString = nil
-		timelineSourceMode = .regular
-		timelineContainerViewController?.setRepresentedObjects(nil, mode: .search)
-		updateWindowTitle()
-	}
-}
-
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {
 	static let addArticle = NSToolbarItem.Identifier("addArticle")
 	static let refresh = NSToolbarItem.Identifier("refresh")
 	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
-	static let search = NSToolbarItem.Identifier("search")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
 	static let share = NSToolbarItem.Identifier("share")
@@ -714,13 +611,6 @@ extension MainWindowController: NSToolbarDelegate {
 			toolbarItem.menu = makeArticleThemeMenu()
 			return toolbarItem
 
-		case .search:
-			let toolbarItem = NSSearchToolbarItem(itemIdentifier: .search)
-			let description = NSLocalizedString("Search", comment: "Search")
-			toolbarItem.toolTip = description
-			toolbarItem.label = description
-			return toolbarItem
-
 		default:
 			break
 		}
@@ -739,8 +629,7 @@ extension MainWindowController: NSToolbarDelegate {
 			.markRead,
 			.openInBrowser,
 			.share,
-			.articleThemeMenu,
-			.search
+			.articleThemeMenu
 		]
 	}
 
@@ -754,9 +643,7 @@ extension MainWindowController: NSToolbarDelegate {
 			.timelineTrackingSeparator,
 			.markRead,
 			.share,
-			.openInBrowser,
-			.flexibleSpace,
-			.search
+			.openInBrowser
 		]
 	}
 
@@ -768,26 +655,6 @@ extension MainWindowController: NSToolbarDelegate {
 		if item.itemIdentifier == .share, let button = item.view as? NSButton {
 			// The share button should send its action on mouse down, not mouse up.
 			button.sendAction(on: .leftMouseDown)
-		}
-
-		if item.itemIdentifier == .search, let searchItem = item as? NSSearchToolbarItem {
-			searchItem.searchField.delegate = self
-			searchItem.searchField.target = self
-			searchItem.searchField.action = #selector(runSearch(_:))
-			currentSearchField = searchItem.searchField
-		}
-	}
-
-	func toolbarDidRemoveItem(_ notification: Notification) {
-		guard let item = notification.userInfo?["item"] as? NSToolbarItem else {
-			return
-		}
-
-		if item.itemIdentifier == .search, let searchItem = item as? NSSearchToolbarItem {
-			searchItem.searchField.delegate = nil
-			searchItem.searchField.target = nil
-			searchItem.searchField.action = nil
-			currentSearchField = nil
 		}
 	}
 }
@@ -961,11 +828,7 @@ private extension MainWindowController {
 	}
 
 	var currentTimelineViewController: TimelineViewController? {
-		return timelineContainerViewController?.currentTimelineViewController
-	}
-
-	var regularTimelineViewController: TimelineViewController? {
-		return timelineContainerViewController?.regularTimelineViewController
+		timelineContainerViewController?.timelineViewController
 	}
 
 	var sidebarSplitViewItem: NSSplitViewItem? {
@@ -1216,13 +1079,6 @@ private extension MainWindowController {
 	// MARK: - Misc.
 
 	func updateWindowTitle() {
-		guard timelineSourceMode != .search else {
-			let localizedLabel = NSLocalizedString("Search: %@", comment: "Search")
-			window?.title = NSString.localizedStringWithFormat(localizedLabel as NSString, searchString ?? "") as String
-			window?.subtitle = ""
-			return
-		}
-
 		let selectedObjects = selectedObjectsInSidebar() ?? []
 		switch selectedObjects.count {
 		case 0:

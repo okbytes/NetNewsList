@@ -11,7 +11,7 @@ import Account
 import Articles
 
 @MainActor protocol TimelineContainerViewControllerDelegate: AnyObject {
-	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?, mode: TimelineSourceMode)
+	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?)
 	func timelineInvalidatedRestorationState(_: TimelineContainerViewController)
 }
 
@@ -32,29 +32,17 @@ final class TimelineContainerViewController: NSViewController {
 	// Column layout hides the sort header, and this pins the timeline to the top instead.
 	private lazy var containerViewTopToViewConstraint = containerView.topAnchor.constraint(equalTo: view.topAnchor)
 
-	var currentTimelineViewController: TimelineViewController? {
-		didSet {
-			let view = currentTimelineViewController?.view
-			if containerView.contentView === view {
-				return
-			}
-			containerView.contentView = view
-			view?.window?.recalculateKeyViewLoop()
-		}
+	var windowState: TimelineWindowState {
+		timelineViewController.windowState
 	}
 
-	var windowState: TimelineWindowState? {
-		currentTimelineViewController?.windowState
-	}
-
-	/// This window’s sort. Both timelines (regular and search) follow it.
+	/// This window’s sort.
 	private(set) var sortParameters = TimelineContainerViewController.seedSortParameters {
 		didSet {
 			if sortParameters == oldValue {
 				return
 			}
-			regularTimelineViewController.sortParameters = sortParameters
-			searchTimelineViewController.sortParameters = sortParameters
+			timelineViewController.sortParameters = sortParameters
 			updateViewOptionsPopUpButton()
 			delegate?.timelineInvalidatedRestorationState(self)
 		}
@@ -62,15 +50,8 @@ final class TimelineContainerViewController: NSViewController {
 
 	weak var delegate: TimelineContainerViewControllerDelegate?
 
-	lazy var regularTimelineViewController = {
+	lazy var timelineViewController = {
 		let viewController = TimelineViewController(delegate: self)
-		viewController.sortParameters = sortParameters
-		viewController.layout = layout
-		return viewController
-	}()
-	private lazy var searchTimelineViewController: TimelineViewController = {
-		let viewController = TimelineViewController(delegate: self)
-		viewController.showsSearchResults = true
 		viewController.sortParameters = sortParameters
 		viewController.layout = layout
 		return viewController
@@ -82,8 +63,7 @@ final class TimelineContainerViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setRepresentedObjects(nil, mode: .regular)
-		showTimeline(for: .regular)
+		containerView.contentView = timelineViewController.view
 
 		// The first item is the pop-up’s hidden title.
 		for menuItem in viewOptionsPopUpButton.itemArray.dropFirst() where !menuItem.isSeparatorItem {
@@ -121,37 +101,8 @@ final class TimelineContainerViewController: NSViewController {
 		sortParameters = sortParameters.withDirection(direction)
 	}
 
-	func setRepresentedObjects(_ objects: [AnyObject]?, mode: TimelineSourceMode) {
-		timelineViewController(for: mode).representedObjects = objects
-	}
-
-	func showTimeline(for mode: TimelineSourceMode) {
-		currentTimelineViewController = timelineViewController(for: mode)
-	}
-
-	func regularTimelineViewControllerHasRepresentedObjects(_ representedObjects: [AnyObject]?) -> Bool {
-		// Use this to find out if the regular timeline view already has the specified representedObjects.
-		// This is used in determining whether a search should end.
-		// The sidebar may think that the selection has changed, and therefore search should end —
-		// but it could be that the regular timeline already has these representedObjects,
-		// and therefore the selection hasn’t actually changed,
-		// and therefore search shouldn’t end.
-		// https://github.com/brentsimmons/NetNewsWire/issues/791
-		if representedObjects == nil && regularTimelineViewController.representedObjects == nil {
-			return true
-		}
-		guard let currentObjects = regularTimelineViewController.representedObjects, let representedObjects = representedObjects else {
-			return false
-		}
-		if currentObjects.count != representedObjects.count {
-			return false
-		}
-		for object in representedObjects {
-			if currentObjects.firstIndex(where: { $0 === object }) == nil {
-				return false
-			}
-		}
-		return true
+	func setRepresentedObjects(_ objects: [AnyObject]?) {
+		timelineViewController.representedObjects = objects
 	}
 
 	// MARK: State Restoration
@@ -163,21 +114,21 @@ final class TimelineContainerViewController: NSViewController {
 		if let savedSortParameters = state.sortParameters {
 			sortParameters = savedSortParameters
 		}
-		regularTimelineViewController.restoreState(from: state)
+		timelineViewController.restoreState(from: state)
 	}
 
 	/// Restore state using legacy state restoration data.
 	///
 	/// TODO: Delete for NetNewsWire 7.
 	func restoreLegacyState(from state: [AnyHashable: Any]) {
-		regularTimelineViewController.restoreLegacyState(from: state)
+		timelineViewController.restoreLegacyState(from: state)
 	}
 }
 
 extension TimelineContainerViewController: TimelineDelegate {
 
 	func timelineSelectionDidChange(_ timelineViewController: TimelineViewController, selectedArticles: [Article]?) {
-		delegate?.timelineSelectionDidChange(self, articles: selectedArticles, mode: mode(for: timelineViewController))
+		delegate?.timelineSelectionDidChange(self, articles: selectedArticles)
 	}
 
 	func timelineInvalidatedRestorationState(_: TimelineViewController) {
@@ -194,25 +145,6 @@ private extension TimelineContainerViewController {
 	func makeMenuItemTitleLarger(_ menuItem: NSMenuItem) {
 		menuItem.attributedTitle = NSAttributedString(string: menuItem.title,
 													  attributes: [NSAttributedString.Key.font: NSFont.controlContentFont(ofSize: NSFont.systemFontSize)])
-	}
-
-	func timelineViewController(for mode: TimelineSourceMode) -> TimelineViewController {
-		switch mode {
-		case .regular:
-			return regularTimelineViewController
-		case .search:
-			return searchTimelineViewController
-		}
-	}
-
-	func mode(for timelineViewController: TimelineViewController) -> TimelineSourceMode {
-		if timelineViewController === regularTimelineViewController {
-			return .regular
-		} else if timelineViewController === searchTimelineViewController {
-			return .search
-		}
-		assertionFailure("Expected timelineViewController to match either regular or search timelineViewController, but it doesn’t.")
-		return .regular // Should never get here.
 	}
 
 	// The pop-up’s items share the View menu’s actions, so their checkmarks and direction titles come from
@@ -233,8 +165,7 @@ private extension TimelineContainerViewController {
 	}
 
 	func layoutDidChange() {
-		regularTimelineViewController.layout = layout
-		searchTimelineViewController.layout = layout
+		timelineViewController.layout = layout
 		updateHeaderVisibility()
 	}
 

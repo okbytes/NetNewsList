@@ -179,13 +179,6 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Find" id="1b7-l0-nxx">
                                     <items>
-                                        <menuItem title="Article Search…" keyEquivalent="f" id="nB2-mv-2i5">
-                                            <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
-                                            <connections>
-                                                <action selector="moveFocusToSearchField:" target="-1" id="MhU-Pb-Po8"/>
-                                            </connections>
-                                        </menuItem>
-                                        <menuItem isSeparatorItem="YES" id="QuB-t0-74E"/>
                                         <menuItem title="Find…" tag="1" keyEquivalent="f" id="Xz5-n4-O0W">
                                             <connections>
                                                 <action selector="performFindPanelAction:" target="-1" id="cD7-Qs-BN4"/>

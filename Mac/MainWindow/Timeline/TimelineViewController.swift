@@ -40,15 +40,11 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 				unreadCount = 0
 
 				selectionDidChange(nil)
-				if showsSearchResults {
-					fetchAndReplaceArticlesAsync()
-				} else {
-					fetchAndReplaceArticlesSync()
-					if articles.count > 0 {
-						tableView.scrollRowToVisible(0)
-					}
-					updateUnreadCount()
+				fetchAndReplaceArticlesSync()
+				if articles.count > 0 {
+					tableView.scrollRowToVisible(0)
 				}
+				updateUnreadCount()
 			}
 		}
 	}
@@ -64,7 +60,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 	weak var delegate: TimelineDelegate?
 	var sharingServiceDelegate: NSSharingServiceDelegate?
 
-	var showsSearchResults = false
 	var selectedArticles: [Article] {
 		return articles.articlesForIndexes(tableView.selectedRowIndexes)
 	}

@@ -1189,24 +1189,6 @@
         }
       }
     },
-    "nB2-mv-2i5.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Article Search…\"; ObjectID = \"nB2-mv-2i5\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Article Search…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar artículos…"
-          }
-        }
-      }
-    },
     "nLP-fa-KUi.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Sort Articles By\"; ObjectID = \"nLP-fa-KUi\";",
       "extractionState" : "extracted_with_value",
