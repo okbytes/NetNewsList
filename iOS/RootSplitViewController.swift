@@ -73,10 +73,6 @@ final class RootSplitViewController: UISplitViewController {
 		coordinator.showBrowserForCurrentArticle()
 	}
 
-	@objc func openInAppBrowser(_ sender: Any?) {
-		coordinator.showInAppBrowser()
-	}
-
 	@objc func addNewArticle(_ sender: Any?) {
 		coordinator.showAddArticle()
 	}
@@ -99,9 +95,5 @@ final class RootSplitViewController: UISplitViewController {
 
 	@objc func toggleRead(_ sender: Any?) {
 		coordinator.toggleReadForCurrentArticle()
-	}
-
-	@objc func showOriginal(_ sender: Any?) {
-		coordinator.showOriginalForCurrentArticle()
 	}
 }

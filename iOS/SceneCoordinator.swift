@@ -13,7 +13,6 @@ import Account
 import Articles
 import RSCore
 import RSTree
-import SafariServices
 import SwiftUI
 import Images
 
@@ -860,13 +859,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func showOriginalForCurrentArticle() {
-		guard currentArticle != nil else {
-			return
-		}
-		articleViewController?.openInAppBrowser()
-	}
-
 	func toggleRead(_ article: Article) {
 		guard !article.status.read || article.isAvailableToMarkUnread else {
 			return
@@ -932,21 +924,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		UIApplication.shared.open(url, options: [:])
 	}
 
-	func showInAppBrowser() {
-		guard currentArticle != nil else {
-			return
-		}
-		articleViewController?.openInAppBrowser()
-	}
-
-	func beganBrowsing(url: URL) {
-		activityManager.browsing(url: url)
-	}
-
-	func endedBrowsing() {
-		activityManager.invalidateBrowsing()
-	}
-
 	func navigateToFeeds() {
 		revealColumn(.primary) { [weak self] in
 			self?.mainFeedCollectionViewController?.focus()
@@ -999,17 +976,13 @@ struct SidebarItemNode: Hashable, Sendable {
 	/// has launched from an external action (i.e., a widget tap, or
 	/// selecting an article via a notification).
 	///
-	/// The dismiss is only applicable if the view controller is a
-	/// `SFSafariViewController` or `SettingsViewController`,
-	/// otherwise, this function does nothing.
+	/// The dismiss is only applicable if the view controller is
+	/// `SettingsViewController`, otherwise, this function does nothing.
 	func dismissIfLaunchingFromExternalAction() {
 		guard let presentedController = mainFeedCollectionViewController.presentedViewController else {
 			return
 		}
 
-		if presentedController.isKind(of: SFSafariViewController.self) {
-			presentedController.dismiss(animated: true, completion: nil)
-		}
 		guard let settings = presentedController.children.first as? SettingsViewController else {
 			return
 		}

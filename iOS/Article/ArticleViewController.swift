@@ -8,7 +8,6 @@
 
 import UIKit
 import os
-import SafariServices
 import WebKit
 import RSCore
 import Account
@@ -33,9 +32,9 @@ final class ArticleViewController: UIViewController {
 		return pageViewController?.viewControllers?.first as? WebViewController
 	}
 
-	private lazy var showOriginalBarButtonItem: UIBarButtonItem = {
-		let item = UIBarButtonItem(image: Assets.Images.showOriginal, style: .plain, target: self, action: #selector(showOriginal(_:)))
-		item.accessibilityLabel = NSLocalizedString("Show Original", comment: "Show Original")
+	private lazy var openInBrowserBarButtonItem: UIBarButtonItem = {
+		let item = UIBarButtonItem(image: Assets.Images.safari, style: .plain, target: self, action: #selector(openInBrowser(_:)))
+		item.accessibilityLabel = NSLocalizedString("Open in Browser", comment: "Command")
 		return item
 	}()
 
@@ -110,14 +109,14 @@ final class ArticleViewController: UIViewController {
 		if #available(iOS 26, *) {
 			// Grouped with Share at the trailing end.
 			if let shareIndex = toolbarItems?.firstIndex(of: actionBarButtonItem) {
-				toolbarItems?.insert(showOriginalBarButtonItem, at: shareIndex)
+				toolbarItems?.insert(openInBrowserBarButtonItem, at: shareIndex)
 			}
 		} else {
 			let flex = { UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil) }
 			toolbarItems = [
 				readBarButtonItem,
 				flex(),
-				showOriginalBarButtonItem,
+				openInBrowserBarButtonItem,
 				flex(),
 				actionBarButtonItem
 			]
@@ -201,7 +200,7 @@ final class ArticleViewController: UIViewController {
 	func updateUI() {
 
 		guard let article = article else {
-			showOriginalBarButtonItem.isEnabled = false
+			openInBrowserBarButtonItem.isEnabled = false
 			prevArticleBarButtonItem.isEnabled = false
 			nextArticleBarButtonItem.isEnabled = false
 			readBarButtonItem.isEnabled = false
@@ -214,7 +213,7 @@ final class ArticleViewController: UIViewController {
 		readBarButtonItem.isEnabled = true
 
 		let permalinkPresent = article.preferredLink != nil
-		showOriginalBarButtonItem.isEnabled = permalinkPresent
+		openInBrowserBarButtonItem.isEnabled = permalinkPresent
 		actionBarButtonItem.isEnabled = permalinkPresent
 
 		if article.status.read {
@@ -252,8 +251,8 @@ final class ArticleViewController: UIViewController {
 
 	// MARK: Actions
 
-	@objc func showOriginal(_ sender: Any?) {
-		currentWebViewController?.openInAppBrowser()
+	@objc func openInBrowser(_ sender: Any?) {
+		coordinator.showBrowserForCurrentArticle()
 	}
 
 	@IBAction func prevArticle(_ sender: Any) {
@@ -298,10 +297,6 @@ final class ArticleViewController: UIViewController {
 
 	func scrollPageUp() {
 		currentWebViewController?.scrollPageUp()
-	}
-
-	func openInAppBrowser() {
-		currentWebViewController?.openInAppBrowser()
 	}
 
 	func setScrollPosition(articleWindowScrollY: Int) {

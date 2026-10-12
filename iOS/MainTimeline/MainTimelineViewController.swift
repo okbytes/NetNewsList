@@ -432,11 +432,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		coordinator?.showBrowserForCurrentArticle()
 	}
 
-	@objc func openInAppBrowser(_ sender: Any?) {
-		assert(coordinator != nil)
-		coordinator?.showInAppBrowser()
-	}
-
 	@IBAction func markAllAsRead(_ sender: Any?) {
 		guard let coordinator else {
 			assertionFailure("Expected coordinator")

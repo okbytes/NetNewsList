@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import SafariServices
 import SwiftUI
 import RSCore
 import Account
@@ -39,8 +38,7 @@ final class SettingsViewController: UITableViewController {
 
 	private enum ArticlesRow: Int {
 		case theme = 0
-		case openLinksInNetNewsWire = 1
-		case xAccount = 2
+		case xAccount = 1
 	}
 
 	private enum HelpRow: Int {
@@ -56,7 +54,6 @@ final class SettingsViewController: UITableViewController {
 	@IBOutlet var articleThemeDetailLabel: UILabel!
 	@IBOutlet var confirmMarkAllAsReadSwitch: UISwitch!
 	@IBOutlet var colorPaletteCell: UITableViewCell?
-	@IBOutlet var openLinksInNetNewsWire: UISwitch!
 	@IBOutlet var xAccountDetailLabel: UILabel!
 
 	var scrollToArticlesSection = false
@@ -98,8 +95,6 @@ final class SettingsViewController: UITableViewController {
 		} else {
 			confirmMarkAllAsReadSwitch.isOn = false
 		}
-
-		openLinksInNetNewsWire.isOn = !AppDefaults.shared.useSystemBrowser
 
 		updateXAccountDetailLabel()
 
@@ -238,21 +233,9 @@ final class SettingsViewController: UITableViewController {
 		}
 	}
 
-	@IBAction func switchBrowserPreference(_ sender: Any) {
-		if openLinksInNetNewsWire.isOn {
-			AppDefaults.shared.useSystemBrowser = false
-		} else {
-			AppDefaults.shared.useSystemBrowser = true
-		}
-	}
-
 	// MARK: - Notifications
 
 	@objc func contentSizeCategoryDidChange() {
-		tableView.reloadData()
-	}
-
-	@objc func browserPreferenceDidChange() {
 		tableView.reloadData()
 	}
 
@@ -347,23 +330,6 @@ private extension SettingsViewController {
 		guard let url = URL(string: urlString) else {
 			return
 		}
-
-		// Open GitHub links in the GitHub app when installed.
-		if let host = url.host, host == "github.com" || host.hasSuffix(".github.com") {
-			UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { [weak self] openedInApp in
-				if !openedInApp {
-					self?.presentSafariViewController(for: url)
-				}
-			}
-			return
-		}
-
-		presentSafariViewController(for: url)
-	}
-
-	private func presentSafariViewController(for url: URL) {
-		let vc = SFSafariViewController(url: url)
-		vc.modalPresentationStyle = .pageSheet
-		present(vc, animated: true)
+		UIApplication.shared.open(url, options: [:])
 	}
 }

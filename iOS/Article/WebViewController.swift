@@ -12,7 +12,6 @@ import RSCore
 import RSWeb
 import Account
 import Articles
-import SafariServices
 import MessageUI
 import Images
 
@@ -216,15 +215,6 @@ final class WebViewController: UIViewController {
 		activityViewController.popoverPresentationController?.barButtonItem = popOverBarButtonItem
 		present(activityViewController, animated: true)
 	}
-
-	func openInAppBrowser() {
-		guard let url = article?.preferredURL else { return }
-		if AppDefaults.shared.useSystemBrowser {
-			UIApplication.shared.open(url, options: [:])
-		} else {
-			openURLInSafariViewController(url)
-		}
-	}
 }
 
 // MARK: WKNavigationDelegate
@@ -242,7 +232,7 @@ extension WebViewController: WKNavigationDelegate {
 	func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 
 		// Stored content is untrusted HTML from the web: its scripts never run.
-		// Show Original opens the live page in Safari instead of here.
+		// Links open in the system browser (or the app that handles them), never here.
 		preferences.allowsContentJavaScript = false
 
 		if navigationAction.navigationType == .linkActivated {
@@ -262,17 +252,7 @@ extension WebViewController: WKNavigationDelegate {
 			let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 			if components?.scheme == "http" || components?.scheme == "https" {
 				decisionHandler(.cancel, preferences)
-				if AppDefaults.shared.useSystemBrowser {
-					UIApplication.shared.open(url, options: [:])
-				} else {
-					UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { didOpen in
-						guard didOpen == false else {
-							return
-						}
-						self.openURLInSafariViewController(url)
-					}
-				}
-
+				UIApplication.shared.open(url, options: [:])
 			} else if components?.scheme == "mailto" {
 				decisionHandler(.cancel, preferences)
 
@@ -314,18 +294,17 @@ extension WebViewController: WKNavigationDelegate {
 extension WebViewController: WKUIDelegate {
 
 	func webView(_ webView: WKWebView, contextMenuForElement elementInfo: WKContextMenuElementInfo, willCommitWithAnimator animator: UIContextMenuInteractionCommitAnimating) {
-		// We need to have at least an unimplemented WKUIDelegate assigned to the WKWebView.  This makes the
-		// link preview launch Safari when the link preview is tapped.  In theory, you should be able to get
-		// the link from the elementInfo above and transition to SFSafariViewController instead of launching
-		// Safari.  As the time of this writing, the link in elementInfo is always nil.  ¯\_(ツ)_/¯
+		// We need to have at least an unimplemented WKUIDelegate assigned to the WKWebView. This makes the
+		// link preview launch the browser when the link preview is tapped.
 	}
 
 	func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+		// A link with target="_blank" opens in the system browser.
 		guard let url = navigationAction.request.url else {
 			return nil
 		}
 
-		openURL(url)
+		UIApplication.shared.open(url, options: [:])
 		return nil
 	}
 
@@ -560,38 +539,6 @@ private extension WebViewController {
 
 	func cancelImageLoad(_ webView: WKWebView) {
 		webView.evaluateJavaScript("cancelImageLoad();")
-	}
-
-	// If the resource cannot be opened with an installed app, present the web view.
-	func openURL(_ url: URL) {
-		UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { didOpen in
-			assert(Thread.isMainThread)
-			guard didOpen == false else {
-				return
-			}
-			self.openURLInSafariViewController(url)
-		}
-	}
-
-	func openURLInSafariViewController(_ url: URL) {
-		guard let viewController = SFSafariViewController.safeSafariViewController(url) else {
-			return
-		}
-		// Apply the resolved userInterfaceStyle before presenting to avoid a white flash in dark mode.
-		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5383>
-		viewController.overrideUserInterfaceStyle = traitCollection.userInterfaceStyle
-		viewController.delegate = self
-		coordinator?.beganBrowsing(url: url)
-		present(viewController, animated: true)
-	}
-}
-
-// MARK: SFSafariViewControllerDelegate
-
-extension WebViewController: @preconcurrency SFSafariViewControllerDelegate {
-
-	func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-		coordinator?.endedBrowsing()
 	}
 }
 

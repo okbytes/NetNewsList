@@ -58,7 +58,6 @@ final class AppDefaults: Sendable {
 		static let timelineIconDimension = "timelineIconSize"
 		static let timelineSortDirection = "timelineSortDirection"
 		static let confirmMarkAllAsRead = "confirmMarkAllAsRead"
-		static let useSystemBrowser = "useSystemBrowser"
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
@@ -87,15 +86,6 @@ final class AppDefaults: Sendable {
 		set {
 			setInt(for: Key.userInterfaceColorPalette, newValue.rawValue)
 			NotificationCenter.default.post(name: .userInterfaceColorPaletteDidUpdate, object: self)
-		}
-	}
-
-	var useSystemBrowser: Bool {
-		get {
-			return UserDefaults.standard.bool(forKey: Key.useSystemBrowser)
-		}
-		set {
-			UserDefaults.standard.setValue(newValue, forKey: Key.useSystemBrowser)
 		}
 	}
 

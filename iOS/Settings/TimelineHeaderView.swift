@@ -6,6 +6,8 @@
 //  Copyright © 2026 Ranchero Software. All rights reserved.
 //
 
+import UIKit
+
 final class TimelineHeaderView: UICollectionReusableView {
     static let reuseIdentifier = "TimelineHeaderView"
 

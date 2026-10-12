@@ -178,40 +178,6 @@
                                             <outlet property="label" destination="bbw-L9-a3X" id="lGz-7X-px8"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" id="EYf-v1-lNi" customClass="VibrantBasicTableViewCell" customModule="NetNewsWire" customModuleProvider="target">
-                                        <rect key="frame" x="20" y="842.5" width="374" height="51.5"/>
-                                        <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="EYf-v1-lNi" id="7nz-0Y-HaW">
-                                            <rect key="frame" x="0.0" y="0.0" width="374" height="51.5"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="749" text="Open Links in NetNewsList" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Wm4-Y1-7nX">
-                                                    <rect key="frame" x="20" y="15" width="265" height="21.5"/>
-                                                    <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dhR-L2-PX3" userLabel="Open Links in NetNewsList">
-                                                    <rect key="frame" x="293" y="12" width="63" height="28"/>
-                                                    <color key="onTintColor" name="primaryAccentColor"/>
-                                                    <connections>
-                                                        <action selector="switchBrowserPreference:" destination="a0p-rk-skQ" eventType="valueChanged" id="hLC-cV-Wjj"/>
-                                                    </connections>
-                                                </switch>
-                                            </subviews>
-                                            <constraints>
-                                                <constraint firstItem="dhR-L2-PX3" firstAttribute="leading" secondItem="Wm4-Y1-7nX" secondAttribute="trailing" constant="8" symbolic="YES" id="9kW-Cm-Jry"/>
-                                                <constraint firstItem="Wm4-Y1-7nX" firstAttribute="top" secondItem="7nz-0Y-HaW" secondAttribute="topMargin" id="SlQ-r5-8Xc"/>
-                                                <constraint firstAttribute="bottomMargin" secondItem="Wm4-Y1-7nX" secondAttribute="bottom" id="VUX-rB-00D"/>
-                                                <constraint firstAttribute="trailingMargin" secondItem="dhR-L2-PX3" secondAttribute="trailing" id="WPe-Kt-3Wb"/>
-                                                <constraint firstItem="dhR-L2-PX3" firstAttribute="centerY" secondItem="7nz-0Y-HaW" secondAttribute="centerY" id="gWw-7Q-XcA"/>
-                                                <constraint firstItem="Wm4-Y1-7nX" firstAttribute="leading" secondItem="7nz-0Y-HaW" secondAttribute="leadingMargin" id="wMz-Ae-No9"/>
-                                            </constraints>
-                                        </tableViewCellContentView>
-                                        <connections>
-                                            <outlet property="label" destination="Wm4-Y1-7nX" id="R62-za-yVz"/>
-                                        </connections>
-                                    </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" id="xAc-cl-01a" customClass="VibrantBasicTableViewCell" customModule="NetNewsWire" customModuleProvider="target">
                                         <rect key="frame" x="20" y="894" width="374" height="51"/>
                                         <autoresizingMask key="autoresizingMask"/>
@@ -435,7 +401,6 @@
                         <outlet property="colorPaletteCell" destination="EvG-yE-gDF" id="zdj-Ag-ZUw"/>
                         <outlet property="confirmMarkAllAsReadSwitch" destination="UOo-9z-IuL" id="yLZ-Kf-wDt"/>
                         <outlet property="groupBySiteSwitch" destination="JNi-Wz-RbU" id="TwH-Kd-o6N"/>
-                        <outlet property="openLinksInNetNewsWire" destination="dhR-L2-PX3" id="z1b-pX-bwG"/>
                         <outlet property="timelineSortOrderSwitch" destination="Keq-Np-l9O" id="Zm7-HG-r5h"/>
                         <outlet property="xAccountDetailLabel" destination="xAc-dt-01d" id="xAc-o3-01k"/>
                     </connections>
