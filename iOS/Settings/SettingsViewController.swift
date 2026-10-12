@@ -15,12 +15,11 @@ import ActivityLog
 final class SettingsViewController: UITableViewController {
 
 	// These enums match the sections and rows of the static table in Settings.storyboard.
+	// The Timeline section holds only the Sort Oldest to Newest switch.
 	private enum Section: Int {
 		case timeline = 0
 		case articles = 1
-		case appearance = 2
-		case troubleshooting = 3
-		case help = 4
+		case troubleshooting = 2
 	}
 
 	private enum TroubleshootingRow: Int {
@@ -29,47 +28,24 @@ final class SettingsViewController: UITableViewController {
 		case resetiCloudSync = 2
 	}
 
-	private enum TimelineRow: Int {
-		case sortOrder = 0
-		case groupBySite = 1
-	}
-
 	private enum ArticlesRow: Int {
-		case theme = 0
-		case xAccount = 1
-	}
-
-	private enum HelpRow: Int {
-		case help = 0
-		case forum = 1
-		case releaseNotes = 2
-		case bugTracker = 3
-		case about = 4
+		case xAccount = 0
 	}
 
 	@IBOutlet var timelineSortOrderSwitch: UISwitch!
-	@IBOutlet var groupBySiteSwitch: UISwitch!
-	@IBOutlet var articleThemeDetailLabel: UILabel!
-	@IBOutlet var colorPaletteCell: UITableViewCell?
 	@IBOutlet var xAccountDetailLabel: UILabel!
 
 	weak var presentingParentController: UIViewController?
-
-	private lazy var colorPalettePopUpButton = Self.makePopUpButton()
 
 	override func viewDidLoad() {
 		// This hack mostly works around a bug in static tables with dynamic type.  See: https://spin.atomicobject.com/2018/10/15/dynamic-type-static-uitableview/
 		NotificationCenter.default.removeObserver(tableView!, name: UIContentSizeCategory.didChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
 
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUserInterfaceColorPaletteDidUpdate(_:)), name: .userInterfaceColorPaletteDidUpdate, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
-
-		addPopUpButton(colorPalettePopUpButton, to: colorPaletteCell)
-		updateColorPalettePopUpButton()
 	}
 
 	override func viewWillAppear(_ animated: Bool) {
@@ -80,11 +56,6 @@ final class SettingsViewController: UITableViewController {
 		} else {
 			timelineSortOrderSwitch.isOn = false
 		}
-
-		// The setting keeps its original key; the timeline groups by site.
-		groupBySiteSwitch.isOn = AppDefaults.shared.timelineGroupByFeed
-
-		articleThemeDetailLabel.text = ArticleThemesManager.shared.currentTheme.name
 
 		updateXAccountDetailLabel()
 
@@ -114,9 +85,6 @@ final class SettingsViewController: UITableViewController {
 		switch Section(rawValue: indexPath.section) {
 		case .articles:
 			switch ArticlesRow(rawValue: indexPath.row) {
-			case .theme:
-				let articleThemes = UIStoryboard.settings.instantiateController(ofType: ArticleThemesTableViewController.self)
-				self.navigationController?.pushViewController(articleThemes, animated: true)
 			case .xAccount:
 				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
 				signInOrOutOfX()
@@ -141,26 +109,6 @@ final class SettingsViewController: UITableViewController {
 			}()
 			if let viewController {
 				self.navigationController?.pushViewController(viewController, animated: true)
-			}
-		case .help:
-			switch HelpRow(rawValue: indexPath.row) {
-			case .help:
-				openURL(HelpURL.helpHome.rawValue)
-				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-			case .forum:
-				openURL(HelpURL.discourse.rawValue)
-				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-			case .releaseNotes:
-				openURL(HelpURL.releaseNotes.rawValue)
-				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-			case .bugTracker:
-				openURL(HelpURL.bugTracker.rawValue)
-				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-			case .about:
-				let hosting = UIHostingController(rootView: AboutView())
-				self.navigationController?.pushViewController(hosting, animated: true)
-			default:
-				break
 			}
 		default:
 			tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
@@ -197,18 +145,10 @@ final class SettingsViewController: UITableViewController {
 		}
 	}
 
-	@IBAction func switchGroupBySite(_ sender: Any) {
-		AppDefaults.shared.timelineGroupByFeed = groupBySiteSwitch.isOn
-	}
-
 	// MARK: - Notifications
 
 	@objc func contentSizeCategoryDidChange() {
 		tableView.reloadData()
-	}
-
-	@objc func handleUserInterfaceColorPaletteDidUpdate(_ notification: Notification) {
-		updateColorPalettePopUpButton()
 	}
 
 }
@@ -216,39 +156,6 @@ final class SettingsViewController: UITableViewController {
 // MARK: - Private
 
 private extension SettingsViewController {
-
-	static func makePopUpButton() -> UIButton {
-		var configuration = UIButton.Configuration.plain()
-		configuration.baseForegroundColor = .secondaryLabel
-		let button = UIButton(configuration: configuration)
-		button.showsMenuAsPrimaryAction = true
-		button.changesSelectionAsPrimaryAction = true
-		return button
-	}
-
-	/// Auto Layout lets the button resize itself when choosing an item changes its title.
-	func addPopUpButton(_ button: UIButton, to cell: UITableViewCell?) {
-		guard let cell else {
-			return
-		}
-		button.translatesAutoresizingMaskIntoConstraints = false
-		button.setContentCompressionResistancePriority(.required, for: .horizontal)
-		cell.contentView.addSubview(button)
-		NSLayoutConstraint.activate([
-			button.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.trailingAnchor),
-			button.centerYAnchor.constraint(equalTo: cell.contentView.centerYAnchor)
-		])
-	}
-
-	func updateColorPalettePopUpButton() {
-		let currentColorPalette = AppDefaults.userInterfaceColorPalette
-		let actions = UserInterfaceColorPalette.allCases.map { colorPalette in
-			UIAction(title: String(describing: colorPalette), state: colorPalette == currentColorPalette ? .on : .off) { _ in
-				AppDefaults.userInterfaceColorPalette = colorPalette
-			}
-		}
-		colorPalettePopUpButton.menu = UIMenu(children: actions)
-	}
 
 	func confirmResetiCloudSync() {
 		let title = NSLocalizedString("Reset iCloud Sync?", comment: "Reset iCloud Sync alert title")
@@ -292,12 +199,5 @@ private extension SettingsViewController {
 
 	@objc func xAccountSignInStateDidChange(_ note: Notification) {
 		updateXAccountDetailLabel()
-	}
-
-	func openURL(_ urlString: String) {
-		guard let url = URL(string: urlString) else {
-			return
-		}
-		UIApplication.shared.open(url, options: [:])
 	}
 }

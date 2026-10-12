@@ -87,7 +87,7 @@ import Images
 
 		UNUserNotificationCenter.current().delegate = self
 
-		ArticleThemesManager.shared.start()
+		// ArticleThemesManager isn't started: without a theme setting, articles always use the default theme.
 		NetworkMonitor.shared.start()
 
 		if !Platform.isRunningUnitTests {
@@ -331,7 +331,6 @@ private extension AppDelegate {
 
 		AccountManager.shared.suspendNetworkAll()
 		AccountManager.shared.saveAllIfNeeded()
-		ArticleThemeDownloader.shared.cleanUp()
 
 		AppNotification.postAppDidGoToBackground()
 

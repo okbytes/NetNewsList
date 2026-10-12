@@ -47,10 +47,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 		coordinator.restoreWindowState(restoreSelection: !hasPendingExternalAction)
 
-		updateUserInterfaceStyle()
-
-		NotificationCenter.default.addObserver(self, selector: #selector(handleUserInterfaceColorPaletteDidUpdate(_:)), name: .userInterfaceColorPaletteDidUpdate, object: AppDefaults.self)
-
 		if connectionOptions.urlContexts.first?.url != nil {
 			self.scene(scene, openURLContexts: connectionOptions.urlContexts)
 			return
@@ -152,25 +148,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 				}
 				return
 			}
-
-			let filename = context.url.standardizedFileURL.path
-			if filename.hasSuffix(ArticleTheme.nnwThemeSuffix) {
-				self.coordinator.importTheme(filename: filename)
-				return
-			}
-
-			// Handle theme URLs: netnewslist://theme/add?url={url}
-			guard let comps = URLComponents(url: context.url, resolvingAgainstBaseURL: false),
-				  comps.scheme?.lowercased() == "netnewslist",
-				  "theme" == comps.host,
-				 let queryItems = comps.queryItems else {
-				return
-			}
-
-			if let providedThemeURL = queryItems.first(where: { $0.name == "url" })?.value,
-			   let themeURL = URL(string: providedThemeURL) {
-				ArticleThemeDownloader.shared.downloadTheme(from: themeURL)
-			}
 		}
 	}
 }
@@ -185,24 +162,6 @@ private extension SceneDelegate {
 			coordinator.showAddArticle()
 		default:
 			break
-		}
-	}
-
-	@objc func handleUserInterfaceColorPaletteDidUpdate(_ notification: Notification) {
-		assert(Thread.isMainThread)
-		Task {
-			updateUserInterfaceStyle()
-		}
-	}
-
-	@MainActor func updateUserInterfaceStyle() {
-		switch AppDefaults.userInterfaceColorPalette {
-		case .automatic:
-			self.window?.overrideUserInterfaceStyle = .unspecified
-		case .light:
-			self.window?.overrideUserInterfaceStyle = .light
-		case .dark:
-			self.window?.overrideUserInterfaceStyle = .dark
 		}
 	}
 }

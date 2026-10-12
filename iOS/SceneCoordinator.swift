@@ -79,14 +79,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	private(set) var groupByFeed = AppDefaults.shared.timelineGroupByFeed {
-		didSet {
-			if groupByFeed != oldValue {
-				sortParametersDidChange()
-			}
-		}
-	}
-
 	private let treeControllerDelegate = SidebarTreeControllerDelegate()
 	private let treeController: TreeController
 
@@ -296,8 +288,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDeleteArticles(_:)), name: .AccountDidDeleteArticles, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(importDownloadedTheme(_:)), name: .didEndDownloadingTheme, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(themeDownloadDidFail(_:)), name: .didFailToImportThemeWithError, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(updateNavigationBarSubtitles(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
 
 		NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -446,7 +436,6 @@ struct SidebarItemNode: Hashable, Sendable {
 
 	func userDefaultsDidChange() {
 		sortDirection = AppDefaults.shared.timelineSortDirection
-		groupByFeed = AppDefaults.shared.timelineGroupByFeed
 	}
 
 	@objc func accountDidDownloadArticles(_ note: Notification) {
@@ -473,28 +462,6 @@ struct SidebarItemNode: Hashable, Sendable {
 			queueFetchAndMergeArticles()
 		}
 		AccountManager.shared.repairStatusesIfNeeded()
-	}
-
-	@objc func importDownloadedTheme(_ note: Notification) {
-		guard let userInfo = note.userInfo,
-			let url = userInfo["url"] as? URL else {
-			return
-		}
-
-		DispatchQueue.main.async {
-			self.importTheme(filename: url.path)
-		}
-	}
-
-	@objc func themeDownloadDidFail(_ note: Notification) {
-		guard let userInfo = note.userInfo,
-			  let error = userInfo["error"] as? Error else {
-				  return
-			  }
-		DispatchQueue.main.async {
-			let title = NSLocalizedString("Theme Error", comment: "Theme download error")
-			self.rootSplitViewController.presentError(title: title, message: ArticleThemesManager.importErrorMessage(for: error))
-		}
 	}
 
 	/// Updates navigation bar subtitles in response to list selection, unread count changes,
@@ -945,15 +912,6 @@ struct SidebarItemNode: Hashable, Sendable {
 		}
 	}
 
-	func importTheme(filename: String) {
-		do {
-			try ArticleThemeImporter.importTheme(controller: rootSplitViewController, url: URL(fileURLWithPath: filename))
-		} catch {
-			NotificationCenter.default.post(name: .didFailToImportThemeWithError, object: nil, userInfo: ["error": error])
-		}
-
-	}
-
 	/// This will dismiss the foremost view controller if the user
 	/// has launched from an external action (i.e., a widget tap, or
 	/// selecting an article via a notification).
@@ -1227,7 +1185,7 @@ private extension SceneCoordinator {
 	}
 
 	func replaceArticles(with unsortedArticles: Set<Article>, animated: Bool) {
-		let sortedArticles = Array(unsortedArticles).sortedByDate(sortDirection, groupByFeed: groupByFeed)
+		let sortedArticles = Array(unsortedArticles).sortedByDate(sortDirection)
 		replaceArticles(with: sortedArticles, animated: animated)
 	}
 

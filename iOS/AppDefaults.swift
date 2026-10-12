@@ -13,27 +13,6 @@ import Account
 import Articles
 import Images
 
-enum UserInterfaceColorPalette: Int, CustomStringConvertible, CaseIterable {
-	case automatic = 0
-	case light = 1
-	case dark = 2
-
-	var description: String {
-		switch self {
-		case .automatic:
-			return NSLocalizedString("Automatic", comment: "Automatic")
-		case .light:
-			return NSLocalizedString("Light", comment: "Light")
-		case .dark:
-			return NSLocalizedString("Dark", comment: "Dark")
-		}
-	}
-}
-
-extension Notification.Name {
-	public static let userInterfaceColorPaletteDidUpdate = Notification.Name("UserInterfaceColorPaletteDidUpdateNotification")
-}
-
 final class AppDefaults: Sendable {
 	static let shared = AppDefaults()
 	static let defaultThemeName = "Default"
@@ -48,10 +27,8 @@ final class AppDefaults: Sendable {
 	}()
 
 	struct Key {
-		static let userInterfaceColorPalette = "userInterfaceColorPalette"
 		static let lastImageCacheFlushDate = "lastImageCacheFlushDate"
 		static let firstRunDate = "firstRunDate"
-		static let timelineGroupByFeed = "timelineGroupByFeed"
 		static let timelineSortDirection = "timelineSortDirection"
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
@@ -71,34 +48,12 @@ final class AppDefaults: Sendable {
 		return true
 	}()
 
-	static var userInterfaceColorPalette: UserInterfaceColorPalette {
-		get {
-			if let result = UserInterfaceColorPalette(rawValue: int(for: Key.userInterfaceColorPalette)) {
-				return result
-			}
-			return .automatic
-		}
-		set {
-			setInt(for: Key.userInterfaceColorPalette, newValue.rawValue)
-			NotificationCenter.default.post(name: .userInterfaceColorPaletteDidUpdate, object: self)
-		}
-	}
-
 	var lastImageCacheFlushDate: Date? {
 		get {
 			return AppDefaults.date(for: Key.lastImageCacheFlushDate)
 		}
 		set {
 			AppDefaults.setDate(for: Key.lastImageCacheFlushDate, newValue)
-		}
-	}
-
-	var timelineGroupByFeed: Bool {
-		get {
-			return AppDefaults.bool(for: Key.timelineGroupByFeed)
-		}
-		set {
-			AppDefaults.setBool(for: Key.timelineGroupByFeed, newValue)
 		}
 	}
 
@@ -157,6 +112,7 @@ final class AppDefaults: Sendable {
 		}
 	}
 
+	/// Read and written by ArticleThemesManager (Shared). iOS has no theme setting and always uses the default theme.
 	var currentThemeName: String? {
 		get {
 			return AppDefaults.string(for: Key.currentThemeName)
@@ -208,9 +164,7 @@ final class AppDefaults: Sendable {
 	}
 
 	@MainActor static func registerDefaults() {
-		let defaults: [String: Any] = [Key.userInterfaceColorPalette: UserInterfaceColorPalette.automatic.rawValue,
-										Key.timelineGroupByFeed: false,
-										// Oldest first: a reading list is read in the order it was saved.
+		let defaults: [String: Any] = [// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 										Key.articleContentJavascriptEnabled: true,
 										Key.currentThemeName: Self.defaultThemeName,
