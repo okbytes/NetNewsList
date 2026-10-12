@@ -32,7 +32,7 @@ xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan
 
 # Extraction module alone (fast), browser extension, lint
 (cd Modules/Extraction && xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
-node --test chrome-extension/tests/*.test.mjs
+node --test chrome-extension/tests/*.test.mjs   # or, without Node: bun test ./chrome-extension/tests/*.test.mjs
 swiftlint lint --strict
 ```
 

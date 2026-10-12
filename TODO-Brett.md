@@ -16,29 +16,29 @@ Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; 
 - [ ] **X posts (2026-10-11).** Save a few X links from the X app and Safari: a short post, a long post, a thread (share its first or last post), a post with photos, a quote post and an X Article. Each saves as the post itself (never X's "Log in or sign up" page), a thread as all of the author's posts in order. Then sign in (Mac: NetNewsList menu > Sign In to X…; iPhone: Settings > Articles > X Account) and save a few more; tell Claude if a post that works signed out breaks signed in. The same post shared from twitter.com and x.com is one row.
 - [ ] **Offline images (PR11).** Save an image-heavy article on the Mac, open the iPhone app once online, then turn on Airplane Mode: text and images both show. A page with hundreds of images still saves (40 images are kept per article; the rest load when online). Deleting an article removes its images.
 
-## 2. Confirm the browser extension's iCloud field types
+## 2. Browser extension: what was checked without you
 
-The extension's remote mode writes iCloud records itself, and Claude couldn't verify the field types against the app's code (its permission check blocked reading `Modules/Account/Sources/Account/CloudKit`). Claude could read that folder on 2026-10-10, so the next session can do this; or check them yourself.
+Done in code on 2026-10-12: the records the extension writes match what the apps write and read, field by field and type by type, and a page it saves becomes a pending article in the Queue that the next app to open extracts. Its 13 tests pass against a fake iCloud. It has never been run in a browser or against real iCloud; section 3 is that test.
 
-- [ ] In CloudKit Console → Development → Schema → Record Types:
-  - `ArticleStatus`: `read`, `starred`, `webFeedExternalID` are **String**.
-  - `Article`: `webFeedURL`, `uniqueID`, `url`, `externalURL`, `title` are **String**; `articleStatus` is a **Reference**.
-- [ ] Or tell Claude it may read `Modules/Account/Sources/Account/CloudKit`; it will check the types and add the missing test (an `Article` record with no body becomes an article waiting to be saved).
+## 3. Set up the browser extension (try it at home first, then on the work computer)
 
-## 3. Set up the browser extension on the work computer (PR8b)
+At home, on this Mac, in Chrome or Helium (so a sign-in problem shows up where it's easy to fix):
+- [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** to exactly the `callbackURL` in `chrome-extension/local-config.json`, and **Allowed Origins** is **Any Domain**.
+- [ ] `chrome://extensions` → Developer mode → Load unpacked → `chrome-extension` (version 1.2). Options → "Straight to iCloud" → Sign In to iCloud, tick **Keep me signed in**. The options page should say signed in, with no red message. If it shows a red message right after signing in, tell Claude what it says (Apple has had reports of web sign-in being refused; Plan.md section 8 item 11 has fallbacks).
+- [ ] Save two pages with the toolbar button and one with right-click → Save Link (the badge flashes ✓). Within a minute they show on the Mac and iPhone, in the order and with the "Date Saved" you saved them, and fill in with the text while an app is open. Saving the same pages again from the Mac makes no duplicates.
+- [ ] Options → Sign Out, then save a page: the badge shows **!** and the page waits; sign in again and it goes through.
 
-- [ ] Copy the `chrome-extension` folder **including `local-config.json`** (it holds the CloudKit API token and isn't in git) to the work computer. Or copy it without that file and paste the token into the extension's options.
-- [ ] `helium://extensions` → Developer mode → Load unpacked → the folder. Pin it.
-- [ ] Options → "Straight to iCloud" → Sign In to iCloud. Tick **Keep me signed in** (about two weeks; otherwise 30 minutes).
-- [ ] Save three pages. Within a minute they show on the Mac or iPhone and fill in with the text while an app is open. Saving the same pages from the Mac makes no duplicates.
-- [ ] Options → Sign Out, then save a page: the badge shows **!** and the page waits instead of being lost.
+Then on the work computer:
+- [ ] In Helium open `chrome://policy` first. If Developer mode is greyed out or extensions are blocked by policy, stop: the extension can't be installed there (Plan.md section 8 item 11 has the fallbacks).
+- [ ] Copy the `chrome-extension` folder **including `local-config.json`** (it holds the API token and isn't in git) to a place it will stay (the extension's identity, sign-in and queue are tied to the folder's path). Or copy it without that file and, in Options, enter both the API token and the sign-in callback URL, then Save Settings.
+- [ ] `chrome://extensions` → Developer mode → Load unpacked → the folder. Pin it. Sign in as above and save a page.
 - [ ] Keep Advanced Data Protection **off** for your Apple ID, or web sign-in stops working.
 
 ## 4. Before a TestFlight or App Store build
 
-Not needed while the apps are installed from Xcode: those builds use CloudKit's Development environment, and that is where your data lives. Never click "Reset Development Environment" in CloudKit Console; it deletes everything saved.
+Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the apps stay on Development). Xcode builds use CloudKit's Development environment, and that is where your data lives. Never click "Reset Development Environment" in CloudKit Console; it deletes everything saved.
 
-- [ ] CloudKit Console: deploy the Development schema to Production.
+- [ ] CloudKit Console: deploy the Development schema to Production (it includes `Article.datePublished` as a timestamp, which the extension and the Matter import write).
 - [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), and switch the extension's options to Production with it.
 - [ ] Repeat sections 1 and 3 on the TestFlight build.
 

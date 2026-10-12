@@ -20,7 +20,7 @@ xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan Net
   -xcconfig .github/macos-ci-no-signing.xcconfig -destination "platform=macOS,arch=arm64"
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
   -xcconfig .github/ios-ci-no-signing.xcconfig -destination "platform=iOS Simulator,name=iPhone Air"
-node --test chrome-extension/tests/*.test.mjs
+node --test chrome-extension/tests/*.test.mjs   # or, without Node: bun test ./chrome-extension/tests/*.test.mjs
 ```
 
 ## Documentation
