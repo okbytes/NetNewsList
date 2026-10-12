@@ -21,24 +21,8 @@ import Images
 	private var selectingActivity: NSUserActivity?
 	private var readingActivity: NSUserActivity?
 	private var readingArticle: Article?
-	private var browsingActivity: NSUserActivity?
 
-	#if os(macOS)
-	var stateRestorationActivity: NSUserActivity {
-		if let activity = readingActivity {
-			return activity
-		}
-
-		if let activity = selectingActivity {
-			return activity
-		}
-
-		let activity = NSUserActivity(activityType: ActivityType.restoration.rawValue)
-		activity.persistentIdentifier = UUID().uuidString
-		activity.becomeCurrent()
-		return activity
-	}
-	#else // iOS
+	#if os(iOS)
 	var stateRestorationActivity: NSUserActivity {
 		// State restoration uses UserDefaults; this activity is left non-current so it doesn't displace
 		// the reading/selecting activity that Handoff advertises.
@@ -54,27 +38,8 @@ import Images
 	}
 
 	func invalidateCurrentActivities() {
-		invalidateBrowsing()
 		invalidateReading()
 		invalidateSelecting()
-	}
-
-	// Handoff advertises the in-app browser's page, not the article behind it.
-	// <https://github.com/Ranchero-Software/NetNewsWire/issues/5369>
-	func browsing(url: URL) {
-		browsingActivity?.invalidate()
-
-		let activity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
-		activity.webpageURL = url
-		activity.isEligibleForHandoff = true
-		browsingActivity = activity
-		activity.becomeCurrent()
-	}
-
-	func invalidateBrowsing() {
-		browsingActivity?.invalidate()
-		browsingActivity = nil
-		readingActivity?.becomeCurrent()
 	}
 
 	func selecting(sidebarItem: SidebarItem) {
@@ -95,7 +60,6 @@ import Images
 	}
 
 	func reading(feed: SidebarItem?, article: Article?) {
-		invalidateBrowsing()
 		invalidateReading()
 
 		guard let article = article else { return }
