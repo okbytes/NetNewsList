@@ -5,20 +5,26 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 const storage = new Map();
+// Like the real chrome.storage, each call is answered in a later task, so two
+// read-modify-writes left to run side by side interleave.
+const roundTrip = () => new Promise((resolve) => setTimeout(resolve));
 globalThis.chrome = {
   runtime: { getURL: (path) => `chrome-extension://test/${path}` },
   storage: {
     local: {
       async get(keys) {
+        await roundTrip();
         const list = Array.isArray(keys) ? keys : [keys];
         return Object.fromEntries(list.filter((key) => storage.has(key)).map((key) => [key, structuredClone(storage.get(key))]));
       },
       async set(values) {
+        await roundTrip();
         for (const [key, value] of Object.entries(values)) {
           storage.set(key, structuredClone(value));
         }
       },
       async remove(key) {
+        await roundTrip();
         storage.delete(key);
       }
     }
@@ -174,11 +180,20 @@ test("the queue drains in order once signed in", async () => {
 });
 
 test("pages saved at the same moment, even while the queue drains, are all kept", async () => {
-  respond = savesEverything;
   const urls = ["a", "b", "c", "d"].map((name) => `https://example.com/${name}`);
+  let saves = null;
+  // The other pages are saved together while the first is being written, so they
+  // reach the stored queue just as the drain takes the first one out of it.
+  respond = (request) => {
+    if (request.path === "records/modify") {
+      saves ??= urls.slice(1).map((url) => enqueue({ url, title: "" }));
+    }
+    return savesEverything(request);
+  };
   await enqueue({ url: urls[0], title: "" });
 
-  await Promise.all([drainQueue(), ...urls.slice(1).map((url) => enqueue({ url, title: "" }))]);
+  await drainQueue();
+  await Promise.all(saves);
   await drainQueue();
 
   const written = requests.filter((request) => request.path === "records/modify").map((request) => request.body.operations[1].record.fields.url.value);
