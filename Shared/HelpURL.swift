@@ -23,7 +23,7 @@ enum HelpURL: String {
 
 #if os(macOS)
 	@MainActor func open() {
-		Browser.open(self.rawValue, inBackground: false)
+		Browser.open(rawValue)
 	}
 #endif
 }

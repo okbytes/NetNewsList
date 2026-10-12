@@ -69,7 +69,7 @@ final class LinksTextView: NSTextView {
 		let characterIndex = characterIndexForInsertion(at: point)
 
 		if characterIndex >= range.location && characterIndex < range.location + range.length {
-			MacWebBrowser.openURL(url, inBackground: false)
+			MacWebBrowser.openURL(url)
 		}
 
 		clickedLinkRange = nil

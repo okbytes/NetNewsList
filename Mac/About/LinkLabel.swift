@@ -47,7 +47,7 @@ final class LinkLabel: NSTextField {
 		unhighlight()
 
 		if isInside, let linkURL {
-			MacWebBrowser.openURL(linkURL, inBackground: false)
+			MacWebBrowser.openURL(linkURL)
 		}
 	}
 }
