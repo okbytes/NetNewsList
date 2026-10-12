@@ -464,10 +464,11 @@ private extension MainWindowController {
 		return splitViewController
 	}
 
-	/// The toolbar can’t be customized, so it always has the default items.
+	/// The toolbar can’t be customized, not even its display mode, so it always has the default items as icons.
 	func makeToolbar() -> NSToolbar {
 		let toolbar = NSToolbar(identifier: Self.toolbarIdentifier)
 		toolbar.allowsUserCustomization = false
+		toolbar.allowsDisplayModeCustomization = false
 		toolbar.autosavesConfiguration = false
 		toolbar.displayMode = .iconOnly
 		toolbar.delegate = self
@@ -607,7 +608,7 @@ private extension MainWindowController {
 
 		if let toolbarItem = item as? NSToolbarItem {
 			toolbarItem.toolTip = commandName
-			// Text Only toolbar mode shows the label and menu form representation, so they need to track state too.
+			// The toolbar's overflow menu shows the label and menu form representation, so they need to track state too.
 			let shortName = markingRead ? NSLocalizedString("Archive", comment: "command") : NSLocalizedString("Move to Queue", comment: "command")
 			toolbarItem.label = shortName
 			toolbarItem.menuFormRepresentation?.title = shortName
@@ -683,7 +684,7 @@ private extension MainWindowController {
 		toolbarItem.view = button
 		toolbarItem.toolTip = title
 		toolbarItem.label = title
-		// A menu form representation keeps view-based items working in the toolbar's Text Only mode and overflow menu.
+		// A menu form representation keeps view-based items working in the toolbar's overflow menu.
 		toolbarItem.menuFormRepresentation = NSMenuItem(title: title, action: Selector((selector)), keyEquivalent: "")
 		return toolbarItem
 	}

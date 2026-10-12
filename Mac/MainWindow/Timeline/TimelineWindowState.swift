@@ -12,21 +12,18 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 
 	static let supportsSecureCoding = true
 
-	let selectedAccountID: String?
 	let selectedArticleID: String?
 	// Nil when the state was saved before sorting became per-window, or was sorted by a field that's gone.
 	let sortParameters: ArticleSortParameters?
 
 	// State saved before the read filter was removed also has readArticlesFilterStateKeys and
-	// readArticlesFilterStateValues, which are ignored.
-	init(selectedAccountID: String? = nil, selectedArticleID: String? = nil, sortParameters: ArticleSortParameters? = nil) {
-		self.selectedAccountID = selectedAccountID
+	// readArticlesFilterStateValues, and older state has selectedAccountID; they're ignored.
+	init(selectedArticleID: String? = nil, sortParameters: ArticleSortParameters? = nil) {
 		self.selectedArticleID = selectedArticleID
 		self.sortParameters = sortParameters
 	}
 
 	private struct Key {
-		static let selectedAccountID = "selectedAccountID"
 		static let selectedArticleID = "selectedArticleID"
 		static let sortKey = "sortKey"
 		static let sortDirection = "sortDirection"
@@ -35,7 +32,6 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 	}
 
 	required init?(coder: NSCoder) {
-		selectedAccountID = coder.decodeObject(of: NSString.self, forKey: Key.selectedAccountID) as? String
 		selectedArticleID = coder.decodeObject(of: NSString.self, forKey: Key.selectedArticleID) as? String
 
 		// Sorting by Unread or Starred is gone, so a window sorted that way starts over with the default sort.
@@ -54,7 +50,6 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 	}
 
 	func encode(with coder: NSCoder) {
-		coder.encode(selectedAccountID, forKey: Key.selectedAccountID)
 		coder.encode(selectedArticleID, forKey: Key.selectedArticleID)
 		if let sortParameters {
 			coder.encode(sortParameters.key.rawValue, forKey: Key.sortKey)
@@ -69,6 +64,6 @@ final class TimelineWindowState: NSObject, NSSecureCoding {
 		} else {
 			sort = "nil"
 		}
-		return "TimelineWindowState: accountID=\(selectedAccountID ?? "nil"), articleID=\(selectedArticleID ?? "nil"), sort=\(sort)"
+		return "TimelineWindowState: articleID=\(selectedArticleID ?? "nil"), sort=\(sort)"
 	}
 }

@@ -49,9 +49,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 		guard let path = oneSelectedArticle?.pathUserInfo else {
 			return TimelineWindowState(sortParameters: sortParameters)
 		}
-		return TimelineWindowState(selectedAccountID: path[ArticlePathKey.accountID] as? String,
-								   selectedArticleID: path[ArticlePathKey.articleID] as? String,
-								   sortParameters: sortParameters)
+		return TimelineWindowState(selectedArticleID: path[ArticlePathKey.articleID] as? String, sortParameters: sortParameters)
 	}
 	weak var delegate: TimelineDelegate?
 	var sharingServiceDelegate: NSSharingServiceDelegate?
@@ -79,18 +77,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 				return
 			}
 
-			if let representedObjects = representedObjects, representedObjects.count == 1 && representedObjects.first is Feed {
-				showFeedNames = {
-					for article in articles {
-						if !article.byline().isEmpty {
-							return .byline
-						}
-					}
-					return .none
-				}()
-			} else {
-				showFeedNames = .feed
-			}
+			showFeedNames = .feed
 
 			articleRowMap = [String: [Int]]()
 			tableView.reloadData()
@@ -393,6 +380,8 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 				let row = min(selectedRow, articles.count - 1)
 				if row >= 0 {
 					tableView.selectRowAndScrollToVisible(row)
+				} else {
+					reconcileSelection()
 				}
 			} else {
 				performBlockAndRestoreSelection {
@@ -452,14 +441,10 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 	}
 
 	@objc func accountDidDownloadArticles(_ note: Notification) {
-		guard let feeds = note.userInfo?[Account.UserInfoKey.feeds] as? Set<Feed> else {
+		guard note.userInfo?[Account.UserInfoKey.feeds] is Set<Feed>, representedObjectsContainsAnyPseudoFeed() else {
 			return
 		}
-
-		let shouldFetchAndMergeArticles = representedObjectsContainsAnyFeed(feeds) || representedObjectsContainsAnyPseudoFeed()
-		if shouldFetchAndMergeArticles {
-			queueFetchAndMergeArticles()
-		}
+		queueFetchAndMergeArticles()
 	}
 
 	@objc func accountStateDidChange(_ note: Notification) {
@@ -496,7 +481,7 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner {
 	}
 
 	@objc func containerChildrenDidChange(_ note: Notification) {
-		if representedObjectsContainsAnyPseudoFeed() || representedObjectsContainAnyFolder() {
+		if representedObjectsContainsAnyPseudoFeed() {
 			// Merge, don't replace — replacing drops articles read this session
 			// from All Unread. Matches iOS.
 			// <https://github.com/Ranchero-Software/NetNewsWire/issues/3832>
@@ -736,17 +721,6 @@ extension TimelineViewController: NSTableViewDelegate {
 		cell.cellData = TimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcons)
 	}
 
-	private func iconFor(_ article: Article) -> IconImage? {
-		if !showIcons {
-			return nil
-		}
-		return IconImageCache.shared.imageForArticle(article)
-	}
-
-	private func avatarForAuthor(_ author: Author) -> IconImage? {
-		return AuthorAvatarDownloader.shared.image(for: author)
-	}
-
 	private func makeTimelineCellEmpty(_ cell: TimelineTableCellView) {
 		cell.objectValue = nil
 		cell.cellData = TimelineCellData()
@@ -792,28 +766,7 @@ private extension TimelineViewController {
 	}
 
 	func updateShowIcons() {
-		if showFeedNames == .feed {
-			self.showIcons = true
-			return
-		}
-
-		if showFeedNames == .none {
-			self.showIcons = false
-			return
-		}
-
-		for article in articles {
-			if let authors = article.authors {
-				for author in authors {
-					if author.avatarURL != nil {
-						self.showIcons = true
-						return
-					}
-				}
-			}
-		}
-
-		self.showIcons = false
+		showIcons = showFeedNames == .feed
 	}
 
 	func emptyTheTimeline() {
@@ -844,6 +797,15 @@ private extension TimelineViewController {
 		let savedSelection = selectedArticleIDs()
 		block()
 		restoreSelection(savedSelection)
+		reconcileSelection()
+	}
+
+	/// Reloading the table clears its selection without telling its delegate, so after the
+	/// articles change, the article view hears what is selected now: nothing, when the selected
+	/// article was deleted or left the list. An unchanged selection isn't sent again.
+	func reconcileSelection() {
+		let selectedArticles = selectedArticles
+		selectionDidChange(selectedArticles.isEmpty ? nil : selectedArticles)
 	}
 
 	func rows(for articleID: String) -> [Int]? {
@@ -1027,31 +989,4 @@ private extension TimelineViewController {
 		return representedObjects?.contains(where: { $0 is PseudoFeed}) ?? false
 	}
 
-	func representedObjectsContainAnyFolder() -> Bool {
-		return representedObjects?.contains(where: { $0 is Folder }) ?? false
-	}
-
-	func representedObjectsContainsAnyFeed(_ feeds: Set<Feed>) -> Bool {
-		// Return true if there’s a match or if a folder contains (recursively) one of feeds
-
-		guard let representedObjects = representedObjects else {
-			return false
-		}
-		for representedObject in representedObjects {
-			if let feed = representedObject as? Feed {
-				for oneFeed in feeds {
-					if feed.feedID == oneFeed.feedID || feed.url == oneFeed.url {
-						return true
-					}
-				}
-			} else if let folder = representedObject as? Folder {
-				for oneFeed in feeds {
-					if folder.hasFeed(with: oneFeed.feedID) || folder.hasFeed(withURL: oneFeed.url) {
-						return true
-					}
-				}
-			}
-		}
-		return false
-	}
 }
