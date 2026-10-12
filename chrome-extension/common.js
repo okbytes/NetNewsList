@@ -23,10 +23,12 @@ export function openLocalSaveWindow(pageURL, title) {
   });
 }
 
+// Percent-encoded, not URLSearchParams: that writes spaces as "+", which the app's
+// URLComponents reads as a literal plus.
 export function addURL(pageURL, title) {
-  const params = new URLSearchParams({ url: pageURL });
+  let link = `netnewslist://add?url=${encodeURIComponent(pageURL)}`;
   if (title && title.trim()) {
-    params.set("title", title.trim());
+    link += `&title=${encodeURIComponent(title.trim())}`;
   }
-  return `netnewslist://add?${params.toString()}`;
+  return link;
 }
