@@ -16,15 +16,9 @@ import RSCore
 final class MainWindowController: NSWindowController, NSUserInterfaceValidations {
 	static private let logger = Logger(subsystem: Logger.nnwSubsystem, category: "MainWindowController")
 
-    private var activityManager = ActivityManager()
-
-	private var sharingServicePickerDelegate: SharingServicePickerDelegate?
+	private var activityManager = ActivityManager()
 
 	private let windowAutosaveName = NSWindow.FrameAutosaveName("MainWindow")
-
-	private var shareToolbarItem: NSToolbarItem? {
-		return window?.toolbar?.existingItem(withIdentifier: .share)
-	}
 
 	private static let detailViewMinimumWidth = 384
 	private static let timelineHoldingPriority: Float = 255
@@ -60,16 +54,7 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		// Every window opens on the Queue.
 		show(SmartFeedsController.shared.unreadFeed)
 
-		sharingServicePickerDelegate = SharingServicePickerDelegate(self.window)
-
-		NotificationCenter.default.addObserver(self, selector: #selector(refreshProgressDidChange(_:)), name: .AccountRefreshDidBegin, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(refreshProgressDidChange(_:)), name: .AccountRefreshDidFinish, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(refreshProgressDidChange(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
-
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
-
-		NotificationCenter.default.addObserver(self, selector: #selector(articleThemeNamesDidChangeNotification(_:)), name: .ArticleThemeNamesDidChangeNotification, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(currentArticleThemeDidChangeNotification(_:)), name: .CurrentArticleThemeDidChangeNotification, object: nil)
 	}
 
 	// MARK: - API
@@ -111,24 +96,12 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	// MARK: - Notifications
 
-	@objc func refreshProgressDidChange(_ note: Notification) {
-		CoalescingQueue.standard.add(self, #selector(makeToolbarValidate))
-	}
-
 	@objc func unreadCountDidChange(_ note: Notification) {
 		CoalescingQueue.standard.add(self, #selector(coalescedUpdateWindowTitle))
 	}
 
 	@objc func coalescedUpdateWindowTitle() {
 		updateWindowTitle()
-	}
-
-	@objc func articleThemeNamesDidChangeNotification(_ note: Notification) {
-		updateArticleThemeMenu()
-	}
-
-	@objc func currentArticleThemeDidChangeNotification(_ note: Notification) {
-		updateArticleThemeMenu()
 	}
 
 	// MARK: - Toolbar
@@ -172,10 +145,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 		if item.action == #selector(gotoArchive(_:)) {
 			return validateList(item, SmartFeedsController.shared.archiveFeed)
-		}
-
-		if item.action == #selector(toolbarShowShareMenu(_:)) {
-			return canShowShareMenu()
 		}
 
 		if item.action == #selector(sortArticlesByField(_:)) {
@@ -313,36 +282,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		currentTimelineViewController?.focus()
 	}
 
-	@IBAction func toolbarShowShareMenu(_ sender: Any?) {
-		guard let selectedArticles = selectedArticles, !selectedArticles.isEmpty else {
-			assertionFailure("Expected toolbarShowShareMenu to be called only when there are selected articles.")
-			return
-		}
-		guard let shareToolbarItem = shareToolbarItem else {
-			assertionFailure("Expected toolbarShowShareMenu to be called only by the Share item in the toolbar.")
-			return
-		}
-		// In the toolbar's Text Only mode or overflow menu the item's view isn't on-window, so anchor the picker to the window instead.
-		let anchorView: NSView
-		let anchorRect: NSRect
-		if let view = shareToolbarItem.view, view.window != nil {
-			anchorView = view
-			anchorRect = view.bounds
-		} else if let contentView = window?.contentView {
-			anchorView = contentView
-			anchorRect = NSRect(x: contentView.frame.width / 2.0, y: contentView.frame.height - 4, width: 1, height: 1)
-		} else {
-			return
-		}
-
-		let sortedArticles = selectedArticles.sortedByDate(.orderedAscending)
-		let items = sortedArticles.map { ArticlePasteboardWriter(article: $0) }
-
-		let sharingServicePicker = NSSharingServicePicker(items: items)
-		sharingServicePicker.delegate = sharingServicePickerDelegate
-		sharingServicePicker.show(relativeTo: anchorRect, of: anchorView, preferredEdge: .minY)
-	}
-
 	/// Deletes the selected articles here and on every other device, after asking.
 	@IBAction func deleteArticles(_ sender: Any?) {
 		guard let articles = selectedArticles, let window else {
@@ -372,9 +311,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		timelineContainerViewController?.setSortDirection(.orderedDescending)
 	}
 
-	@objc func selectArticleTheme(_ menuItem: NSMenuItem) {
-		ArticleThemesManager.shared.currentThemeName = menuItem.title
-	}
 }
 
 // MARK: NSWindowDelegate
@@ -437,12 +373,10 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {
+	static let listMenu = NSToolbarItem.Identifier("listMenu")
 	static let addArticle = NSToolbarItem.Identifier("addArticle")
-	static let refresh = NSToolbarItem.Identifier("refresh")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
-	static let share = NSToolbarItem.Identifier("share")
-	static let articleThemeMenu = NSToolbarItem.Identifier("articleThemeMenu")
 }
 
 extension MainWindowController: NSToolbarDelegate {
@@ -451,9 +385,15 @@ extension MainWindowController: NSToolbarDelegate {
 
 		switch itemIdentifier {
 
-		case .refresh:
-			let title = NSLocalizedString("Sync Now", comment: "Sync Now")
-			return buildToolbarButton(.refresh, title, Assets.Images.refresh, "refreshAll:")
+		case .listMenu:
+			let toolbarItem = NSMenuToolbarItem(itemIdentifier: .listMenu)
+			toolbarItem.image = Assets.Images.listMenu
+			toolbarItem.showsIndicator = false
+			let description = NSLocalizedString("Lists", comment: "Toolbar menu that switches between the Queue and the Archive")
+			toolbarItem.toolTip = description
+			toolbarItem.label = description
+			toolbarItem.menu = makeListMenu()
+			return toolbarItem
 
 		case .addArticle:
 			let title = NSLocalizedString("Add Article", comment: "Add Article")
@@ -461,65 +401,29 @@ extension MainWindowController: NSToolbarDelegate {
 
 		case .markRead:
 			let title = NSLocalizedString("Archive", comment: "command")
-			return buildToolbarButton(.markRead, title, Assets.Images.readClosed, "toggleRead:")
-
-		case .share:
-			let title = NSLocalizedString("Share", comment: "Share button")
-			return buildToolbarButton(.share, title, Assets.Images.share, "toolbarShowShareMenu:")
+			return buildToolbarButton(.markRead, title, Assets.Images.archive, "toggleRead:")
 
 		case .openInBrowser:
 			let title = NSLocalizedString("Open in Browser", comment: "Command")
 			return buildToolbarButton(.openInBrowser, title, Assets.Images.openInBrowser, "openArticleInBrowser:")
 
-		case .articleThemeMenu:
-			// Built per toolbar: a toolbar item belongs to one toolbar, and the toolbar is rebuilt on a layout switch.
-			let toolbarItem = NSMenuToolbarItem(itemIdentifier: .articleThemeMenu)
-			toolbarItem.image = Assets.Images.articleTheme
-			let description = NSLocalizedString("Article Theme", comment: "Article Theme")
-			toolbarItem.toolTip = description
-			toolbarItem.label = description
-			toolbarItem.menu = makeArticleThemeMenu()
-			return toolbarItem
-
 		default:
-			break
+			return nil
 		}
-
-		return nil
 	}
 
 	func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-		[
-			.refresh,
-			.addArticle,
-			.flexibleSpace,
-			.markRead,
-			.openInBrowser,
-			.share,
-			.articleThemeMenu
-		]
+		toolbarDefaultItemIdentifiers(toolbar)
 	}
 
 	func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		[
-			.refresh,
+			.listMenu,
 			.addArticle,
 			.flexibleSpace,
 			.markRead,
-			.share,
 			.openInBrowser
 		]
-	}
-
-	func toolbarWillAddItem(_ notification: Notification) {
-		guard let item = notification.userInfo?["item"] as? NSToolbarItem else {
-			return
-		}
-
-		if item.itemIdentifier == .share, let button = item.view as? NSButton {
-			// The share button should send its action on mouse down, not mouse up.
-			button.sendAction(on: .leftMouseDown)
-		}
 	}
 }
 
@@ -567,10 +471,11 @@ private extension MainWindowController {
 		return splitViewController
 	}
 
+	/// The toolbar can’t be customized, so it always has the default items.
 	func makeToolbar() -> NSToolbar {
 		let toolbar = NSToolbar(identifier: Self.toolbarIdentifier)
-		toolbar.allowsUserCustomization = true
-		toolbar.autosavesConfiguration = true
+		toolbar.allowsUserCustomization = false
+		toolbar.autosavesConfiguration = false
 		toolbar.displayMode = .iconOnly
 		toolbar.delegate = self
 		return toolbar
@@ -720,18 +625,10 @@ private extension MainWindowController {
 		}
 
 		if let toolbarItem = item as? NSToolbarItem, let button = toolbarItem.view as? NSButton {
-			button.image = markingRead ? Assets.Images.readClosed : Assets.Images.readOpen
+			button.image = markingRead ? Assets.Images.archive : Assets.Images.moveToQueue
 		}
 
 		return result
-	}
-
-	func canShowShareMenu() -> Bool {
-
-		guard let selectedArticles = selectedArticles else {
-			return false
-		}
-		return !selectedArticles.isEmpty
 	}
 
 	/// Go › Queue and Go › Archive are checked when their list is showing.
@@ -798,32 +695,16 @@ private extension MainWindowController {
 		return toolbarItem
 	}
 
-	func updateArticleThemeMenu() {
-		guard let toolbarItem = window?.toolbar?.existingItem(withIdentifier: .articleThemeMenu) as? NSMenuToolbarItem else {
-			return
-		}
-		toolbarItem.menu = makeArticleThemeMenu()
-	}
-
-	func makeArticleThemeMenu() -> NSMenu {
-		let articleThemeMenu = NSMenu()
-
-		let defaultThemeItem = NSMenuItem()
-		defaultThemeItem.title = ArticleTheme.defaultTheme.name
-		defaultThemeItem.action = #selector(selectArticleTheme(_:))
-		defaultThemeItem.state = defaultThemeItem.title == ArticleThemesManager.shared.currentThemeName ? .on : .off
-		articleThemeMenu.addItem(defaultThemeItem)
-
-		articleThemeMenu.addItem(NSMenuItem.separator())
-
-		for themeName in ArticleThemesManager.shared.themeNames {
-			let themeItem = NSMenuItem()
-			themeItem.title = themeName
-			themeItem.action = #selector(selectArticleTheme(_:))
-			themeItem.state = themeItem.title == ArticleThemesManager.shared.currentThemeName ? .on : .off
-			articleThemeMenu.addItem(themeItem)
-		}
-
-		return articleThemeMenu
+	/// Queue and Archive, checked by validateList like the Go menu’s items.
+	func makeListMenu() -> NSMenu {
+		let smartFeeds = SmartFeedsController.shared
+		let menu = NSMenu()
+		let queueItem = NSMenuItem(title: smartFeeds.unreadFeed.nameForDisplay, action: #selector(gotoQueue(_:)), keyEquivalent: "1")
+		queueItem.target = self
+		menu.addItem(queueItem)
+		let archiveItem = NSMenuItem(title: smartFeeds.archiveFeed.nameForDisplay, action: #selector(gotoArchive(_:)), keyEquivalent: "2")
+		archiveItem.target = self
+		menu.addItem(archiveItem)
+		return menu
 	}
 }

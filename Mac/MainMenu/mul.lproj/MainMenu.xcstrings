@@ -19,24 +19,6 @@
         }
       }
     },
-    "1UK-8n-QPP.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Customize Toolbar…\"; ObjectID = \"1UK-8n-QPP\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Customize Toolbar…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Personalizar barra de herramientas…"
-          }
-        }
-      }
-    },
     "1Xt-HY-uBw.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"NetNewsWire\"; ObjectID = \"1Xt-HY-uBw\";",
       "extractionState" : "extracted_with_value",
