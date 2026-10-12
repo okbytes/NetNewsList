@@ -72,7 +72,6 @@ let appName = "NetNewsList"
 	}
 
 	private var mainWindowControllers = [MainWindowController]()
-	private lazy var preferencesWindowController = PreferencesWindowController()
 	private var aboutWindowController: AboutWindowController?
 	private var addArticleSheet: NSWindow?
 	private var keyboardShortcutsWindowController: WebViewWindowController?
@@ -438,9 +437,6 @@ let appName = "NetNewsList"
 	}
 
 	// MARK: - Actions
-	@IBAction func showPreferences(_ sender: Any?) {
-		preferencesWindowController.showWindow(self)
-	}
 
 	@IBAction func newMainWindow(_ sender: Any?) {
 		createAndShowMainWindow()

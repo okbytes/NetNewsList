@@ -47,7 +47,7 @@ extension TimelineViewController {
 		guard let menuItem = sender as? NSMenuItem, let urlString = menuItem.representedObject as? String else {
 			return
 		}
-		Browser.open(urlString, inBackground: false)
+		Browser.open(urlString)
 	}
 
 	@objc func copyURLFromContextualMenu(_ sender: Any?) {

@@ -29,13 +29,9 @@ final class AppDefaults: Sendable {
 		static let timelineSortDirection = "timelineSortDirection"
 		static let timelineGroupByFeed = "timelineGroupByFeed"
 		static let detailFontSize = "detailFontSize"
-		static let openInBrowserInBackground = "openInBrowserInBackground"
-		static let articleTextSize = "articleTextSize"
 		static let addFeedAccountID = "addFeedAccountID"
 		static let addFeedFolderName = "addFeedFolderName"
 		static let addFolderAccountID = "addFolderAccountID"
-		static let defaultBrowserID = "defaultBrowserID"
-		static let currentThemeName = "currentThemeName"
 
 		// Hidden prefs
 		static let showDebugMenu = "ShowDebugMenu"
@@ -73,15 +69,6 @@ final class AppDefaults: Sendable {
 		}
 		set {
 			AppDefaults.setDate(for: Key.lastImageCacheFlushDate, newValue)
-		}
-	}
-
-	var openInBrowserInBackground: Bool {
-		get {
-			return AppDefaults.bool(for: Key.openInBrowserInBackground)
-		}
-		set {
-			AppDefaults.setBool(for: Key.openInBrowserInBackground, newValue)
 		}
 	}
 
@@ -130,21 +117,14 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var defaultBrowserID: String? {
-		get {
-			return AppDefaults.string(for: Key.defaultBrowserID)
-		}
-		set {
-			AppDefaults.setString(for: Key.defaultBrowserID, newValue)
-		}
-	}
-
+	/// The Mac app has one article theme, the default. Shared `ArticleThemesManager` reads this, and
+	/// would set it only to choose another theme, which nothing on the Mac does.
 	var currentThemeName: String? {
 		get {
-			return AppDefaults.string(for: Key.currentThemeName)
+			Self.defaultThemeName
 		}
 		set {
-			AppDefaults.setString(for: Key.currentThemeName, newValue)
+			assert(newValue == Self.defaultThemeName, "The Mac app has only the default article theme.")
 		}
 	}
 
@@ -206,14 +186,9 @@ final class AppDefaults: Sendable {
 		return AppDefaults.bool(for: Key.timelineShowsSeparators)
 	}
 
+	/// There’s no setting for it: articles are always shown at this size.
 	var articleTextSize: ArticleTextSize {
-		get {
-			let rawValue = UserDefaults.standard.integer(forKey: Key.articleTextSize)
-			return ArticleTextSize(rawValue: rawValue) ?? ArticleTextSize.large
-		}
-		set {
-			UserDefaults.standard.set(newValue.rawValue, forKey: Key.articleTextSize)
-		}
+		.large
 	}
 
 	/// Saved pages never run scripts, and the Mac app has no live-page view, so nothing on the Mac
@@ -236,8 +211,7 @@ final class AppDefaults: Sendable {
 			Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 			Key.timelineGroupByFeed: false,
 			"NSScrollViewShouldScrollUnderTitlebar": false,
-			Key.showDebugMenu: showDebugMenu,
-			Key.currentThemeName: Self.defaultThemeName
+			Key.showDebugMenu: showDebugMenu
 		]
 
 		UserDefaults.standard.register(defaults: defaults)

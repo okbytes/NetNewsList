@@ -487,24 +487,6 @@
         }
       }
     },
-    "BOF-NM-1cW.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Preferences…\"; ObjectID = \"BOF-NM-1cW\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Preferences…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preferencias…"
-          }
-        }
-      }
-    },
     "buJ-ug-pKt.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Use Selection for Find\"; ObjectID = \"buJ-ug-pKt\";",
       "extractionState" : "extracted_with_value",
@@ -663,24 +645,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ocultar fuentes leídas"
-          }
-        }
-      }
-    },
-    "EjD-X9-Pjf.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Open in Browser Inverted\"; ObjectID = \"EjD-X9-Pjf\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open in Browser Inverted"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir en el navegador (invertido)"
           }
         }
       }

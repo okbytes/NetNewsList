@@ -30,11 +30,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
-                            <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW">
-                                <connections>
-                                    <action selector="showPreferences:" target="-1" id="Syu-AN-6P4"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Sign In to X…" id="xSi-mn-01a">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -439,12 +434,6 @@
                             <menuItem title="Open in Browser" keyEquivalent="" id="4iQ-1v-dTa">
                                 <connections>
                                     <action selector="openArticleInBrowser:" target="-1" id="KeH-ES-fpo"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Open in Browser Inverted" alternate="YES" keyEquivalent="" id="EjD-X9-Pjf">
-                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
-                                <connections>
-                                    <action selector="openArticleInBrowser:" target="-1" id="Frq-Uo-DQs"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="dAr-sp-01a"/>

@@ -74,29 +74,5 @@
 		<key>title</key>
 		<string>Go to Next Feed</string>
 	</dict>
-	<dict>
-		<key>action</key>
-		<string>openInBrowserUsingOppositeOfSettings:</string>
-		<key>key</key>
-		<string>[enter]</string>
-		<key>shiftModifier</key>
-		<true/>
-	</dict>
-	<dict>
-		<key>action</key>
-		<string>openInBrowserUsingOppositeOfSettings:</string>
-		<key>key</key>
-		<string>[return]</string>
-		<key>shiftModifier</key>
-		<true/>
-	</dict>
-	<dict>
-		<key>action</key>
-		<string>openInBrowserUsingOppositeOfSettings:</string>
-		<key>key</key>
-		<string>B</string>
-		<key>shiftModifier</key>
-		<true/>
-	</dict>
 </array>
 </plist>

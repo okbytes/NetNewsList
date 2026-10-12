@@ -128,10 +128,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		}
 
 		if item.action == #selector(openArticleInBrowser(_:)) {
-			if let item = item as? NSMenuItem, item.keyEquivalentModifierMask.contains(.shift) {
-				item.title = Browser.titleForOpenInBrowserInverted
-			}
-
 			return currentLink != nil
 		}
 
@@ -221,29 +217,18 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	@IBAction func openArticleInBrowser(_ sender: Any?) {
 		if let link = currentLink {
-			Browser.open(link, invertPreference: NSApp.currentEvent?.modifierFlags.contains(.shift) ?? false)
+			Browser.open(link)
 		}
 	}
 
+	/// The b and Enter keys.
 	@IBAction func openInBrowser(_ sender: Any?) {
-		if AppDefaults.shared.openInBrowserInBackground {
-			window?.makeKeyAndOrderFront(self)
-		}
 		openArticleInBrowser(sender)
 	}
 
+	/// The Return key. There’s no in-app browser on the Mac.
 	@objc func openInAppBrowser(_ sender: Any?) {
-		// There is no In-App Browser for mac - so we use safari
 		openArticleInBrowser(sender)
-	}
-
-	@IBAction func openInBrowserUsingOppositeOfSettings(_ sender: Any?) {
-		if !AppDefaults.shared.openInBrowserInBackground {
-			window?.makeKeyAndOrderFront(self)
-		}
-		if let link = currentLink {
-			Browser.open(link, inBackground: !AppDefaults.shared.openInBrowserInBackground)
-		}
 	}
 
 	@IBAction func toggleRead(_ sender: Any?) {

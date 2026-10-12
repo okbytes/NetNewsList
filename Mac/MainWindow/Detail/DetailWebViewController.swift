@@ -53,8 +53,6 @@ final class DetailWebViewController: NSViewController {
 		}
 	}
 
-	private var articleTextSize = AppDefaults.shared.articleTextSize
-
 	private var webInspectorEnabled: Bool {
 		get {
 			return webView.configuration.preferences._developerExtrasEnabled
@@ -108,11 +106,6 @@ final class DetailWebViewController: NSViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(avatarDidBecomeAvailable(_:)), name: .AvatarDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .FaviconDidBecomeAvailable, object: nil)
-		NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-			Task { @MainActor in
-				self?.userDefaultsDidChange()
-			}
-		}
 		NotificationCenter.default.addObserver(self, selector: #selector(currentArticleThemeDidChangeNotification(_:)), name: .CurrentArticleThemeDidChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .AccountDidDownloadArticles, object: nil)
@@ -132,13 +125,6 @@ final class DetailWebViewController: NSViewController {
 
 	@objc func faviconDidBecomeAvailable(_ note: Notification) {
 		reloadArticleImage()
-	}
-
-	func userDefaultsDidChange() {
-		if articleTextSize != AppDefaults.shared.articleTextSize {
-			articleTextSize = AppDefaults.shared.articleTextSize
-			reloadHTMLMaintainingScrollPosition()
-		}
 	}
 
 	@objc func currentArticleThemeDidChangeNotification(_ note: Notification) {
@@ -211,9 +197,8 @@ extension DetailWebViewController: WKScriptMessageHandler {
 extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 
 	// Bottleneck through which WebView-based URL opens go
-	func openInBrowser(_ url: URL, flags: NSEvent.ModifierFlags) {
-		let invert = flags.contains(.shift) || flags.contains(.command)
-		Browser.open(url.absoluteString, invertPreference: invert)
+	func openInBrowser(_ url: URL) {
+		Browser.open(url.absoluteString)
 	}
 
 	// WKNavigationDelegate
@@ -221,7 +206,7 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 	func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 		if navigationAction.navigationType == .linkActivated {
 			if let url = navigationAction.request.url {
-				self.openInBrowser(url, flags: navigationAction.modifierFlags)
+				self.openInBrowser(url)
 			}
 			decisionHandler(.cancel, preferences)
 			return
@@ -286,7 +271,7 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 		// or on the "Watch in YouTube" button. For our purposes we'll handle such window.open calls the same way we
 		// handle clicks on a URL.
 		if let url = navigationAction.request.url {
-			self.openInBrowser(url, flags: navigationAction.modifierFlags)
+			self.openInBrowser(url)
 		}
 
 		return nil
