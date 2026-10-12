@@ -12,7 +12,6 @@ import RSCore
 import RSDatabase
 import Account
 import Articles
-import ErrorLog
 
 // Main thread only.
 // Runs an asynchronous fetch.
@@ -196,12 +195,4 @@ typealias FetchRequestOperationResultBlock = (Set<Article>, FetchRequestOperatio
 private extension FetchRequestOperation {
 
 	static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "FetchRequestOperation")
-	static let errorLogSourceID = 101
-
-	static func postFetchError(_ error: Error, fileName: String = #fileID, functionName: String = #function, lineNumber: Int = #line) {
-		let typeName = String(describing: type(of: error))
-		let description = "\(typeName): \(error.localizedDescription)"
-		let userInfo = ErrorLogUserInfoKey.userInfo(sourceName: "Timeline", sourceID: errorLogSourceID, operation: "Fetching articles", errorMessage: description, fileName: fileName, functionName: functionName, lineNumber: lineNumber)
-		NotificationCenter.default.post(name: .appDidEncounterError, object: nil, userInfo: userInfo)
-	}
 }

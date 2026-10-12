@@ -119,10 +119,6 @@ import Account
 						  lastUpdateTime: Date.now)
 	}
 
-	func fileExists() -> Bool {
-		FileManager.default.fileExists(atPath: dataURL.path)
-	}
-
 	func writeImageDataToSharedContainer(_ imageData: Data?) -> String? {
 		guard let imageData, let md5 = imageData.md5String else {
 			return nil

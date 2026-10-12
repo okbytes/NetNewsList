@@ -12,11 +12,7 @@ import Articles
 import Account
 import Images
 
-// These handle multiple accounts.
-
-@MainActor func markArticles(_ articles: Set<Article>, statusKey: ArticleStatus.Key, flag: Bool, completion: (() -> Void)? = nil) {
-	markArticleIDs(articleIDsByAccountID(articles), statusKey: statusKey, flag: flag, completion: completion)
-}
+// This handles multiple accounts.
 
 @MainActor func markArticleIDs(_ articleIDsByAccountID: [String: Set<String>], statusKey: ArticleStatus.Key, flag: Bool, completion: (() -> Void)? = nil) {
 	Task { @MainActor in
@@ -28,11 +24,6 @@ import Images
 		}
 		completion?()
 	}
-}
-
-private func articleIDsByAccountID(_ articles: Set<Article>) -> [String: Set<String>] {
-	let d = Dictionary(grouping: articles, by: { $0.accountID })
-	return d.mapValues { Set($0.articleIDs()) }
 }
 
 extension Article {
@@ -48,10 +39,6 @@ extension Article {
 		return url ?? externalURL
 	}
 
-	var imageURL: URL? {
-		return URL.encodeSpacesIfNeeded(rawImageLink)
-	}
-
 	var link: String? {
 		// Prefer link from URL, if one can be created, as these are repaired if required.
 		// Provide the raw link if URL creation fails.
@@ -62,12 +49,6 @@ extension Article {
 		// Prefer link from externalURL, if one can be created, as these are repaired if required.
 		// Provide the raw link if URL creation fails.
 		return externalURL?.absoluteString ?? rawExternalLink
-	}
-
-	var imageLink: String? {
-		// Prefer link from imageURL, if one can be created, as these are repaired if required.
-		// Provide the raw link if URL creation fails.
-		return imageURL?.absoluteString ?? rawImageLink
 	}
 
 	var preferredLink: String? {
@@ -116,22 +97,6 @@ extension Article {
 
 	func iconImage() -> IconImage? {
 		return IconImageCache.shared.imageForArticle(self)
-	}
-
-	func iconImageUrl(feed: Feed) -> URL? {
-		if let image = iconImage() {
-			guard let imageData = image.image.dataRepresentation() else {
-				return nil
-			}
-			let fm = FileManager.default
-			var path = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-			let feedID = feed.feedID.replacingOccurrences(of: "/", with: "_")
-			path.appendPathComponent(feedID + "_smallIcon.png")
-			fm.createFile(atPath: path.path, contents: imageData, attributes: nil)
-			return path
-		} else {
-			return nil
-		}
 	}
 
 	var isAvailableToMarkUnread: Bool {

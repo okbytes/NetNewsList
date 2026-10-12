@@ -148,11 +148,6 @@ import Account
 		let renderer = ArticleRenderer(article: nil, theme: theme)
 		return (renderer.articleCSS, renderer.noSelectionHTML, renderer.title, renderer.baseURL ?? "")
 	}
-
-	static func noContentHTML(theme: ArticleTheme) -> Rendering {
-		let renderer = ArticleRenderer(article: nil, theme: theme)
-		return (renderer.articleCSS, renderer.noContentHTML, renderer.title, renderer.baseURL ?? "")
-	}
 }
 
 // MARK: - Private
@@ -176,10 +171,6 @@ private extension ArticleRenderer {
 	private var noSelectionHTML: String {
 		let body = "<h3 class='systemMessage'>No selection</h3>"
 		return body
-	}
-
-	private var noContentHTML: String {
-		return ""
 	}
 
 	private var articleCSS: String {

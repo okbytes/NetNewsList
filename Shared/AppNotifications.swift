@@ -10,6 +10,5 @@ import Foundation
 import Articles
 
 extension Notification.Name {
-	static let UserDidAddFeed = Notification.Name("UserDidAddFeedNotification")
 	static let WebInspectorEnabledDidChange = Notification.Name("WebInspectorEnabledDidChange")
 }

@@ -11,12 +11,4 @@ import Foundation
 enum MarkCommandValidationStatus {
 
 	case canMark, canUnmark, canDoNothing
-
-	static func statusFor(_ articles: ArticleArray, _ canMarkTest: ((ArticleArray) -> Bool)) -> MarkCommandValidationStatus {
-
-		if articles.isEmpty {
-			return .canDoNothing
-		}
-		return canMarkTest(articles) ? .canMark : .canUnmark
-	}
 }

@@ -55,11 +55,6 @@ typealias ArticleArray = [Article]
 		return anyArticlePassesTest { !$0.status.read }
 	}
 
-	func unreadArticles() -> [Article]? {
-		let articles = self.filter { !$0.status.read }
-		return articles.isEmpty ? nil : articles
-	}
-
 	func representSameArticlesInSameOrder(as otherArticles: [Article]) -> Bool {
 		if self.count != otherArticles.count {
 			return false
