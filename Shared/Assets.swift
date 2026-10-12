@@ -24,8 +24,6 @@ typealias RSColor = UIColor
 
 struct Assets {
 	@MainActor struct Images {
-		static var accountCloudKit: RSImage { RSImage(named: "accountCloudKit")! }
-
 		static let copy = RSImage(symbol: "document.on.document")
 		static var markAllAsRead: RSImage { RSImage(named: "markAllAsRead")! }
 
@@ -33,7 +31,6 @@ struct Assets {
 		static var faviconTemplate: RSImage { RSImage(named: "faviconTemplateImage")! }
 
 		static let share = RSImage(symbol: "square.and.arrow.up")!
-		static let folder = RSImage(symbol: "folder")!
 		/// Archive an article: from the Queue to the Archive.
 		static let archive = RSImage(symbol: "archivebox")!
 		/// Move an archived article back to the Queue.
@@ -52,7 +49,6 @@ struct Assets {
 		static let refresh = RSImage(symbol: "arrow.clockwise")!
 		static let swipeMarkRead = RSImage(systemSymbolName: "circle", accessibilityDescription: "Mark Read")!
 		static let swipeMarkUnread = RSImage(systemSymbolName: "largecircle.fill.circle", accessibilityDescription: "Mark Unread")!
-		static let mainFolder = IconImage(folder, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.systemBrown)
 
@@ -71,17 +67,9 @@ struct Assets {
 		static let smartFeed = RSImage(symbol: "gear")!
 		static let trash = RSImage(symbol: "trash")!
 
-		static let mainFolder = IconImage(folder, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: UIColor.systemBrown)
 #endif
-	}
-
-	@MainActor static func accountImage(_ accountType: AccountType) -> RSImage {
-		switch accountType {
-		case .cloudKit:
-			return Assets.Images.accountCloudKit
-		}
 	}
 
 	@MainActor struct Colors {

@@ -34,13 +34,4 @@ extension AccountType {
 		}
 	}
 	#endif
-
-	// MARK: - SwiftUI Images
-	@MainActor func image() -> Image {
-		switch self {
-		case .cloudKit:
-			return Image("accountCloudKit")
-		}
-	}
-
 }

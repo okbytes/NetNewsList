@@ -337,7 +337,6 @@
 				Commands/MarkCommandValidationStatus.swift,
 				ShareExtension/SafariExt.js,
 				ShareExtension/SharedPageResolver.swift,
-				SmartFeeds/SmartFeedPasteboardWriter.swift,
 			);
 			target = 840D617B2029031C009BC708 /* NetNewsWire-iOS */;
 		};

@@ -11,20 +11,15 @@ import RSCore
 import Account
 import Articles
 
-@MainActor final class SmartFeedsController: DisplayNameProvider, ContainerIdentifiable {
-	nonisolated let containerID: ContainerIdentifier? = ContainerIdentifier.smartFeedController
+@MainActor final class SmartFeedsController {
 
 	public static let shared = SmartFeedsController()
-	let nameForDisplay = NSLocalizedString("Reading List", comment: "Sidebar group title")
 
-	var smartFeeds = [SidebarItem]()
 	/// Queue: everything saved and not yet archived.
 	let unreadFeed = UnreadFeed()
 	let archiveFeed = SmartFeed(delegate: ArchiveFeedDelegate())
 
-	private init() {
-		self.smartFeeds = [unreadFeed, archiveFeed]
-	}
+	private init() {}
 
 	/// The list an article is in: Archive once it's archived (read), Queue until then.
 	func list(for article: Article) -> PseudoFeed {

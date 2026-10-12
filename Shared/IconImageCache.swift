@@ -30,16 +30,6 @@ import Images
 		emptyCache()
 	}
 
-	func imageFor(_ feedID: SidebarItemIdentifier) -> IconImage? {
-		if let smartFeed = SmartFeedsController.shared.find(by: feedID) {
-			return imageForFeed(smartFeed)
-		}
-		if let feed = AccountManager.shared.existingFeed(with: feedID) {
-			return imageForFeed(feed)
-		}
-		return nil
-	}
-
 	func imageForFeed(_ sidebarItem: SidebarItem) -> IconImage? {
 		guard let sidebarItemID = sidebarItem.sidebarItemID else {
 			return nil
@@ -74,13 +64,6 @@ import Images
 
 		}
 		SiteFaviconCache.shared.prefetch(articles)
-	}
-
-	func prefetchImagesForFeeds(_ feeds: [Feed]) {
-		for feed in feeds {
-			_ = FeedIconDownloader.shared.icon(for: feed)
-			_ = FaviconDownloader.shared.faviconAsIcon(for: feed)
-		}
 	}
 
 	func imageForArticle(_ article: Article) -> IconImage? {

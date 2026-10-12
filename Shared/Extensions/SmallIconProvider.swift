@@ -16,24 +16,11 @@ protocol SmallIconProvider {
 	@MainActor var smallIcon: IconImage? { get }
 }
 
-@MainActor extension Account: SmallIconProvider {
-	var smallIcon: IconImage? {
-		let image = Assets.accountImage(type)
-		return IconImage(image)
-	}
-}
-
 @MainActor extension Feed: SmallIconProvider {
 	var smallIcon: IconImage? {
 		if let iconImage = FaviconDownloader.shared.favicon(for: self) {
 			return iconImage
 		}
 		return FaviconGenerator.shared.favicon(self)
-	}
-}
-
-@MainActor extension Folder: SmallIconProvider {
-	var smallIcon: IconImage? {
-		Assets.Images.mainFolder
 	}
 }
