@@ -263,10 +263,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return currentLink != nil
 		}
 
-		if item.action == #selector(markAllAsRead(_:)) {
-			return canMarkAllAsRead()
-		}
-
 		if item.action == #selector(toggleRead(_:)) {
 			return validateToggleRead(item)
 		}
@@ -380,10 +376,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		if let link = currentLink {
 			Browser.open(link, inBackground: !AppDefaults.shared.openInBrowserInBackground)
 		}
-	}
-
-	@IBAction func markAllAsRead(_ sender: Any?) {
-		currentTimelineViewController?.markAllAsRead()
 	}
 
 	@IBAction func toggleRead(_ sender: Any?) {
@@ -683,7 +675,6 @@ extension NSToolbarItem.Identifier {
 	static let refresh = NSToolbarItem.Identifier("refresh")
 	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
 	static let search = NSToolbarItem.Identifier("search")
-	static let markAllAsRead = NSToolbarItem.Identifier("markAllAsRead")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let showOriginal = NSToolbarItem.Identifier("showOriginal")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
@@ -704,10 +695,6 @@ extension MainWindowController: NSToolbarDelegate {
 		case .addArticle:
 			let title = NSLocalizedString("Add Article", comment: "Add Article")
 			return buildToolbarButton(.addArticle, title, Assets.Images.addNewSidebarItem, "showAddArticleWindow:")
-
-		case .markAllAsRead:
-			let title = NSLocalizedString("Archive All", comment: "Command")
-			return buildToolbarButton(.markAllAsRead, title, Assets.Images.markAllAsRead, "markAllAsRead:")
 
 		case .timelineTrackingSeparator:
 			// Only the standard layout has a vertical divider between the timeline and the article view.
@@ -771,7 +758,6 @@ extension MainWindowController: NSToolbarDelegate {
 			.refresh,
 			.addArticle,
 			.sidebarTrackingSeparator,
-			.markAllAsRead,
 			.timelineTrackingSeparator,
 			.flexibleSpace,
 			.markRead,
@@ -790,7 +776,6 @@ extension MainWindowController: NSToolbarDelegate {
 			.refresh,
 			.addArticle,
 			.sidebarTrackingSeparator,
-			.markAllAsRead,
 			.timelineTrackingSeparator,
 			.markRead,
 			.showOriginal,
@@ -1187,11 +1172,6 @@ private extension MainWindowController {
 			}
 		}
 		return false
-	}
-
-	func canMarkAllAsRead() -> Bool {
-
-		return currentTimelineViewController?.canMarkAllAsRead() ?? false
 	}
 
 	func validateToggleRead(_ item: NSValidatedUserInterfaceItem) -> Bool {

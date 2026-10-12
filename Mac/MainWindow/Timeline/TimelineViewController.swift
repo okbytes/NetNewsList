@@ -237,21 +237,6 @@ final class TimelineViewController: NSViewController, UndoableCommandRunner, Unr
 
 	// MARK: - API
 
-	func markAllAsRead() {
-		guard let undoManager = undoManager, let markReadCommand = MarkStatusCommand(initialArticles: articles, markingRead: true, undoManager: undoManager) else {
-			return
-		}
-		runCommand(markReadCommand)
-	}
-
-	func canMarkAllAsRead() -> Bool {
-		return articles.canMarkAllAsRead()
-	}
-
-	func canMarkSelectedArticlesAsRead() -> Bool {
-		return selectedArticles.canMarkAllAsRead()
-	}
-
 	func representsThisObjectOnly(_ object: AnyObject) -> Bool {
 		guard let representedObjects = representedObjects else {
 			return false

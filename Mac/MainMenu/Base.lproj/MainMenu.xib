@@ -452,11 +452,6 @@
                                     <action selector="toggleRead:" target="-1" id="jLQ-ZF-xye"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Archive All" keyEquivalent="k" id="HdN-Ks-cwh">
-                                <connections>
-                                    <action selector="markAllAsRead:" target="-1" id="154-2D-ONk"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="qgr-Gl-Xhw"/>
                             <menuItem title="Show Original Page" keyEquivalent="R" id="p5x-Xq-1fW">
                                 <connections>

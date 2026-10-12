@@ -30,14 +30,6 @@
 	</dict>
 	<dict>
 		<key>action</key>
-		<string>markAllAsRead:</string>
-		<key>key</key>
-		<string>k</string>
-		<key>title</key>
-		<string>Archive All</string>
-	</dict>
-	<dict>
-		<key>action</key>
 		<string>toggleRead:</string>
 		<key>key</key>
 		<string>u</string>

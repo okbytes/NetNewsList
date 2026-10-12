@@ -901,24 +901,6 @@
         }
       }
     },
-    "HdN-Ks-cwh.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Mark All as Read\"; ObjectID = \"HdN-Ks-cwh\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Mark All as Read"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marcar todos como leídos"
-          }
-        }
-      }
-    },
     "HFo-cy-zxI.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Show Spelling and Grammar\"; ObjectID = \"HFo-cy-zxI\";",
       "extractionState" : "extracted_with_value",
