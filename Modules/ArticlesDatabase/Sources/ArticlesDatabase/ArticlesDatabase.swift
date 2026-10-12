@@ -325,9 +325,14 @@ public struct ArticleCounts: Sendable {
 	// MARK: - Saving, Updating, and Deleting Articles
 
 	/// Update articles and save new ones — for feed-based systems (local and iCloud).
-	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String) async -> ArticleChanges {
+	///
+	/// For the articles in `keptArticleIDs`, an item without a body doesn’t remove the stored body,
+	/// or the excerpt, lead image and byline extracted with it, and a missing title or address
+	/// doesn’t remove the stored one. iCloud sync passes the articles whose body this device
+	/// hasn’t uploaded yet.
+	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String> = Set<String>()) async -> ArticleChanges {
 		await withCheckedContinuation { continuation in
-			_update(parsedItems: parsedItems, feedID: feedID) { articleChanges in
+			_update(parsedItems: parsedItems, feedID: feedID, keepingContentOf: keptArticleIDs) { articleChanges in
 				continuation.resume(returning: articleChanges)
 			}
 		}
@@ -547,9 +552,9 @@ private extension ArticlesDatabase {
 		articlesTable.fetchArticlesMatchingWithArticleIDsAsync(searchString, articleIDs, completion)
 	}
 
-	func _update(parsedItems: Set<ParsedItem>, feedID: String, completion: @escaping UpdateArticlesCompletionBlock) {
+	func _update(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String>, completion: @escaping UpdateArticlesCompletionBlock) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		articlesTable.update(parsedItems, feedID, completion)
+		articlesTable.update(parsedItems, feedID, keepingContentOf: keptArticleIDs, completion)
 	}
 
 	func _delete(articleIDs: Set<String>, completion: DatabaseCompletionBlock?) {

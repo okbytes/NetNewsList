@@ -213,7 +213,11 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 	/// Saves new articles and updates changed ones. Never deletes: a saved article leaves only
 	/// through an explicit delete, never because it is old or missing from `parsedItems`.
-	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, _ completion: @escaping UpdateArticlesCompletionBlock) {
+	///
+	/// For the articles in `keptArticleIDs`, an item without a body doesn’t remove a stored one
+	/// (see `ArticlesDatabase.updateAsync`). The stored body is checked in the same transaction
+	/// that writes the update.
+	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, keepingContentOf keptArticleIDs: Set<String>, _ completion: @escaping UpdateArticlesCompletionBlock) {
 		if parsedItems.isEmpty {
 			callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
 			return
@@ -221,7 +225,7 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 		// 1. Ensure statuses for all the incoming articles. New articles are unread, whatever their age.
 		// 2. Create incoming articles with parsedItems.
-		// 3. Fetch all articles for the feed.
+		// 3. Fetch all articles for the feed, and keep the stored body of articles in keptArticleIDs.
 		// 4. Create array of Articles not in database and save them.
 		// 5. Create array of updated Articles and save what’s changed.
 		// 6. Call back with new and updated Articles.
@@ -234,14 +238,15 @@ final class ArticlesTable: DatabaseTable, Sendable {
 			let (statusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(articleIDs, false, database) // 1
 			assert(statusesDictionary.count == articleIDs.count)
 
-			let incomingArticles = Article.articlesWithParsedItems(parsedItems, feedID, self.accountID, statusesDictionary) // 2
-			if incomingArticles.isEmpty {
+			let parsedArticles = Article.articlesWithParsedItems(parsedItems, feedID, self.accountID, statusesDictionary) // 2
+			if parsedArticles.isEmpty {
 				self.callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
 				return
 			}
 
 			let fetchedArticles = self.fetchArticlesForFeedID(feedID, database) // 3
 			let fetchedArticlesDictionary = fetchedArticles.dictionary()
+			let incomingArticles = parsedArticles.keepingContent(of: keptArticleIDs, fetchedArticlesDictionary)
 
 			let newArticles = self.findAndSaveNewArticles(incomingArticles, fetchedArticlesDictionary, database) // 4
 			let updatedArticles = self.findAndSaveUpdatedArticles(incomingArticles, fetchedArticlesDictionary, database) // 5
@@ -917,5 +922,24 @@ nonisolated private extension ArticlesTable {
 private extension Set where Element == ParsedItem {
 	func articleIDs() -> Set<String> {
 		return Set<String>(map { $0.articleID })
+	}
+}
+
+private extension Set where Element == Article {
+
+	/// These articles, except that one in `articleIDs` that arrives without a body keeps its stored body.
+	func keepingContent(of articleIDs: Set<String>, _ storedArticles: [String: Article]) -> Set<Article> {
+		guard !articleIDs.isEmpty else {
+			return self
+		}
+		return Set(map { article in
+			guard article.contentHTML == nil,
+				  articleIDs.contains(article.articleID),
+				  let stored = storedArticles[article.articleID],
+				  stored.contentHTML != nil else {
+				return article
+			}
+			return article.keepingContent(of: stored)
+		})
 	}
 }

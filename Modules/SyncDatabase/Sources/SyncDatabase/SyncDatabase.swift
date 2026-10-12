@@ -57,6 +57,11 @@ public actor SyncDatabase {
 		try SyncStatusTable.selectPendingStarredStatusArticleIDs(database: database)
 	}
 
+	/// Articles whose content this device hasn’t uploaded yet: a first upload or a content upload is queued or in flight.
+	public func selectPendingContentArticleIDs() throws -> Set<String> {
+		try SyncStatusTable.selectPendingContentArticleIDs(database: database)
+	}
+
 	nonisolated public func resetAllSelectedForProcessing() {
 		Task {
 			await _resetAllSelectedForProcessing()

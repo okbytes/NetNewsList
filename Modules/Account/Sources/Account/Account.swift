@@ -764,10 +764,12 @@ public enum FetchType {
 
 	// MARK: - Updating Feeds
 
-	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>) async -> ArticleChanges {
+	/// For the articles in `keptArticleIDs`, an item without a body keeps the stored one
+	/// (see `ArticlesDatabase.updateAsync`).
+	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>, keepingContentOf keptArticleIDs: Set<String> = Set<String>()) async -> ArticleChanges {
 		precondition(Thread.isMainThread)
 
-		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID)
+		let articleChanges = await database.updateAsync(parsedItems: parsedItems, feedID: feedID, keepingContentOf: keptArticleIDs)
 		sendNotificationAbout(articleChanges)
 		return articleChanges
 	}

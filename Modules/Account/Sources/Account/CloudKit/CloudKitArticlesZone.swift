@@ -144,6 +144,25 @@ final class CloudKitArticlesZone: CloudKitZone {
 				}
 			}
 		}
+
+		/// First uploads that found the article already in iCloud without a body while this device
+		/// has one. That copy is a pending save made elsewhere (the browser extension, another
+		/// device), and save-if-new leaves it as it is, so this device’s body goes up as a content
+		/// upload, which overwrites it. A copy with a body stays, so the first device to upload a
+		/// body wins. When CloudKit doesn’t send the server’s copy, the body goes up.
+		func contentUploads(forExisting existingRecords: CloudKitExistingRecords) -> Set<String> {
+			let existingByRecordName = Dictionary(existingRecords.map { ($0.key.recordName, $0.value) }, uniquingKeysWith: { first, _ in first })
+			return Set(newUpdates.compactMap { update -> String? in
+				guard update.article?.contentHTML != nil,
+					  let error = existingByRecordName[CloudKitArticlesZone.articleRecordName(update.articleID)] else {
+					return nil
+				}
+				if let serverRecord = error.serverRecord, serverRecord.hasArticleContent {
+					return nil
+				}
+				return update.articleID
+			})
+		}
 	}
 
 	struct ModifyArticlesResult {
@@ -151,6 +170,8 @@ final class CloudKitArticlesZone: CloudKitZone {
 		/// Articles whose content upload failed. The caller queues them again.
 		var failedContentArticleIDs = Set<String>()
 		var contentError: Error?
+		/// First uploads that found a copy without a body in iCloud. The caller queues a content upload.
+		var articleIDsNeedingContentUpload = Set<String>()
 	}
 
 	@MainActor func modifyArticles(_ statusUpdates: [CloudKitArticleStatusUpdate]) async throws -> ModifyArticlesResult {
@@ -182,14 +203,19 @@ final class CloudKitArticlesZone: CloudKitZone {
 		// `modify` is atomic, so batching them with content records means one article too big
 		// to store rejects every status in the request. Sending them first is also the right
 		// order: an article record references its status record.
+		let existingRecords: CloudKitExistingRecords
 		do {
 			try await modify(recordsToSave: statusRecords, recordIDsToDelete: deleteRecordIDs)
-			try await saveIfNew(newRecords)
+			existingRecords = try await saveIfNew(newRecords)
 		} catch {
 			return try await handleModifyArticlesError(error, statusUpdates: statusUpdates)
 		}
 
 		var result = ModifyArticlesResult(contentUploadCount: plan.newUpdates.count)
+		result.articleIDsNeedingContentUpload = plan.contentUploads(forExisting: existingRecords)
+		if !result.articleIDsNeedingContentUpload.isEmpty {
+			Self.logger.info("CloudKitArticlesZone: \(result.articleIDsNeedingContentUpload.count, privacy: .public) first uploads found the article in iCloud without a body; sending the body as content")
+		}
 
 		// A content failure leaves the statuses sent and is reported back, so the
 		// caller can retry the content alone on the next send.
@@ -222,8 +248,8 @@ private extension CloudKitArticlesZone {
 		return "s|\(id)"
 	}
 
-	func articleID(_ id: String) -> String {
-		return "a|\(id)"
+	nonisolated static func articleRecordName(_ articleID: String) -> String {
+		return "a|\(articleID)"
 	}
 
 	@MainActor func makeStatusRecord(_ article: Article) -> CKRecord {
@@ -252,7 +278,7 @@ private extension CloudKitArticlesZone {
 	}
 
 	@MainActor func makeArticleRecord(_ article: Article) -> CKRecord {
-		let recordID = CKRecord.ID(recordName: articleID(article.articleID), zoneID: zoneID)
+		let recordID = CKRecord.ID(recordName: Self.articleRecordName(article.articleID), zoneID: zoneID)
 		let record = CKRecord(recordType: CloudKitArticle.recordType, recordID: recordID)
 
 		let articleStatusRecordID = CKRecord.ID(recordName: statusID(article.articleID), zoneID: zoneID)
@@ -322,5 +348,14 @@ private extension CloudKitArticlesZone {
 		record[assetField] = CKAsset(fileURL: fileURL)
 		record[dataField] = nil
 		record[stringField] = nil
+	}
+}
+
+private extension CKRecord {
+
+	/// Whether this Article record has a body, in any of the forms `makeParsedItem` reads.
+	var hasArticleContent: Bool {
+		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+		return self[Fields.contentHTMLData] != nil || self[Fields.contentHTMLAsset] != nil || self[Fields.contentHTML] != nil
 	}
 }

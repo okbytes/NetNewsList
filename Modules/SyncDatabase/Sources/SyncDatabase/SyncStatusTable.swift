@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import Articles
 import RSDatabase
 import RSDatabaseObjC
 
@@ -85,11 +84,15 @@ struct SyncStatusTable {
 	}
 
 	static func selectPendingReadStatusArticleIDs(database: FMDatabase) throws -> Set<String> {
-		try selectPendingArticleIDs(.read, database: database)
+		try selectPendingArticleIDs([.read], database: database)
 	}
 
 	static func selectPendingStarredStatusArticleIDs(database: FMDatabase) throws -> Set<String> {
-		try selectPendingArticleIDs(.starred, database: database)
+		try selectPendingArticleIDs([.starred], database: database)
+	}
+
+	static func selectPendingContentArticleIDs(database: FMDatabase) throws -> Set<String> {
+		try selectPendingArticleIDs([.new, .content], database: database)
 	}
 
 	static func resetAllSelectedForProcessing(database: FMDatabase) throws {
@@ -173,10 +176,11 @@ private extension SyncStatusTable {
 	// Includes rows that are selected — a send in flight hasn’t been confirmed by the server yet,
 	// and skipping those let a concurrent refresh revert the change the send was carrying.
 	// <https://github.com/Ranchero-Software/NetNewsWire/issues/4280>
-	static func selectPendingArticleIDs(_ statusKey: ArticleStatus.Key, database: FMDatabase) throws -> Set<String> {
-		let operation = "Reading pending \(statusKey.rawValue) statuses"
-		let sql = "select articleID from \(name) where key = \"\(statusKey.rawValue)\";"
-		guard let resultSet = database.executeQuery(sql, withArgumentsIn: nil) else {
+	static func selectPendingArticleIDs(_ keys: [SyncStatus.Key], database: FMDatabase) throws -> Set<String> {
+		let operation = "Reading pending \(keys.map(\.rawValue).joined(separator: "/")) statuses"
+		let placeholders = NSString.rs_SQLValueList(withPlaceholders: UInt(keys.count))
+		let sql = "select distinct articleID from \(name) where key in \(placeholders);"
+		guard let resultSet = database.executeQuery(sql, withArgumentsIn: keys.map(\.rawValue)) else {
 			throw database.syncDatabaseError(operation: operation)
 		}
 

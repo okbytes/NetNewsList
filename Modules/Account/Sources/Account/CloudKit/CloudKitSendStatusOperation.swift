@@ -133,6 +133,10 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 				}
 			)
 			await syncDatabase.deleteSelectedForProcessing(Set(statusUpdates.map({ $0.articleID })))
+			// Queued after the delete, unselected, so the next batch of this same run sends them.
+			if !result.articleIDsNeedingContentUpload.isEmpty {
+				await syncDatabase.insertStatuses(Set(result.articleIDsNeedingContentUpload.map { SyncStatus(articleID: $0, key: .content, flag: true) }))
+			}
 			if let contentError = result.contentError {
 				failedContentArticleIDs.formUnion(result.failedContentArticleIDs)
 				syncErrorHandler?(contentError, "Uploading article content", #fileID, #function, #line)

@@ -46,6 +46,10 @@ public protocol CloudKitZoneDelegate: AnyObject {
 
 public typealias CloudKitRecordKey = (recordType: CKRecord.RecordType, recordID: CKRecord.ID)
 
+/// Records `saveIfNew` left alone because the server already has them, by record ID, each with
+/// its `serverRecordChanged` error.
+public typealias CloudKitExistingRecords = [CKRecord.ID: CKError]
+
 /// Called after each page of `fetchChangesInZone` completes.
 /// Parameters: zone name, changed count, deleted count, moreComing.
 public typealias CloudKitZoneFetchPageHandler = @MainActor @Sendable (String, Int, Int, Bool) -> Void
@@ -369,8 +373,10 @@ public extension CloudKitZone {
 		modify(recordsToSave: records, recordIDsToDelete: [], completion: completion)
 	}
 
-	/// Saves or modifies the records as long as they are unchanged relative to the local version
-	func saveIfNew(_ records: [CKRecord], completion: @escaping (Result<Void, Error>) -> Void) {
+	/// Saves the records the server doesn’t have yet. Records it already has are left as they are
+	/// there and returned by ID, each with its `serverRecordChanged` error, which carries the
+	/// server’s copy (`CKError.serverRecord`).
+	func saveIfNew(_ records: [CKRecord], completion: @escaping (Result<CloudKitExistingRecords, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: saveIfNew \(self.zoneID.zoneName, privacy: .public)")
 		let op = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: [CKRecord.ID]())
 		op.savePolicy = .ifServerRecordUnchanged
@@ -386,11 +392,14 @@ public extension CloudKitZone {
 
 				switch result {
 				case .success:
-					completion(.success(()))
+					completion(.success([:]))
 				case .failure(let error):
 					switch CloudKitZoneResult.resolve(error) {
-					case .success, .partialFailure:
-						completion(.success(()))
+					case .success:
+						completion(.success([:]))
+
+					case .partialFailure(let errors):
+						completion(.success(Self.existingRecords(in: errors)))
 
 					case .zoneNotFound:
 						self.createZoneRecord { result in
@@ -417,20 +426,22 @@ public extension CloudKitZone {
 						}
 
 						var chunkedRecords = records.chunked(into: max(1, records.count / 2))
+						var existingRecords = CloudKitExistingRecords()
 
 						@MainActor func saveChunksIfNew() {
 							if let records = chunkedRecords.popLast() {
 								self.saveIfNew(records) { result in
 									switch result {
-									case .success:
+									case .success(let existingInChunk):
 										Self.logger.info("CloudKit: Saved \(records.count) chunked new records.")
+										existingRecords.merge(existingInChunk) { first, _ in first }
 										saveChunksIfNew()
 									case .failure(let error):
 										completion(.failure(error))
 									}
 								}
 							} else {
-								completion(.success(()))
+								completion(.success(existingRecords))
 							}
 						}
 
@@ -929,8 +940,9 @@ public extension CloudKitZone {
 		}
 	}
 
-	func saveIfNew(_ records: [CKRecord]) async throws {
-		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+	/// Saves the records the server doesn’t have yet and returns the ones it already has.
+	func saveIfNew(_ records: [CKRecord]) async throws -> CloudKitExistingRecords {
+		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CloudKitExistingRecords, Error>) in
 			saveIfNew(records) { result in
 				continuation.resume(with: result)
 			}
@@ -1012,5 +1024,21 @@ public extension CloudKitZone {
 				continuation.resume(with: result)
 			}
 		}
+	}
+}
+
+private extension CloudKitZone {
+
+	/// The records a save-if-new found already on the server, from its per-record errors.
+	static func existingRecords(in errors: [AnyHashable: CKError]) -> CloudKitExistingRecords {
+		var existingRecords = CloudKitExistingRecords()
+		for (key, error) in errors {
+			guard error.code == .serverRecordChanged, let recordID = key as? CKRecord.ID else {
+				logger.error("CloudKitZone: saveIfNew did not save \(String(describing: key), privacy: .public): \(error.localizedDescription, privacy: .public)")
+				continue
+			}
+			existingRecords[recordID] = error
+		}
+		return existingRecords
 	}
 }

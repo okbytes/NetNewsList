@@ -101,7 +101,14 @@ private extension CloudKitArticlesZoneDelegate {
 		await self.account?.markAsStarredAsync(articleIDs: updateableStarredArticleIDs)
 
 		for (feedID, parsedItems) in feedIDsAndItems {
-			guard let articleChanges = await self.account?.updateAsync(feedID: feedID, parsedItems: parsedItems) else {
+			// A record without a body doesn’t replace one this device hasn’t uploaded yet. That record
+			// is a pending save made elsewhere (the browser extension, another device) before this
+			// device’s body reached iCloud; the queued upload overwrites it. Without an upload queued,
+			// the record wins, so a page deleted and saved again elsewhere starts fresh here too.
+			// Read here rather than when the fetch began, so a body saved and queued during the
+			// fetch is in the set.
+			let unsentContentArticleIDs = (try? await syncDatabase.selectPendingContentArticleIDs()) ?? Set<String>()
+			guard let articleChanges = await self.account?.updateAsync(feedID: feedID, parsedItems: parsedItems, keepingContentOf: unsentContentArticleIDs) else {
 				continue
 			}
 			guard let deletes = articleChanges.deleted, !deletes.isEmpty else {

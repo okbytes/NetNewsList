@@ -123,6 +123,28 @@ extension Article {
 		return d.count < 1 ? nil : d
 	}
 
+	/// This article with the body of `stored`, and the excerpt, lead image and byline extracted with it.
+	/// A title, address or date this article lacks is taken from `stored` too, so nothing
+	/// stored is replaced with nil.
+	func keepingContent(of stored: Article) -> Article {
+		Article(accountID: accountID,
+				articleID: articleID,
+				feedID: feedID,
+				uniqueID: uniqueID,
+				title: title ?? stored.title,
+				contentHTML: stored.contentHTML,
+				contentText: stored.contentText,
+				markdown: stored.markdown,
+				url: rawLink ?? stored.rawLink,
+				externalURL: rawExternalLink ?? stored.rawExternalLink,
+				summary: stored.summary,
+				imageURL: stored.rawImageLink,
+				datePublished: datePublished ?? stored.datePublished,
+				dateModified: dateModified ?? stored.dateModified,
+				authors: stored.authors,
+				status: status)
+	}
+
 //	static func articlesWithParsedItems(_ parsedItems: Set<ParsedItem>, _ accountID: String, _ feedID: String, _ statusesDictionary: [String: ArticleStatus]) -> Set<Article> {
 //		let maximumDateAllowed = Date().addingTimeInterval(60 * 60 * 24) // Allow dates up to about 24 hours ahead of now
 //		return Set(parsedItems.map{ Article(parsedItem: $0, maximumDateAllowed: maximumDateAllowed, accountID: accountID, feedID: feedID, status: statusesDictionary[$0.articleID]!) })
