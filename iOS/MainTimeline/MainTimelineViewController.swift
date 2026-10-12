@@ -16,15 +16,28 @@ import Account
 import Articles
 import Images
 
+/// A list of articles: the Queue (the root screen) or the Archive (pushed over it).
 final class MainTimelineViewController: UIViewController, UndoableCommandRunner {
+
+	/// The list this screen shows, set by the coordinator.
+	var list: SidebarItem? {
+		didSet {
+			configureNavigationItem()
+		}
+	}
 
 	// MARK: Private Variables
 	private var dataSource: UICollectionViewDiffableDataSource<Int, Article>?
 	var didPushArticleViewController = false
 
-	private var timelineFeed: SidebarItem? {
-		assert(coordinator != nil)
-		return coordinator?.timelineFeed
+	/// Whether this screen's list is the coordinator's current list, which `articles` belong to.
+	/// The Queue isn't while the Archive is pushed over it.
+	private var isCurrentList: Bool {
+		coordinator?.timelineFeed as AnyObject? === list as AnyObject?
+	}
+
+	private var isQueue: Bool {
+		list as AnyObject? === SmartFeedsController.shared.unreadFeed
 	}
 
 	private var showIcons: Bool {
@@ -44,25 +57,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		set {
 			coordinator?.timelineMiddleIndexPath = newValue
 		}
-	}
-
-	private var isTimelineViewControllerPending: Bool {
-		get {
-			coordinator?.isTimelineViewControllerPending ?? false
-		}
-		set {
-			coordinator?.isTimelineViewControllerPending = newValue
-		}
-	}
-
-	private var timelineIconImage: IconImage? {
-		assert(coordinator != nil)
-		return coordinator?.timelineIconImage
-	}
-
-	private var isRootSplitCollapsed: Bool {
-		assert(coordinator != nil)
-		return coordinator?.isRootSplitCollapsed ?? false
 	}
 
 	private var articles: ArticleArray? {
@@ -90,6 +84,25 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		label.text = " " // Placeholder avoids iOS 26 UINavigationBar crash.
 		label.sizeToFit()
 		return label
+	}()
+
+	/// The Queue's "…" menu: the Archive and Settings.
+	private lazy var listMenuBarButtonItem: UIBarButtonItem = {
+		let archiveAction = UIAction(title: SmartFeedsController.shared.archiveFeed.nameForDisplay, image: Assets.Images.archive) { [weak self] _ in
+			self?.coordinator?.selectArchive()
+		}
+		let settingsAction = UIAction(title: NSLocalizedString("Settings", comment: "Settings"), image: UIImage(systemName: "gearshape")) { [weak self] _ in
+			self?.coordinator?.showSettings()
+		}
+		let item = UIBarButtonItem(image: Assets.Images.listMenu, menu: UIMenu(children: [archiveAction, settingsAction]))
+		item.accessibilityLabel = NSLocalizedString("More", comment: "More")
+		return item
+	}()
+
+	private lazy var addArticleBarButtonItem: UIBarButtonItem = {
+		let item = UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: self, action: #selector(addNewArticle(_:)))
+		item.accessibilityLabel = NSLocalizedString("Add Article", comment: "Add Article")
+		return item
 	}()
 
 	// MARK: Variables
@@ -156,19 +169,18 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		}
 
 		// Disable swipe back on iPad Mice
-		guard let gesture = self.navigationController?.interactivePopGestureRecognizer as? UIPanGestureRecognizer else {
-			return
+		if let gesture = navigationController?.interactivePopGestureRecognizer as? UIPanGestureRecognizer {
+			gesture.allowedScrollTypesMask = []
 		}
-		gesture.allowedScrollTypesMask = []
-
-		navigationItem.title = nil // Don’t let "Timeline" accidentally show
-		navigationItem.largeTitleDisplayMode = .never
-		navigationItem.titleView = navigationBarTitleLabel
-		if #available(iOS 26, *) {
-			navigationItem.subtitleView = navigationBarSubtitleTitleLabel
-		}
-        // Do any additional setup after loading the view.
     }
+
+	override func didMove(toParent parent: UIViewController?) {
+		super.didMove(toParent: parent)
+		// Popped off the navigation stack: the Archive's back button or swipe.
+		if parent == nil {
+			coordinator?.timelineViewControllerDidClose(self)
+		}
+	}
 
 	override func viewDidLayoutSubviews() {
 		super.viewDidLayoutSubviews()
@@ -179,7 +191,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewWillAppear")
 
 		super.viewWillAppear(animated)
-		navigationController?.setToolbarHidden(true, animated: animated)
 
 		// If the nav bar is hidden, fade it in to avoid it showing stuff as it is getting laid out
 		if navigationController?.navigationBar.isHidden ?? false {
@@ -190,7 +201,7 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5141>
 		navigationItem.largeTitleDisplayMode = .never
 
-		updateNavigationBarTitle(coordinator?.timelineFeed?.nameForDisplay ?? "")
+		updateNavigationBarTitle(list?.nameForDisplay ?? "")
 		coordinator?.updateNavigationBarSubtitles(nil)
 
 		// Articles can change while this view is off screen, so always show what the model holds.
@@ -201,7 +212,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewDidAppear")
 
 		super.viewDidAppear(animated)
-		isTimelineViewControllerPending = false
 		if navigationController?.navigationBar.alpha == 0 {
 			UIView.animate(withDuration: 0.5) {
 				self.navigationController?.navigationBar.alpha = 1
@@ -369,11 +379,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		coordinator?.selectNextArticle()
 	}
 
-	@objc func navigateToSidebar(_ sender: Any?) {
-		assert(coordinator != nil)
-		coordinator?.navigateToFeeds()
-	}
-
 	@objc func navigateToDetail(_ sender: Any?) {
 		assert(coordinator != nil)
 		coordinator?.navigateToDetail()
@@ -391,6 +396,11 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	@objc func openInBrowser(_ sender: Any?) {
 		assert(coordinator != nil)
 		coordinator?.showBrowserForCurrentArticle()
+	}
+
+	@objc func addNewArticle(_ sender: Any?) {
+		assert(coordinator != nil)
+		coordinator?.showAddArticle()
 	}
 
     /*
@@ -517,6 +527,25 @@ extension MainTimelineViewController {
 
 // MARK: Private API
 private extension MainTimelineViewController {
+
+	/// The list's name and, on the Queue, the "…" menu on the left and Add Article on the right.
+	/// The Archive gets the back button.
+	func configureNavigationItem() {
+		navigationItem.largeTitleDisplayMode = .never
+		navigationItem.titleView = navigationBarTitleLabel
+		if #available(iOS 26, *) {
+			navigationItem.subtitleView = navigationBarSubtitleTitleLabel
+		}
+		updateNavigationBarTitle(list?.nameForDisplay ?? "")
+
+		if isQueue {
+			navigationItem.leftBarButtonItem = listMenuBarButtonItem
+			navigationItem.rightBarButtonItem = addArticleBarButtonItem
+		} else {
+			navigationItem.leftBarButtonItem = nil
+			navigationItem.rightBarButtonItem = nil
+		}
+	}
 
 	func updateVisibleCellConfigurations() {
 		guard isViewLoaded, let collectionView else {
@@ -723,7 +752,8 @@ private extension MainTimelineViewController {
 
 	func applyChanges(animated: Bool, completion: (() -> Void)? = nil) {
 		Self.logger.debug("MainTimelineViewController: applyChanges")
-		guard let dataSource else {
+		// The Queue keeps its rows while the Archive's articles are current.
+		guard let dataSource, isCurrentList else {
 			return
 		}
 
@@ -794,7 +824,7 @@ private extension MainTimelineViewController {
 
 	@objc func displayNameDidChange(_ note: Notification) {
 		Self.logger.debug("MainTimelineViewController: displayNameDidChange")
-		updateNavigationBarTitle(timelineFeed?.nameForDisplay ?? "")
+		updateNavigationBarTitle(list?.nameForDisplay ?? "")
 	}
 
 	@objc func handleLowMemory(_ note: Notification) {

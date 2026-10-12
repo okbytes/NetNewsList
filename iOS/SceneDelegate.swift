@@ -24,20 +24,16 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		let rootViewController = window!.rootViewController as! RootSplitViewController
 		rootViewController.presentsWithGesture = true
 		rootViewController.showsSecondaryOnlyButton = true
-		rootViewController.preferredDisplayMode = UISplitViewController.DisplayMode(rawValue: AppDefaults.shared.splitViewPreferredDisplayMode) ?? .oneBesideSecondary
-
-		// On first run on iPad, show all three columns so the sidebar is visible
-		if AppDefaults.shared.isFirstRun && UIDevice.current.userInterfaceIdiom == .pad {
-			rootViewController.preferredDisplayMode = .twoBesideSecondary
-		}
+		// Every launch shows the Queue beside the article (on iPad), whatever was showing before.
+		rootViewController.preferredDisplayMode = .oneBesideSecondary
 
 		coordinator = SceneCoordinator(rootSplitViewController: rootViewController)
 		rootViewController.coordinator = coordinator
 		rootViewController.delegate = coordinator
 
 		// An external action (notification tap, URL, shortcut, or user activity)
-		// dictates navigation. Also doing selection restoration — previously selected feed
-		// and article — at the same time would start two competing navigations.
+		// dictates navigation. Also restoring the previously open article
+		// at the same time would start two competing navigations.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/4638>
 		// Restore the window state, but skip restoring the selection.
 		let hasPendingExternalAction = connectionOptions.notificationResponse != nil ||

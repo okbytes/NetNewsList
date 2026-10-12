@@ -33,11 +33,8 @@ final class AppDefaults: Sendable {
 		static let currentThemeName = "currentThemeName"
 		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 		static let articleWindowScrollY = "articleWindowScrollY"
-		static let selectedSidebarItem = "selectedSidebarItem"
 		static let selectedArticle = "selectedArticle"
-		static let splitViewPreferredDisplayMode = "splitViewPreferredDisplayMode"
 		static let timelineWidth = "timelineWidth"
-		static let sidebarWidth = "sidebarWidth"
 	}
 
 	let isFirstRun: Bool = {
@@ -75,16 +72,7 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var splitViewPreferredDisplayMode: Int {
-		get {
-			return AppDefaults.int(for: Key.splitViewPreferredDisplayMode)
-		}
-		set {
-			AppDefaults.setInt(for: Key.splitViewPreferredDisplayMode, newValue)
-		}
-	}
-
-	// The iPad timeline column width. nil until the user has resized it.
+	// The iPad list column width. nil until the user has resized it.
 	var timelineWidth: Int? {
 		get {
 			UserDefaults.standard.object(forKey: Key.timelineWidth) as? Int
@@ -94,20 +82,6 @@ final class AppDefaults: Sendable {
 				UserDefaults.standard.set(newValue, forKey: Key.timelineWidth)
 			} else {
 				UserDefaults.standard.removeObject(forKey: Key.timelineWidth)
-			}
-		}
-	}
-
-	// The iPad sidebar column width. nil until the user has resized it.
-	var sidebarWidth: Int? {
-		get {
-			UserDefaults.standard.object(forKey: Key.sidebarWidth) as? Int
-		}
-		set {
-			if let newValue {
-				UserDefaults.standard.set(newValue, forKey: Key.sidebarWidth)
-			} else {
-				UserDefaults.standard.removeObject(forKey: Key.sidebarWidth)
 			}
 		}
 	}
@@ -131,22 +105,6 @@ final class AppDefaults: Sendable {
 		}
 	}
 
-	var selectedSidebarItem: SidebarItemIdentifier? {
-		get {
-			guard let userInfo = UserDefaults.standard.dictionary(forKey: Key.selectedSidebarItem) as? [String: String] else {
-				return nil
-			}
-			return SidebarItemIdentifier(userInfo: userInfo)
-		}
-		set {
-			guard let newValue else {
-				UserDefaults.standard.removeObject(forKey: Key.selectedSidebarItem)
-				return
-			}
-			UserDefaults.standard.set(newValue.userInfo, forKey: Key.selectedSidebarItem)
-		}
-	}
-
 	var selectedArticle: ArticleSpecifier? {
 		get {
 			guard let d = UserDefaults.standard.dictionary(forKey: Key.selectedArticle) as? [String: String] else {
@@ -167,8 +125,7 @@ final class AppDefaults: Sendable {
 		let defaults: [String: Any] = [// Oldest first: a reading list is read in the order it was saved.
 										Key.timelineSortDirection: ComparisonResult.orderedAscending.rawValue,
 										Key.articleContentJavascriptEnabled: true,
-										Key.currentThemeName: Self.defaultThemeName,
-									   Key.splitViewPreferredDisplayMode: UISplitViewController.DisplayMode.oneBesideSecondary.rawValue]
+										Key.currentThemeName: Self.defaultThemeName]
 		AppDefaults.store.register(defaults: defaults)
 	}
 }
@@ -233,20 +190,18 @@ private extension AppDefaults {
 	}
 }
 
+/// What launch restores: the open article (if it's still in the Queue) and its scroll position.
 struct StateRestorationInfo {
-	let selectedSidebarItem: SidebarItemIdentifier?
 	let selectedArticle: ArticleSpecifier?
 	let articleWindowScrollY: Int
 
 	init() {
-		let selectedSidebarItem = AppDefaults.shared.selectedSidebarItem
 		let selectedArticle = AppDefaults.shared.selectedArticle
 		let articleWindowScrollY = AppDefaults.shared.articleWindowScrollY
 
-		self.selectedSidebarItem = selectedSidebarItem
 		self.selectedArticle = selectedArticle
 		self.articleWindowScrollY = articleWindowScrollY
 
-		AppDefaults.logger.debug("AppDefaults: StateRestorationInfo:\nselectedSidebarItem: \(selectedSidebarItem?.userInfo ?? [String: String]())\nselectedArticle: \(selectedArticle?.dictionary ?? [String: String]())\narticleWindowScrollY: \(articleWindowScrollY)")
+		AppDefaults.logger.debug("AppDefaults: StateRestorationInfo:\nselectedArticle: \(selectedArticle?.dictionary ?? [String: String]())\narticleWindowScrollY: \(articleWindowScrollY)")
 	}
 }

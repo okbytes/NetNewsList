@@ -10,7 +10,6 @@ import UIKit
 
 enum KeyboardType: String, Sendable {
 	case global = "GlobalKeyboardShortcuts"
-	case sidebar = "SidebarKeyboardShortcuts"
 	case timeline = "TimelineKeyboardShortcuts"
 	case detail = "DetailKeyboardShortcuts"
 }
@@ -27,8 +26,6 @@ enum KeyboardType: String, Sendable {
 		_keyCommands = KeyboardManager.globalAuxilaryKeyCommands()
 
 		switch type {
-		case .sidebar:
-			_keyCommands.append(contentsOf: KeyboardManager.hardcodeFeedKeyCommands())
 		case .timeline, .detail:
 			_keyCommands.append(contentsOf: KeyboardManager.hardcodeArticleKeyCommands())
 		default:
@@ -147,18 +144,6 @@ private extension KeyboardManager {
 		return keys
 	}
 
-	static func hardcodeFeedKeyCommands() -> [UIKeyCommand] {
-		var keys = [UIKeyCommand]()
-
-		let nextUpTitle = NSLocalizedString("Select Next Up", comment: "Select Next Up")
-		keys.append(KeyboardManager.createKeyCommand(title: nextUpTitle, action: "selectNextUp:", input: UIKeyCommand.inputUpArrow, modifiers: []))
-
-		let nextDownTitle = NSLocalizedString("Select Next Down", comment: "Select Next Down")
-		keys.append(KeyboardManager.createKeyCommand(title: nextDownTitle, action: "selectNextDown:", input: UIKeyCommand.inputDownArrow, modifiers: []))
-
-		return keys
-	}
-
 	static func hardcodeArticleKeyCommands() -> [UIKeyCommand] {
 		var keys = [UIKeyCommand]()
 
@@ -170,9 +155,6 @@ private extension KeyboardManager {
 
 		let findInArticleTitle = NSLocalizedString("Find in Article", comment: "Find in Article")
 		keys.append(KeyboardManager.createKeyCommand(title: findInArticleTitle, action: "beginFind:", input: "f", modifiers: [.command]))
-
-		let toggleSidebar = NSLocalizedString("Toggle Sidebar", comment: "Toggle Sidebar")
-		keys.append(KeyboardManager.createKeyCommand(title: toggleSidebar, action: "toggleSidebar:", input: "s", modifiers: [.command, .control]))
 
 		return keys
 	}

@@ -31,20 +31,9 @@ final class RootSplitViewController: UISplitViewController {
 			return
 		}
 
-		/// In certain scenarios, we don't want to select a feed or article
-		/// and have the display mode change as this interferes with state
-		/// restoration of the feeds and timeline display modes.
-		if !bypassDisplayModeRestriction {
-
-			/// Don't show primary when the display mode is timeline + article or article only.
-			if column == .primary && (displayMode == .oneBesideSecondary || displayMode == .secondaryOnly) {
-				return
-			}
-
-			/// Don't show the timeline when the display mode is article only.
-			if column == .supplementary && displayMode == .secondaryOnly {
-				return
-			}
+		/// Selecting a list or an article doesn't bring back a list the user hid to read the article full width.
+		if !bypassDisplayModeRestriction && column == .primary && displayMode == .secondaryOnly {
+			return
 		}
 
 		show(column)
@@ -59,14 +48,6 @@ final class RootSplitViewController: UISplitViewController {
 
 	@objc func scrollUp(_ sender: Any?) {
 		coordinator.scrollUp()
-	}
-
-	@objc func goToPreviousSubscription(_ sender: Any?) {
-		coordinator.selectPrevFeed()
-	}
-
-	@objc func goToNextSubscription(_ sender: Any?) {
-		coordinator.selectNextFeed()
 	}
 
 	@objc func openInBrowser(_ sender: Any?) {
