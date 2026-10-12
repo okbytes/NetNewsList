@@ -22,7 +22,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
     private var activityManager = ActivityManager()
 
-	private var isShowingOriginal = false
 	private var sharingServicePickerDelegate: SharingServicePickerDelegate?
 
 	private let windowAutosaveName = NSWindow.FrameAutosaveName("MainWindow")
@@ -267,10 +266,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 			return validateToggleRead(item)
 		}
 
-		if item.action == #selector(toggleShowOriginal(_:)) {
-			return validateToggleShowOriginal(item)
-		}
-
 		if item.action == #selector(toolbarShowShareMenu(_:)) {
 			return canShowShareMenu()
 		}
@@ -380,19 +375,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	@IBAction func toggleRead(_ sender: Any?) {
 		currentTimelineViewController?.toggleReadStatusForSelectedArticles()
-	}
-
-	/// Switches the detail view between the saved copy and the live page.
-	@IBAction func toggleShowOriginal(_ sender: Any?) {
-		guard let article = oneSelectedArticle, article.preferredURL != nil else {
-			return
-		}
-		defer {
-			makeToolbarValidate()
-		}
-		isShowingOriginal.toggle()
-		let detailState: DetailState = isShowingOriginal ? .original(article) : .article(article, nil)
-		detailViewController?.setState(detailState, mode: timelineSourceMode)
 	}
 
 	@IBAction func retrySavingPage(_ sender: Any?) {
@@ -576,7 +558,6 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 	func timelineSelectionDidChange(_: TimelineContainerViewController, articles: [Article]?, mode: TimelineSourceMode) {
 		activityManager.invalidateReading()
 
-		isShowingOriginal = false
 		makeToolbarValidate()
 
 		let detailState: DetailState
@@ -676,7 +657,6 @@ extension NSToolbarItem.Identifier {
 	static let timelineTrackingSeparator = NSToolbarItem.Identifier("timelineTrackingSeparator")
 	static let search = NSToolbarItem.Identifier("search")
 	static let markRead = NSToolbarItem.Identifier("markRead")
-	static let showOriginal = NSToolbarItem.Identifier("showOriginal")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
 	static let share = NSToolbarItem.Identifier("share")
 	static let articleThemeMenu = NSToolbarItem.Identifier("articleThemeMenu")
@@ -715,10 +695,6 @@ extension MainWindowController: NSToolbarDelegate {
 		case .markRead:
 			let title = NSLocalizedString("Archive", comment: "command")
 			return buildToolbarButton(.markRead, title, Assets.Images.readClosed, "toggleRead:")
-
-		case .showOriginal:
-			let title = NSLocalizedString("Show Original", comment: "Show Original")
-			return buildToolbarButton(.showOriginal, title, Assets.Images.showOriginal, "toggleShowOriginal:")
 
 		case .share:
 			let title = NSLocalizedString("Share", comment: "Share button")
@@ -761,7 +737,6 @@ extension MainWindowController: NSToolbarDelegate {
 			.timelineTrackingSeparator,
 			.flexibleSpace,
 			.markRead,
-			.showOriginal,
 			.openInBrowser,
 			.share,
 			.articleThemeMenu,
@@ -778,7 +753,6 @@ extension MainWindowController: NSToolbarDelegate {
 			.sidebarTrackingSeparator,
 			.timelineTrackingSeparator,
 			.markRead,
-			.showOriginal,
 			.share,
 			.openInBrowser,
 			.flexibleSpace,
@@ -1211,21 +1185,6 @@ private extension MainWindowController {
 		}
 
 		return result
-	}
-
-	func validateToggleShowOriginal(_ item: NSValidatedUserInterfaceItem) -> Bool {
-		let title = isShowingOriginal ? NSLocalizedString("Show Saved Page", comment: "Show Saved Page") : NSLocalizedString("Show Original", comment: "Show Original")
-		if let menuItem = item as? NSMenuItem {
-			menuItem.state = isShowingOriginal ? .on : .off
-		}
-		if let toolbarItem = item as? NSToolbarItem {
-			toolbarItem.label = title
-			toolbarItem.toolTip = title
-			if let button = toolbarItem.view as? NSButton {
-				button.image = isShowingOriginal ? Assets.Images.showSavedPage : Assets.Images.showOriginal
-			}
-		}
-		return oneSelectedArticle?.preferredURL != nil
 	}
 
 	func canShowShareMenu() -> Bool {

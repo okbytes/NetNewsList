@@ -41,12 +41,12 @@ final class DetailWebViewController: NSViewController {
 	}
 
 	var windowState: DetailWindowState {
-		DetailWindowState(windowScrollY: isShowingOriginalPage ? 0 : windowScrollY ?? 0)
+		DetailWindowState(windowScrollY: windowScrollY ?? 0)
 	}
 
 	var article: Article? {
 		switch state {
-		case .article(let article, _), .original(let article):
+		case .article(let article, _):
 			return article
 		default:
 			return nil
@@ -54,7 +54,6 @@ final class DetailWebViewController: NSViewController {
 	}
 
 	private var articleTextSize = AppDefaults.shared.articleTextSize
-	private var isArticleContentJavascriptEnabled = AppDefaults.shared.isArticleContentJavascriptEnabled
 
 	private var webInspectorEnabled: Bool {
 		get {
@@ -85,16 +84,6 @@ final class DetailWebViewController: NSViewController {
 		}
 		return Date().timeIntervalSince(lastWindowDidScrollMessageDate) < Self.recentScrollInterval
 	}
-
-	private var isShowingOriginalPage: Bool {
-		if case .original = state {
-			return true
-		}
-		return false
-	}
-
-	// Whether the current web view was built for a live page, without the article scripts.
-	private var webViewShowsOriginalPage = false
 
 	private struct MessageName {
 		static let mouseDidEnter = "mouseDidEnter"
@@ -150,10 +139,6 @@ final class DetailWebViewController: NSViewController {
 			articleTextSize = AppDefaults.shared.articleTextSize
 			reloadHTMLMaintainingScrollPosition()
 		}
-		if isArticleContentJavascriptEnabled != AppDefaults.shared.isArticleContentJavascriptEnabled {
-			isArticleContentJavascriptEnabled = AppDefaults.shared.isArticleContentJavascriptEnabled
-			reloadHTMLMaintainingScrollPosition()
-		}
 	}
 
 	@objc func currentArticleThemeDidChangeNotification(_ note: Notification) {
@@ -181,11 +166,7 @@ final class DetailWebViewController: NSViewController {
 	// MARK: Media Functions
 
 	func stopMediaPlayback() {
-		if webViewShowsOriginalPage {
-			webView.pauseAllMediaPlayback()
-		} else {
-			webView.evaluateJavaScript("stopMediaPlayback();")
-		}
+		webView.evaluateJavaScript("stopMediaPlayback();")
 	}
 
 	// MARK: Scrolling
@@ -253,16 +234,8 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 		}
 
 		// Stored content is untrusted HTML from the web: its scripts never run.
-		preferences.allowsContentJavaScript = webViewShowsOriginalPage && WebViewConfiguration.allowsOriginalPageJavaScript(for: article)
+		preferences.allowsContentJavaScript = false
 		decisionHandler(.allow, preferences)
-	}
-
-	func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
-		showOriginalPageError(error, in: webView)
-	}
-
-	func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: any Error) {
-		showOriginalPageError(error, in: webView)
 	}
 
 	public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
@@ -301,7 +274,7 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 			return
 		}
 		Self.logger.error("Article web content process terminated — rebuilding the web view.")
-		replaceWebView(showingOriginalPage: false)
+		replaceWebView()
 		reloadHTML()
 	}
 
@@ -325,7 +298,7 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 private extension DetailWebViewController {
 
 	func reloadArticleImage() {
-		guard let article, !webViewShowsOriginalPage else {
+		guard let article else {
 			return
 		}
 
@@ -338,16 +311,11 @@ private extension DetailWebViewController {
 		}
 	}
 
-	func createWebView(showingOriginalPage: Bool = false) -> DetailWebView {
-		let configuration: WKWebViewConfiguration
-		if showingOriginalPage {
-			configuration = WebViewConfiguration.originalPageConfiguration()
-		} else {
-			configuration = WebViewConfiguration.configuration(with: detailIconSchemeHandler)
-			configuration.userContentController.add(self, name: MessageName.windowDidScroll)
-			configuration.userContentController.add(self, name: MessageName.mouseDidEnter)
-			configuration.userContentController.add(self, name: MessageName.mouseDidExit)
-		}
+	func createWebView() -> DetailWebView {
+		let configuration = WebViewConfiguration.configuration(with: detailIconSchemeHandler)
+		configuration.userContentController.add(self, name: MessageName.windowDidScroll)
+		configuration.userContentController.add(self, name: MessageName.mouseDidEnter)
+		configuration.userContentController.add(self, name: MessageName.mouseDidExit)
 
 		let webView = DetailWebView(frame: view.bounds, configuration: configuration)
 		webView.uiDelegate = self
@@ -360,33 +328,10 @@ private extension DetailWebViewController {
 	}
 
 	/// Puts a new web view under the current one. The old one stays on top until the new one finishes loading.
-	func replaceWebView(showingOriginalPage: Bool) {
-		let newWebView = createWebView(showingOriginalPage: showingOriginalPage)
+	func replaceWebView() {
+		let newWebView = createWebView()
 		view.addSubview(newWebView, positioned: .below, relativeTo: webView)
 		webView = newWebView
-		webViewShowsOriginalPage = showingOriginalPage
-	}
-
-	func loadOriginalPage(_ article: Article) {
-		guard let url = article.preferredURL else {
-			return
-		}
-		replaceWebView(showingOriginalPage: true)
-		WebViewConfiguration.addContentBlockingRules(to: webView)
-		webView.load(URLRequest(url: url))
-	}
-
-	/// The live page couldn’t load, most often because the Mac is offline.
-	func showOriginalPageError(_ error: any Error, in failedWebView: WKWebView) {
-		guard failedWebView === webView, webViewShowsOriginalPage else {
-			return
-		}
-		if let urlError = error as? URLError, urlError.code == .cancelled {
-			return
-		}
-		let message = String(format: NSLocalizedString("The original page couldn’t be loaded: %@", comment: "Show Original: load error"), error.localizedDescription)
-		let html = "<!doctype html><html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body style=\"font: -apple-system-body; color: gray; margin: 2em;\"><p>\(message.escapingSpecialXMLCharacters)</p></body></html>"
-		webView.loadHTMLString(html, baseURL: nil)
 	}
 
 	// Old web views stay on top until the new one finishes loading — see reloadHTML().
@@ -421,11 +366,6 @@ private extension DetailWebViewController {
 
 		delegate?.mouseDidExit(self)
 
-		if case .original(let article) = state {
-			loadOriginalPage(article)
-			return
-		}
-
 		let theme = ArticleThemesManager.shared.currentTheme
 		let rendering: ArticleRenderer.Rendering
 
@@ -439,8 +379,6 @@ private extension DetailWebViewController {
 		case .article(let article, _):
 			detailIconSchemeHandler.currentArticle = article
 			rendering = ArticleRenderer.articleHTML(article: article, theme: theme)
-		case .original:
-			return
 		}
 
 		let substitutions = [
@@ -459,11 +397,9 @@ private extension DetailWebViewController {
 		// The old web view stays on top until the new one finishes loading, which also
 		// covers the new web view's first paint.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/901>
-		if webViewShowsOriginalPage {
-			replaceWebView(showingOriginalPage: false)
-		} else if !webView.isHidden && webViewMayStillBeScrolling {
+		if !webView.isHidden && webViewMayStillBeScrolling {
 			Self.logger.debug("DetailWebViewController: swapping in a fresh web view because the old one may still be scrolling")
-			replaceWebView(showingOriginalPage: false)
+			replaceWebView()
 		}
 
 		WebViewConfiguration.addContentBlockingRules(to: webView)

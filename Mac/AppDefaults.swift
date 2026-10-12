@@ -39,7 +39,6 @@ final class AppDefaults: Sendable {
 		static let addFolderAccountID = "addFolderAccountID"
 		static let defaultBrowserID = "defaultBrowserID"
 		static let currentThemeName = "currentThemeName"
-		static let articleContentJavascriptEnabled = "articleContentJavascriptEnabled"
 
 		// Hidden prefs
 		static let showDebugMenu = "ShowDebugMenu"
@@ -251,13 +250,10 @@ final class AppDefaults: Sendable {
 		}
 	}
 
+	/// Saved pages never run scripts, and the Mac app has no live-page view, so nothing on the Mac
+	/// runs page JavaScript. Kept because Shared `WebViewConfiguration.allowsOriginalPageJavaScript` reads it.
 	var isArticleContentJavascriptEnabled: Bool {
-		get {
-			UserDefaults.standard.bool(forKey: Key.articleContentJavascriptEnabled)
-		}
-		set {
-			UserDefaults.standard.set(newValue, forKey: Key.articleContentJavascriptEnabled)
-		}
+		false
 	}
 
 	@MainActor func registerDefaults() {
@@ -277,8 +273,7 @@ final class AppDefaults: Sendable {
 			Key.useColumnLayout: false,
 			"NSScrollViewShouldScrollUnderTitlebar": false,
 			Key.showDebugMenu: showDebugMenu,
-			Key.currentThemeName: Self.defaultThemeName,
-			Key.articleContentJavascriptEnabled: true
+			Key.currentThemeName: Self.defaultThemeName
 		]
 
 		UserDefaults.standard.register(defaults: defaults)

@@ -1405,24 +1405,6 @@
         }
       }
     },
-    "p5x-Xq-1fW.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Show Reader View\"; ObjectID = \"p5x-Xq-1fW\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Show Reader View"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar vista de lector"
-          }
-        }
-      }
-    },
     "pa3-QI-u2k.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Delete\"; ObjectID = \"pa3-QI-u2k\";",
       "extractionState" : "extracted_with_value",
