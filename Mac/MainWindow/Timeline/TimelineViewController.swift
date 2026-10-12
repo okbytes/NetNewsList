@@ -776,7 +776,7 @@ extension TimelineViewController: NSTableViewDelegate {
 			self.toggleArticleArchived(article)
 			tableView.rowActionsVisible = false
 		}
-		action.image = article.status.read ? Assets.Images.swipeMarkUnread : Assets.Images.swipeMarkRead
+		action.image = article.status.read ? Assets.Images.moveToQueue : Assets.Images.archive
 		return [action]
 	}
 }
