@@ -27,6 +27,7 @@ At home, on this Mac, in Chrome or Helium (so a sign-in problem shows up where i
 - [ ] `chrome://extensions` → Developer mode → Load unpacked → `chrome-extension` (version 1.2). Options → "Straight to iCloud" → Sign In to iCloud, tick **Keep me signed in**. The options page should say signed in, with no red message. If it shows a red message right after signing in, tell Claude what it says (Apple has had reports of web sign-in being refused; Plan.md section 8 item 11 has fallbacks).
 - [ ] Save two pages with the toolbar button and one with right-click → Save Link (the badge flashes ✓). Within a minute they show on the Mac and iPhone, in the order and with the "Date Saved" you saved them, and fill in with the text while an app is open. Saving the same pages again from the Mac makes no duplicates.
 - [ ] Options → Sign Out, then save a page: the badge shows **!** and the page waits; sign in again and it goes through.
+- [ ] Save a page with the extension, then (before the iPhone app has synced) share the same page from Safari on the iPhone, ideally one you're signed in to. Once both apps have synced, the iPhone's full text should be on both devices, with the extension's title and Date Saved.
 
 Then on the work computer:
 - [ ] In Helium open `chrome://policy` first. If Developer mode is greyed out or extensions are blocked by policy, stop: the extension can't be installed there (Plan.md section 8 item 11 has the fallbacks).
