@@ -15,7 +15,7 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 
 ## Build and test
 
-Unsigned builds and tests use the CI xcconfigs. Every build is warnings-as-errors, so a clean build means zero warnings.
+Unsigned builds and tests use the no-signing xcconfigs in `.github/`. Every build is warnings-as-errors, so a clean build means zero warnings. There is no CI: the GitHub Actions workflow was removed on 2026-10-11 to save compute, so build, test and lint locally before pushing. Merging upstream NetNewsWire brings `.github/workflows/` back; delete it again.
 
 ```bash
 # Mac app and Mac test plan (includes module tests: Account, ArticlesDatabase, Extraction, …)

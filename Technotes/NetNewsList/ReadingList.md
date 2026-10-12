@@ -18,7 +18,7 @@ NetNewsList is NetNewsWire with feeds replaced by saved pages. This note describ
 - **The kick.** Saving, updating content and deleting call `storeAndSendArticleChanges`, which clears the no-change backoff and sends immediately; otherwise a save could wait 30 minutes.
 - **Change tokens** live in `UserDefaults.standard` (`cloudkit.server.token.<zone>.<owner>`) and survive database wipes. Reset iCloud Sync (Mac app menu, iOS Settings > Troubleshooting) clears them and re-runs the first-launch sequence. If iCloud data is deleted, local data is kept and re-uploaded.
 - **First launch:** find or create the account record, then save the feed record once per install, then fetch, then subscribe to both zones (once per install).
-- **Unsigned builds** (tests, CI) trap when they create a `CKContainer`, so the container and zones are created lazily and never under unit tests.
+- **Unsigned builds** (tests) trap when they create a `CKContainer`, so the container and zones are created lazily and never under unit tests.
 
 ## Saving and extraction
 
