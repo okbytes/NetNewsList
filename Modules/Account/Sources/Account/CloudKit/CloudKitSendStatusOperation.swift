@@ -31,8 +31,9 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 	/// Whether any statuses failed to send. Read after the operation completes.
 	private(set) var didFail = false
 
-	/// Articles whose content upload failed. Queued again once this run finishes,
+	/// Articles whose first upload or content upload failed. Queued again once this run finishes,
 	/// so a failing upload is retried on the next send instead of looping in this one.
+	private var failedFirstUploadArticleIDs = Set<String>()
 	private var failedContentArticleIDs = Set<String>()
 
 	init(account: Account, articlesZone: CloudKitArticlesZone, database: SyncDatabase, syncErrorHandler: CloudKitSyncErrorHandler?) {
@@ -73,7 +74,7 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 				Self.logger.debug("iCloud: Send status error: \(error.localizedDescription)")
 				activityLog.didFail(id: activityID, error: error)
 			}
-			await requeueFailedContent()
+			await requeueFailedUploads()
 			didComplete()
 		}
 	}
@@ -137,6 +138,10 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 			if !result.articleIDsNeedingContentUpload.isEmpty {
 				await syncDatabase.insertStatuses(Set(result.articleIDsNeedingContentUpload.map { SyncStatus(articleID: $0, key: .content, flag: true) }))
 			}
+			if let firstUploadError = result.firstUploadError {
+				failedFirstUploadArticleIDs.formUnion(result.failedFirstUploadArticleIDs)
+				syncErrorHandler?(firstUploadError, "Uploading new articles", #fileID, #function, #line)
+			}
 			if let contentError = result.contentError {
 				failedContentArticleIDs.formUnion(result.failedContentArticleIDs)
 				syncErrorHandler?(contentError, "Uploading article content", #fileID, #function, #line)
@@ -150,12 +155,14 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 		}
 	}
 
-	func requeueFailedContent() async {
-		guard !failedContentArticleIDs.isEmpty else {
+	func requeueFailedUploads() async {
+		let firstUploads = failedFirstUploadArticleIDs.map { SyncStatus(articleID: $0, key: .new, flag: true) }
+		let contentUploads = failedContentArticleIDs.map { SyncStatus(articleID: $0, key: .content, flag: true) }
+		failedFirstUploadArticleIDs.removeAll()
+		failedContentArticleIDs.removeAll()
+		guard !firstUploads.isEmpty || !contentUploads.isEmpty else {
 			return
 		}
-		let statuses = Set(failedContentArticleIDs.map { SyncStatus(articleID: $0, key: .content, flag: true) })
-		failedContentArticleIDs.removeAll()
-		await syncDatabase.insertStatuses(statuses)
+		await syncDatabase.insertStatuses(Set(firstUploads + contentUploads))
 	}
 }

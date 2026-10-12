@@ -46,9 +46,10 @@ public protocol CloudKitZoneDelegate: AnyObject {
 
 public typealias CloudKitRecordKey = (recordType: CKRecord.RecordType, recordID: CKRecord.ID)
 
-/// Records `saveIfNew` left alone because the server already has them, by record ID, each with
-/// its `serverRecordChanged` error.
-public typealias CloudKitExistingRecords = [CKRecord.ID: CKError]
+/// Records `saveIfNew` didn’t save, by record ID, each with its error: `serverRecordChanged`
+/// for a record the server already has (its `serverRecord` is the server’s copy, when CloudKit
+/// sends it), another error, such as `quotaExceeded`, for a record the server refused.
+public typealias CloudKitUnsavedRecords = [CKRecord.ID: CKError]
 
 /// Called after each page of `fetchChangesInZone` completes.
 /// Parameters: zone name, changed count, deleted count, moreComing.
@@ -374,9 +375,9 @@ public extension CloudKitZone {
 	}
 
 	/// Saves the records the server doesn’t have yet. Records it already has are left as they are
-	/// there and returned by ID, each with its `serverRecordChanged` error, which carries the
-	/// server’s copy (`CKError.serverRecord`).
-	func saveIfNew(_ records: [CKRecord], completion: @escaping (Result<CloudKitExistingRecords, Error>) -> Void) {
+	/// there. Those, and records it refused, are returned with their errors; the caller decides
+	/// what to send again.
+	func saveIfNew(_ records: [CKRecord], completion: @escaping (Result<CloudKitUnsavedRecords, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: saveIfNew \(self.zoneID.zoneName, privacy: .public)")
 		let op = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: [CKRecord.ID]())
 		op.savePolicy = .ifServerRecordUnchanged
@@ -399,7 +400,7 @@ public extension CloudKitZone {
 						completion(.success([:]))
 
 					case .partialFailure(let errors):
-						completion(.success(Self.existingRecords(in: errors)))
+						completion(.success(Self.unsavedRecords(in: errors)))
 
 					case .zoneNotFound:
 						self.createZoneRecord { result in
@@ -426,22 +427,22 @@ public extension CloudKitZone {
 						}
 
 						var chunkedRecords = records.chunked(into: max(1, records.count / 2))
-						var existingRecords = CloudKitExistingRecords()
+						var unsavedRecords = CloudKitUnsavedRecords()
 
 						@MainActor func saveChunksIfNew() {
 							if let records = chunkedRecords.popLast() {
 								self.saveIfNew(records) { result in
 									switch result {
-									case .success(let existingInChunk):
+									case .success(let unsavedInChunk):
 										Self.logger.info("CloudKit: Saved \(records.count) chunked new records.")
-										existingRecords.merge(existingInChunk) { first, _ in first }
+										unsavedRecords.merge(unsavedInChunk) { first, _ in first }
 										saveChunksIfNew()
 									case .failure(let error):
 										completion(.failure(error))
 									}
 								}
 							} else {
-								completion(.success(existingRecords))
+								completion(.success(unsavedRecords))
 							}
 						}
 
@@ -940,9 +941,9 @@ public extension CloudKitZone {
 		}
 	}
 
-	/// Saves the records the server doesn’t have yet and returns the ones it already has.
-	func saveIfNew(_ records: [CKRecord]) async throws -> CloudKitExistingRecords {
-		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CloudKitExistingRecords, Error>) in
+	/// Saves the records the server doesn’t have yet and returns the ones it didn’t save.
+	func saveIfNew(_ records: [CKRecord]) async throws -> CloudKitUnsavedRecords {
+		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CloudKitUnsavedRecords, Error>) in
 			saveIfNew(records) { result in
 				continuation.resume(with: result)
 			}
@@ -1029,16 +1030,18 @@ public extension CloudKitZone {
 
 private extension CloudKitZone {
 
-	/// The records a save-if-new found already on the server, from its per-record errors.
-	static func existingRecords(in errors: [AnyHashable: CKError]) -> CloudKitExistingRecords {
-		var existingRecords = CloudKitExistingRecords()
+	/// The records a save-if-new didn’t save, from its per-record errors.
+	static func unsavedRecords(in errors: [AnyHashable: CKError]) -> CloudKitUnsavedRecords {
+		var unsavedRecords = CloudKitUnsavedRecords()
 		for (key, error) in errors {
-			guard error.code == .serverRecordChanged, let recordID = key as? CKRecord.ID else {
+			if error.code != .serverRecordChanged {
 				logger.error("CloudKitZone: saveIfNew did not save \(String(describing: key), privacy: .public): \(error.localizedDescription, privacy: .public)")
+			}
+			guard let recordID = key as? CKRecord.ID else {
 				continue
 			}
-			existingRecords[recordID] = error
+			unsavedRecords[recordID] = error
 		}
-		return existingRecords
+		return unsavedRecords
 	}
 }

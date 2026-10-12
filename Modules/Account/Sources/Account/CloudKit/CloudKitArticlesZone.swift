@@ -146,21 +146,43 @@ final class CloudKitArticlesZone: CloudKitZone {
 		}
 
 		/// First uploads that found the article already in iCloud without a body while this device
-		/// has one. That copy is a pending save made elsewhere (the browser extension, another
-		/// device), and save-if-new leaves it as it is, so this device’s body goes up as a content
-		/// upload, which overwrites it. A copy with a body stays, so the first device to upload a
-		/// body wins. When CloudKit doesn’t send the server’s copy, the body goes up.
-		func contentUploads(forExisting existingRecords: CloudKitExistingRecords) -> Set<String> {
-			let existingByRecordName = Dictionary(existingRecords.map { ($0.key.recordName, $0.value) }, uniquingKeysWith: { first, _ in first })
-			return Set(newUpdates.compactMap { update -> String? in
-				guard update.article?.contentHTML != nil,
-					  let error = existingByRecordName[CloudKitArticlesZone.articleRecordName(update.articleID)] else {
-					return nil
+		/// has one, with iCloud’s copies of them. That copy is a pending save made elsewhere (the
+		/// browser extension, another device), and save-if-new leaves it as it is, so this device’s
+		/// body goes up as a content upload, which overwrites it. iCloud’s copy is merged into the
+		/// article here first (`CloudKitArticlesZoneDelegate.mergeICloudCopies`). When CloudKit
+		/// doesn’t send its copy, the body goes up all the same.
+		///
+		/// A copy that has a body stays, so the first body to reach iCloud wins even when the one
+		/// here is better: an anonymous extraction made elsewhere that gets there first beats a
+		/// later Safari or Shortcut capture made here. That is deliberate. Reset iCloud Sync sends
+		/// every article here as a first upload, and uploading over bodies then would overwrite
+		/// newer ones on every device.
+		func contentUploads(forUnsaved unsavedRecords: CloudKitUnsavedRecords) -> (articleIDs: Set<String>, serverCopies: [CKRecord]) {
+			let unsavedByRecordName = Dictionary(unsavedRecords.map { ($0.key.recordName, $0.value) }, uniquingKeysWith: { first, _ in first })
+			var articleIDs = Set<String>()
+			var serverCopies = [CKRecord]()
+			for update in newUpdates where update.article?.contentHTML != nil {
+				guard let error = unsavedByRecordName[CloudKitArticlesZone.articleRecordName(update.articleID)],
+					  error.code == .serverRecordChanged else {
+					continue
 				}
-				if let serverRecord = error.serverRecord, serverRecord.hasArticleContent {
-					return nil
+				if let serverCopy = error.serverRecord {
+					guard !serverCopy.hasArticleContent else {
+						continue
+					}
+					serverCopies.append(serverCopy)
 				}
-				return update.articleID
+				articleIDs.insert(update.articleID)
+			}
+			return (articleIDs, serverCopies)
+		}
+
+		/// First uploads iCloud refused (its storage was full, for one): a record of the article
+		/// wasn’t saved, and not because iCloud already has it. They’re sent again later.
+		func failedFirstUploads(_ unsavedRecords: CloudKitUnsavedRecords) -> Set<String> {
+			let refusedRecordNames = Set(unsavedRecords.filter { $0.value.code != .serverRecordChanged }.map(\.key.recordName))
+			return Set(newUpdates.map(\.articleID).filter { articleID in
+				refusedRecordNames.contains(CloudKitArticlesZone.statusRecordName(articleID)) || refusedRecordNames.contains(CloudKitArticlesZone.articleRecordName(articleID))
 			})
 		}
 	}
@@ -170,6 +192,9 @@ final class CloudKitArticlesZone: CloudKitZone {
 		/// Articles whose content upload failed. The caller queues them again.
 		var failedContentArticleIDs = Set<String>()
 		var contentError: Error?
+		/// First uploads iCloud refused. The caller queues them again.
+		var failedFirstUploadArticleIDs = Set<String>()
+		var firstUploadError: Error?
 		/// First uploads that found a copy without a body in iCloud. The caller queues a content upload.
 		var articleIDsNeedingContentUpload = Set<String>()
 	}
@@ -192,7 +217,7 @@ final class CloudKitArticlesZone: CloudKitZone {
 		let articleRecords = plan.contentUpdates.compactMap { update in
 			update.article.map { makeArticleRecord($0) }
 		}
-		let deleteRecordIDs = plan.deletedArticleIDs.map { CKRecord.ID(recordName: statusID($0), zoneID: zoneID) }
+		let deleteRecordIDs = plan.deletedArticleIDs.map { CKRecord.ID(recordName: Self.statusRecordName($0), zoneID: zoneID) }
 
 		await Task.detached(priority: .userInitiated) {
 			self.compressArticleRecords(articleRecords)
@@ -203,18 +228,30 @@ final class CloudKitArticlesZone: CloudKitZone {
 		// `modify` is atomic, so batching them with content records means one article too big
 		// to store rejects every status in the request. Sending them first is also the right
 		// order: an article record references its status record.
-		let existingRecords: CloudKitExistingRecords
+		let unsavedRecords: CloudKitUnsavedRecords
 		do {
 			try await modify(recordsToSave: statusRecords, recordIDsToDelete: deleteRecordIDs)
-			existingRecords = try await saveIfNew(newRecords)
+			unsavedRecords = try await saveIfNew(newRecords)
 		} catch {
 			return try await handleModifyArticlesError(error, statusUpdates: statusUpdates)
 		}
 
-		var result = ModifyArticlesResult(contentUploadCount: plan.newUpdates.count)
-		result.articleIDsNeedingContentUpload = plan.contentUploads(forExisting: existingRecords)
-		if !result.articleIDsNeedingContentUpload.isEmpty {
-			Self.logger.info("CloudKitArticlesZone: \(result.articleIDsNeedingContentUpload.count, privacy: .public) first uploads found the article in iCloud without a body; sending the body as content")
+		var result = ModifyArticlesResult()
+		result.failedFirstUploadArticleIDs = plan.failedFirstUploads(unsavedRecords)
+		if !result.failedFirstUploadArticleIDs.isEmpty {
+			Self.logger.error("CloudKitArticlesZone: iCloud refused \(result.failedFirstUploadArticleIDs.count, privacy: .public) first uploads; sending them again later")
+			result.firstUploadError = unsavedRecords.values.first { $0.code != .serverRecordChanged }
+		}
+		result.contentUploadCount = plan.newUpdates.count - result.failedFirstUploadArticleIDs.count
+
+		let contentUploads = plan.contentUploads(forUnsaved: unsavedRecords)
+		if !contentUploads.articleIDs.isEmpty {
+			Self.logger.info("CloudKitArticlesZone: \(contentUploads.articleIDs.count, privacy: .public) first uploads found the article in iCloud without a body; sending the body as content")
+			// A content upload writes every field, so iCloud’s copy goes into the article here
+			// first. Otherwise the upload would erase a title, address or saved date that only
+			// iCloud’s copy has.
+			await (delegate as? CloudKitArticlesZoneDelegate)?.mergeICloudCopies(contentUploads.serverCopies)
+			result.articleIDsNeedingContentUpload = contentUploads.articleIDs
 		}
 
 		// A content failure leaves the statuses sent and is reported back, so the
@@ -244,8 +281,8 @@ private extension CloudKitArticlesZone {
 		throw error
 	}
 
-	func statusID(_ id: String) -> String {
-		return "s|\(id)"
+	nonisolated static func statusRecordName(_ articleID: String) -> String {
+		return "s|\(articleID)"
 	}
 
 	nonisolated static func articleRecordName(_ articleID: String) -> String {
@@ -253,7 +290,7 @@ private extension CloudKitArticlesZone {
 	}
 
 	@MainActor func makeStatusRecord(_ article: Article) -> CKRecord {
-		let recordID = CKRecord.ID(recordName: statusID(article.articleID), zoneID: zoneID)
+		let recordID = CKRecord.ID(recordName: Self.statusRecordName(article.articleID), zoneID: zoneID)
 		let record = CKRecord(recordType: CloudKitArticleStatus.recordType, recordID: recordID)
 		if let feedExternalID = article.feed?.externalID {
 			record[CloudKitArticleStatus.Fields.feedExternalID] = feedExternalID
@@ -264,7 +301,7 @@ private extension CloudKitArticlesZone {
 	}
 
 	@MainActor func makeStatusRecord(_ statusUpdate: CloudKitArticleStatusUpdate) -> CKRecord {
-		let recordID = CKRecord.ID(recordName: statusID(statusUpdate.articleID), zoneID: zoneID)
+		let recordID = CKRecord.ID(recordName: Self.statusRecordName(statusUpdate.articleID), zoneID: zoneID)
 		let record = CKRecord(recordType: CloudKitArticleStatus.recordType, recordID: recordID)
 
 		if let feedExternalID = statusUpdate.article?.feed?.externalID {
@@ -281,7 +318,7 @@ private extension CloudKitArticlesZone {
 		let recordID = CKRecord.ID(recordName: Self.articleRecordName(article.articleID), zoneID: zoneID)
 		let record = CKRecord(recordType: CloudKitArticle.recordType, recordID: recordID)
 
-		let articleStatusRecordID = CKRecord.ID(recordName: statusID(article.articleID), zoneID: zoneID)
+		let articleStatusRecordID = CKRecord.ID(recordName: Self.statusRecordName(article.articleID), zoneID: zoneID)
 		record[CloudKitArticle.Fields.articleStatus] = CKRecord.Reference(recordID: articleStatusRecordID, action: .deleteSelf)
 		record[CloudKitArticle.Fields.feedURL] = article.feed?.url
 		record[CloudKitArticle.Fields.uniqueID] = article.uniqueID

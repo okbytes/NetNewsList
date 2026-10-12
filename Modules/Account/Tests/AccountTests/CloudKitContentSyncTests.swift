@@ -68,33 +68,90 @@ import SyncDatabase
 		#expect(plan.newUpdates.map(\.articleID) == ["new"])
 	}
 
-	@Test func firstUploadFindingACopyWithoutABodyUploadsTheBody() throws {
+	@Test func firstUploadsICloudDidNotSaveAreFollowedUp() throws {
 		let updates = try [
 			#require(statusUpdate([.new], articleID: "pendingThere")),
 			#require(statusUpdate([.new], articleID: "copyNotSent")),
 			#require(statusUpdate([.new], articleID: "extractedThere")),
 			#require(statusUpdate([.new], articleID: "pendingEverywhere", contentHTML: nil)),
+			#require(statusUpdate([.new], articleID: "storageFull")),
+			#require(statusUpdate([.new], articleID: "articleRefused")),
 			#require(statusUpdate([.new], articleID: "saved"))
 		]
 
-		// Save-if-new found all but the last already in iCloud, and left them as they are there.
+		// Save-if-new found the first four already in iCloud, and left them as they are there.
 		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
 		let zoneID = CKRecordZone.ID(zoneName: "Articles", ownerName: CKCurrentUserDefaultName)
-		var existing = [CKRecord.ID: CKError]()
+		var unsaved = [CKRecord.ID: CKError]()
 		let serverBodies: [(articleID: String, contentHTMLData: Data?)] = [("pendingThere", nil), ("extractedThere", Data("body".utf8)), ("pendingEverywhere", nil)]
 		for (articleID, contentHTMLData) in serverBodies {
 			let recordID = CKRecord.ID(recordName: "a|\(articleID)", zoneID: zoneID)
 			let serverRecord = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType, recordID: recordID)
 			serverRecord[Fields.contentHTMLData] = contentHTMLData
-			existing[recordID] = CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: serverRecord])
+			unsaved[recordID] = CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: serverRecord])
 		}
-		existing[CKRecord.ID(recordName: "a|copyNotSent", zoneID: zoneID)] = CKError(.serverRecordChanged)
-		existing[CKRecord.ID(recordName: "s|saved", zoneID: zoneID)] = CKError(.serverRecordChanged)
+		unsaved[CKRecord.ID(recordName: "a|copyNotSent", zoneID: zoneID)] = CKError(.serverRecordChanged)
+		unsaved[CKRecord.ID(recordName: "s|saved", zoneID: zoneID)] = CKError(.serverRecordChanged)
 
-		// This device's body replaces a copy without one, or it never reaches iCloud. A copy with
-		// a body stays, and a page with no body anywhere uploads nothing.
+		// It refused the next two: iCloud storage is full, or it turned away the Article record alone.
+		unsaved[CKRecord.ID(recordName: "s|storageFull", zoneID: zoneID)] = CKError(.quotaExceeded)
+		unsaved[CKRecord.ID(recordName: "a|storageFull", zoneID: zoneID)] = CKError(.quotaExceeded)
+		unsaved[CKRecord.ID(recordName: "a|articleRefused", zoneID: zoneID)] = CKError(.requestRateLimited)
+
+		// This device's body replaces a copy without one, after that copy is merged in here, or it
+		// never reaches iCloud. A copy with a body stays, and a page with no body anywhere uploads nothing.
 		let plan = CloudKitArticlesZone.ArticleRecordPlan(updates)
-		#expect(plan.contentUploads(forExisting: existing) == ["pendingThere", "copyNotSent"])
+		let contentUploads = plan.contentUploads(forUnsaved: unsaved)
+		#expect(contentUploads.articleIDs == ["pendingThere", "copyNotSent"])
+		#expect(contentUploads.serverCopies.map(\.recordID.recordName) == ["a|pendingThere"])
+
+		// A refused first upload goes again later, or the page never leaves this device. One that
+		// found its records in iCloud is done.
+		#expect(plan.failedFirstUploads(unsaved) == ["storageFull", "articleRefused"])
+	}
+
+	@Test func contentUploadAfterARejectedFirstUploadKeepsICloudsTitleAddressAndDate() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		// A Shortcut saved a page here with a body but no title, before this device saw the
+		// browser extension's save of the same page in iCloud.
+		let content = ReadingListContent(contentHTML: "<p>Body</p>", summary: "Excerpt", imageURL: "https://example.com/lead.jpg", byline: "Byline")
+		let saved = try await account.saveArticle(url: "https://example.com/page", title: nil, content: content)
+
+		// The extension's copy has the tab's title, the address as saved and the time it was
+		// saved, and no body. Save-if-new left it as it is.
+		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+		let zoneID = CKRecordZone.ID(zoneName: "Articles", ownerName: CKCurrentUserDefaultName)
+		let iCloudCopy = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType, recordID: CKRecord.ID(recordName: "a|\(saved.articleID)", zoneID: zoneID))
+		iCloudCopy[Fields.feedURL] = saved.feedID
+		iCloudCopy[Fields.uniqueID] = saved.uniqueID
+		iCloudCopy[Fields.url] = saved.uniqueID
+		iCloudCopy[Fields.externalURL] = "https://example.com/page?utm_source=x"
+		iCloudCopy[Fields.title] = "Tab Title"
+		let dateSaved = Date(timeIntervalSince1970: 1_790_000_000)
+		iCloudCopy[Fields.datePublished] = dateSaved
+		let unsaved = [iCloudCopy.recordID: CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: iCloudCopy])]
+
+		let firstUpload = try #require(CloudKitArticleStatusUpdate(articleID: saved.articleID, statuses: [syncStatus(.new, articleID: saved.articleID)], article: saved))
+		let contentUploads = CloudKitArticlesZone.ArticleRecordPlan([firstUpload]).contentUploads(forUnsaved: unsaved)
+		#expect(contentUploads.articleIDs == [saved.articleID])
+		let zoneDelegate = CloudKitArticlesZoneDelegate(account: account, database: SyncDatabase(databasePath: ":memory:"), syncErrorHandler: nil)
+		await zoneDelegate.mergeICloudCopies(contentUploads.serverCopies)
+
+		// The content upload sends the article here and writes every field, so it must carry
+		// iCloud's title, address and date, or they're erased everywhere, along with the body here.
+		account.emptyCaches()
+		let uploaded = try #require(await account.fetchArticlesAsync(.articleIDs([saved.articleID])).first)
+		#expect(uploaded.title == "Tab Title")
+		#expect(uploaded.rawExternalLink == "https://example.com/page?utm_source=x")
+		#expect(uploaded.datePublished == dateSaved)
+		#expect(uploaded.contentHTML == "<p>Body</p>")
+		#expect(uploaded.summary == "Excerpt")
+		#expect(uploaded.rawImageLink == "https://example.com/lead.jpg")
+		#expect(uploaded.authors?.map(\.name) == ["Byline"])
 	}
 
 	@Test func recordWithoutContentKeepsABodyNotYetUploaded() async throws {

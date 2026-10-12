@@ -60,6 +60,21 @@ final class CloudKitArticlesZoneDelegate: CloudKitZoneDelegate {
 					 pendingReadStatusArticleIDs: pendingReadStatusArticleIDs,
 					 pendingStarredStatusArticleIDs: pendingStarredStatusArticleIDs)
 	}
+
+	/// Merges iCloud’s copies of articles without a body into the articles here, before this
+	/// device’s body goes up over them (`ArticleRecordPlan.contentUploads`). That upload writes
+	/// every field, and this device saved the page before it saw iCloud’s copy, so the article
+	/// here can lack what the copy has: the browser extension writes the tab’s title and the time
+	/// the page was saved, and a Shortcut can send a body without a title. The body here, and the
+	/// excerpt, lead image and byline extracted with it, are kept; a title, address or date in
+	/// iCloud’s copy replaces the one here, as when the copy arrives in a fetch.
+	func mergeICloudCopies(_ records: [CKRecord]) async {
+		let parsedItems = records.compactMap { makeParsedItem($0) }
+		for (feedID, items) in Dictionary(grouping: parsedItems, by: \.feedURL) {
+			let articleIDs = Set(items.map { Article.calculatedArticleID(feedID: feedID, uniqueID: $0.uniqueID) })
+			_ = await account?.updateAsync(feedID: feedID, parsedItems: Set(items), keepingContentOf: articleIDs)
+		}
+	}
 }
 
 private extension CloudKitArticlesZoneDelegate {
