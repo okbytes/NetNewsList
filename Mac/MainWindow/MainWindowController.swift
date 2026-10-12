@@ -361,6 +361,7 @@ extension NSToolbarItem.Identifier {
 	static let addArticle = NSToolbarItem.Identifier("addArticle")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
+	static let listTrackingSeparator = NSToolbarItem.Identifier("listTrackingSeparator")
 }
 
 extension MainWindowController: NSToolbarDelegate {
@@ -391,6 +392,13 @@ extension MainWindowController: NSToolbarDelegate {
 			let title = NSLocalizedString("Open in Browser", comment: "Command")
 			return buildToolbarButton(.openInBrowser, title, Assets.Images.openInBrowser, "openArticleInBrowser:")
 
+		case .listTrackingSeparator:
+			// Keeps Add Article and the list menu over the list, and the article buttons over the article.
+			guard let splitView = splitViewController?.splitView else {
+				return nil
+			}
+			return NSTrackingSeparatorToolbarItem(identifier: .listTrackingSeparator, splitView: splitView, dividerIndex: 0)
+
 		default:
 			return nil
 		}
@@ -402,8 +410,9 @@ extension MainWindowController: NSToolbarDelegate {
 
 	func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		[
-			.listMenu,
 			.addArticle,
+			.listMenu,
+			.listTrackingSeparator,
 			.flexibleSpace,
 			.markRead,
 			.openInBrowser
