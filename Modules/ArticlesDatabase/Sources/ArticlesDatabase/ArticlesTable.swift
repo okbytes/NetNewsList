@@ -215,9 +215,10 @@ final class ArticlesTable: DatabaseTable, Sendable {
 	/// through an explicit delete, never because it is old or missing from `parsedItems`.
 	///
 	/// For the articles in `keptArticleIDs`, an item without a body doesn’t remove a stored one
-	/// (see `ArticlesDatabase.updateAsync`). The stored body is checked in the same transaction
-	/// that writes the update.
-	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, keepingContentOf keptArticleIDs: Set<String>, _ completion: @escaping UpdateArticlesCompletionBlock) {
+	/// (see `ArticlesDatabase.updateAsync`). With `updatingStoredOnly`, items for articles that
+	/// aren’t stored are ignored instead of saved. Both are checked in the same transaction that
+	/// writes the update.
+	func update(_ parsedItems: Set<ParsedItem>, _ feedID: String, keepingContentOf keptArticleIDs: Set<String>, updatingStoredOnly: Bool, _ completion: @escaping UpdateArticlesCompletionBlock) {
 		if parsedItems.isEmpty {
 			callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
 			return
@@ -233,6 +234,19 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 		self.queue.runInTransaction { database in
 
+			var parsedItems = parsedItems
+			var storedArticles: Set<Article>?
+			if updatingStoredOnly {
+				let stored = self.fetchArticlesForFeedID(feedID, database)
+				let storedArticleIDs = Set(stored.map(\.articleID))
+				parsedItems = parsedItems.filter { storedArticleIDs.contains($0.articleID) }
+				if parsedItems.isEmpty {
+					self.callUpdateArticlesCompletionBlock(nil, nil, nil, completion)
+					return
+				}
+				storedArticles = stored
+			}
+
 			let articleIDs = parsedItems.articleIDs()
 
 			let (statusesDictionary, _) = self.statusesTable.ensureStatusesForArticleIDs(articleIDs, false, database) // 1
@@ -244,7 +258,7 @@ final class ArticlesTable: DatabaseTable, Sendable {
 				return
 			}
 
-			let fetchedArticles = self.fetchArticlesForFeedID(feedID, database) // 3
+			let fetchedArticles = storedArticles ?? self.fetchArticlesForFeedID(feedID, database) // 3
 			let fetchedArticlesDictionary = fetchedArticles.dictionary()
 			let incomingArticles = parsedArticles.keepingContent(of: keptArticleIDs, fetchedArticlesDictionary)
 

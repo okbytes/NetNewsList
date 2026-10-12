@@ -145,12 +145,15 @@ final class CloudKitArticlesZone: CloudKitZone {
 			}
 		}
 
-		/// First uploads that found the article already in iCloud without a body while this device
-		/// has one, with iCloud’s copies of them. That copy is a pending save made elsewhere (the
-		/// browser extension, another device), and save-if-new leaves it as it is, so this device’s
-		/// body goes up as a content upload, which overwrites it. iCloud’s copy is merged into the
-		/// article here first (`CloudKitArticlesZoneDelegate.mergeICloudCopies`). When CloudKit
-		/// doesn’t send its copy, the body goes up all the same.
+		/// First uploads that found the article already in iCloud. `serverCopies` are iCloud’s copies
+		/// of them, merged into the articles here (`CloudKitArticlesZoneDelegate.mergeICloudCopies`)
+		/// so a later upload from here doesn’t erase what only iCloud’s copy has (the browser
+		/// extension’s title and saved date). `articleIDs` are those whose copy has no body while
+		/// this device has one: that copy is a pending save made elsewhere (the browser extension,
+		/// another device), save-if-new leaves it as it is, so this device’s body goes up as a
+		/// content upload, which overwrites it. When CloudKit doesn’t send its copy, the body goes
+		/// up all the same. The content upload also sends this device’s status, unread, which is
+		/// what saving a page again does anyway (it moves an archived page back to the Queue).
 		///
 		/// A copy that has a body stays, so the first body to reach iCloud wins even when the one
 		/// here is better: an anonymous extraction made elsewhere that gets there first beats a
@@ -161,18 +164,18 @@ final class CloudKitArticlesZone: CloudKitZone {
 			let unsavedByRecordName = Dictionary(unsavedRecords.map { ($0.key.recordName, $0.value) }, uniquingKeysWith: { first, _ in first })
 			var articleIDs = Set<String>()
 			var serverCopies = [CKRecord]()
-			for update in newUpdates where update.article?.contentHTML != nil {
+			for update in newUpdates {
 				guard let error = unsavedByRecordName[CloudKitArticlesZone.articleRecordName(update.articleID)],
 					  error.code == .serverRecordChanged else {
 					continue
 				}
-				if let serverCopy = error.serverRecord {
-					guard !serverCopy.hasArticleContent else {
-						continue
-					}
+				let serverCopy = error.serverRecord
+				if let serverCopy {
 					serverCopies.append(serverCopy)
 				}
-				articleIDs.insert(update.articleID)
+				if update.article?.contentHTML != nil, !(serverCopy?.hasArticleContent ?? false) {
+					articleIDs.insert(update.articleID)
+				}
 			}
 			return (articleIDs, serverCopies)
 		}

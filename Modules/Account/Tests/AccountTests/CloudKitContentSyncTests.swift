@@ -98,12 +98,13 @@ import SyncDatabase
 		unsaved[CKRecord.ID(recordName: "a|storageFull", zoneID: zoneID)] = CKError(.quotaExceeded)
 		unsaved[CKRecord.ID(recordName: "a|articleRefused", zoneID: zoneID)] = CKError(.requestRateLimited)
 
-		// This device's body replaces a copy without one, after that copy is merged in here, or it
-		// never reaches iCloud. A copy with a body stays, and a page with no body anywhere uploads nothing.
+		// Every copy iCloud sent is merged in here, or a later upload from here erases what only the
+		// copy has. This device's body replaces a copy without one, or it never reaches iCloud. A copy
+		// with a body stays, and a page with no body anywhere uploads nothing.
 		let plan = CloudKitArticlesZone.ArticleRecordPlan(updates)
 		let contentUploads = plan.contentUploads(forUnsaved: unsaved)
 		#expect(contentUploads.articleIDs == ["pendingThere", "copyNotSent"])
-		#expect(contentUploads.serverCopies.map(\.recordID.recordName) == ["a|pendingThere"])
+		#expect(contentUploads.serverCopies.map(\.recordID.recordName) == ["a|pendingThere", "a|extractedThere", "a|pendingEverywhere"])
 
 		// A refused first upload goes again later, or the page never leaves this device. One that
 		// found its records in iCloud is done.
@@ -120,6 +121,8 @@ import SyncDatabase
 		// browser extension's save of the same page in iCloud.
 		let content = ReadingListContent(contentHTML: "<p>Body</p>", summary: "Excerpt", imageURL: "https://example.com/lead.jpg", byline: "Byline")
 		let saved = try await account.saveArticle(url: "https://example.com/page", title: nil, content: content)
+		// Another page went the same way, but was deleted here while its first upload was under way.
+		let deleted = try await account.saveArticle(url: "https://example.com/deleted", title: nil, content: content)
 
 		// The extension's copy has the tab's title, the address as saved and the time it was
 		// saved, and no body. Save-if-new left it as it is.
@@ -133,17 +136,30 @@ import SyncDatabase
 		iCloudCopy[Fields.title] = "Tab Title"
 		let dateSaved = Date(timeIntervalSince1970: 1_790_000_000)
 		iCloudCopy[Fields.datePublished] = dateSaved
-		let unsaved = [iCloudCopy.recordID: CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: iCloudCopy])]
+		let deletedCopy = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType, recordID: CKRecord.ID(recordName: "a|\(deleted.articleID)", zoneID: zoneID))
+		deletedCopy[Fields.feedURL] = deleted.feedID
+		deletedCopy[Fields.uniqueID] = deleted.uniqueID
+		deletedCopy[Fields.url] = deleted.uniqueID
+		let unsaved = [
+			iCloudCopy.recordID: CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: iCloudCopy]),
+			deletedCopy.recordID: CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: deletedCopy])
+		]
 
-		let firstUpload = try #require(CloudKitArticleStatusUpdate(articleID: saved.articleID, statuses: [syncStatus(.new, articleID: saved.articleID)], article: saved))
-		let contentUploads = CloudKitArticlesZone.ArticleRecordPlan([firstUpload]).contentUploads(forUnsaved: unsaved)
-		#expect(contentUploads.articleIDs == [saved.articleID])
+		let firstUploads = try [saved, deleted].map { article in
+			try #require(CloudKitArticleStatusUpdate(articleID: article.articleID, statuses: [syncStatus(.new, articleID: article.articleID)], article: article))
+		}
+		let contentUploads = CloudKitArticlesZone.ArticleRecordPlan(firstUploads).contentUploads(forUnsaved: unsaved)
+		#expect(contentUploads.articleIDs == [saved.articleID, deleted.articleID])
+		await account.deleteArticles(articleIDs: [deleted.articleID])
 		let zoneDelegate = CloudKitArticlesZoneDelegate(account: account, database: SyncDatabase(databasePath: ":memory:"), syncErrorHandler: nil)
 		await zoneDelegate.mergeICloudCopies(contentUploads.serverCopies)
 
+		// A page deleted meanwhile stays deleted: bringing it back would have it extracted and uploaded again everywhere.
+		account.emptyCaches()
+		#expect(await account.fetchArticlesAsync(.articleIDs([deleted.articleID])).isEmpty)
+
 		// The content upload sends the article here and writes every field, so it must carry
 		// iCloud's title, address and date, or they're erased everywhere, along with the body here.
-		account.emptyCaches()
 		let uploaded = try #require(await account.fetchArticlesAsync(.articleIDs([saved.articleID])).first)
 		#expect(uploaded.title == "Tab Title")
 		#expect(uploaded.rawExternalLink == "https://example.com/page?utm_source=x")

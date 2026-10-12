@@ -329,10 +329,11 @@ public struct ArticleCounts: Sendable {
 	/// For the articles in `keptArticleIDs`, an item without a body doesn’t remove the stored body,
 	/// or the excerpt, lead image and byline extracted with it, and a missing title or address
 	/// doesn’t remove the stored one. iCloud sync passes the articles whose body this device
-	/// hasn’t uploaded yet.
-	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String> = Set<String>()) async -> ArticleChanges {
+	/// hasn’t uploaded yet. With `updatingStoredOnly`, items for articles that aren’t stored are
+	/// ignored rather than saved, so an article deleted meanwhile isn’t brought back.
+	public func updateAsync(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String> = Set<String>(), updatingStoredOnly: Bool = false) async -> ArticleChanges {
 		await withCheckedContinuation { continuation in
-			_update(parsedItems: parsedItems, feedID: feedID, keepingContentOf: keptArticleIDs) { articleChanges in
+			_update(parsedItems: parsedItems, feedID: feedID, keepingContentOf: keptArticleIDs, updatingStoredOnly: updatingStoredOnly) { articleChanges in
 				continuation.resume(returning: articleChanges)
 			}
 		}
@@ -552,9 +553,9 @@ private extension ArticlesDatabase {
 		articlesTable.fetchArticlesMatchingWithArticleIDsAsync(searchString, articleIDs, completion)
 	}
 
-	func _update(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String>, completion: @escaping UpdateArticlesCompletionBlock) {
+	func _update(parsedItems: Set<ParsedItem>, feedID: String, keepingContentOf keptArticleIDs: Set<String>, updatingStoredOnly: Bool, completion: @escaping UpdateArticlesCompletionBlock) {
 		Self.logger.debug("ArticlesDatabase: \(#function, privacy: .public) \(self.accountID, privacy: .public)")
-		articlesTable.update(parsedItems, feedID, keepingContentOf: keptArticleIDs, completion)
+		articlesTable.update(parsedItems, feedID, keepingContentOf: keptArticleIDs, updatingStoredOnly: updatingStoredOnly, completion)
 	}
 
 	func _delete(articleIDs: Set<String>, completion: DatabaseCompletionBlock?) {

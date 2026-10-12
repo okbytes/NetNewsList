@@ -714,8 +714,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 
 	/// Rebuilds this device’s link to iCloud: forgets the change tokens, finds or recreates
 	/// the iCloud zones and subscriptions, fetches everything, then uploads any article this
-	/// device has that iCloud lacks. Articles already in iCloud are left as they are there, except
-	/// that a copy without a body gets this device’s.
+	/// device has that iCloud lacks. Articles already in iCloud are left as they are there.
 	func resetSync() async throws {
 		guard let account, isCloudKitEnabled else {
 			return
