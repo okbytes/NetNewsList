@@ -223,17 +223,21 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			return
 		}
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public)")
-		return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+		let didFetchChanges = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
 			let op = CloudKitReceiveStatusOperation(articlesZone: articlesZone, accountID: account.accountID, accountDisplayName: account.nameForDisplay)
 			op.completionBlock = { mainThreadOperation in
 				Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")
 				if mainThreadOperation.isCanceled {
 					continuation.resume(throwing: CloudKitAccountDelegateError.unknown)
 				} else {
-					continuation.resume(returning: ())
+					continuation.resume(returning: op.didFetchChanges)
 				}
 			}
 			mainThreadOperationQueue.add(op)
+		}
+		// Every sync path fetches here: the Mac's timer sync as well as a full refresh.
+		if didFetchChanges {
+			await settleSavedDatesIfNeeded(account: account)
 		}
 	}
 
@@ -959,13 +963,11 @@ private extension CloudKitAccountDelegate {
 
 		account.lastRefreshCompletedDate = Date()
 		refreshFinishedSuccessfully = true
-
-		await settleSavedDatesIfNeeded(account: account)
 	}
 
 	/// Once a launch, after a fetch, so this device knows the saved dates iCloud has: offers this
 	/// device’s arrival times as saved dates (`Account.savedDateProposals()`) and stores the
-	/// dates iCloud settles on. A failure is tried again at the next refresh.
+	/// dates iCloud settles on. A failure is tried again at the next sync.
 	func settleSavedDatesIfNeeded(account: Account) async {
 		guard !didSettleSavedDates else {
 			return

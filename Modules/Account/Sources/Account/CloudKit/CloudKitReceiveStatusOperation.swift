@@ -18,6 +18,9 @@ final class CloudKitReceiveStatusOperation: MainThreadOperation, @unchecked Send
 	private let accountDisplayName: String
 	private static let logger = cloudKitLogger
 
+	/// Whether the changes were fetched. A failure is logged, not thrown.
+	private(set) var didFetchChanges = false
+
 	init(articlesZone: CloudKitArticlesZone, accountID: String, accountDisplayName: String) {
 		self.articlesZone = articlesZone
 		self.accountID = accountID
@@ -44,6 +47,7 @@ final class CloudKitReceiveStatusOperation: MainThreadOperation, @unchecked Send
 			Self.logger.debug("iCloud: Refreshing article statuses")
 			do {
 				let totals = try await articlesZone.refreshArticles()
+				didFetchChanges = true
 				Self.logger.debug("iCloud: Finished refreshing article statuses")
 				activityLog.didComplete(id: activityID, message: cloudKitSyncMessage(changed: totals.changed, deleted: totals.deleted))
 			} catch {
