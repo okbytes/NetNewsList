@@ -115,6 +115,7 @@ let appName = "NetNewsList"
 		FaviconGenerator.templateImage = Assets.Images.faviconTemplate
 
 		installAppleEventHandlers()
+		SavePageService.shared.register()
 
 		CacheCleaner.purgeIfNecessary()
 
