@@ -13,11 +13,15 @@
 //
 
 import AppKit
+import os
+import RSCore
 import WebKit
 import Account
 import CloudKitSync
 
 final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate {
+
+	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ICloudSignIn")
 
 	/// The sign-in page’s own website data, kept apart from the X sign-in and the article views,
 	/// so Apple can recognize this Mac the next time and the sign-in lasts as long as Apple allows.
@@ -70,9 +74,11 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 	}
 
 	override func showWindow(_ sender: Any?) {
-		let isFirstShow = webView?.url == nil
+		// Each sign-in starts on a fresh page: a window shown again (iCloud ended the last sign-in)
+		// still holds the last one's spent page, and Apple's sign-in address expires.
+		let isOpen = window?.isVisible == true || window?.isMiniaturized == true
 		super.showWindow(sender)
-		if isFirstShow {
+		if !isOpen {
 			window?.center()
 			Task { @MainActor in
 				await loadSignInPage()
@@ -149,6 +155,10 @@ private extension ICloudSignInWindowController {
 		do {
 			let url = try await CloudKitWebSync.shared.signInURL()
 			webView?.load(URLRequest(url: url))
+		} catch CloudKitWebServiceError.apiTokenRejected where CloudKitWebSync.shared.isAPITokenEnteredByUser {
+			// The token was typed in, so it may be the wrong one: ask for it again.
+			CloudKitWebSync.shared.setAPIToken("")
+			showError(message: NSLocalizedString("iCloud didn’t accept the CloudKit API token", comment: "iCloud sign-in error"), informativeText: NSLocalizedString("Check it in CloudKit Console (the container’s Tokens & Keys): it has to be the API token’s value, for the Development environment. Try Again asks for it again.", comment: "iCloud sign-in error"))
 		} catch {
 			showError(error, message: NSLocalizedString("Couldn’t open Apple’s sign-in page", comment: "iCloud sign-in error"))
 		}
@@ -187,6 +197,10 @@ private extension ICloudSignInWindowController {
 				close()
 			} catch CloudKitWebSyncError.differentAccount(let signIn) {
 				askAboutDifferentAccount(signIn)
+			} catch CloudKitWebServiceError.signInRequired {
+				// The sign-in the page just gave was refused: there’s nothing to choose in the menu.
+				Self.logger.info("ICloudSignInWindowController: iCloud refused a fresh sign-in")
+				showError(message: NSLocalizedString("iCloud didn’t accept the sign-in", comment: "iCloud sign-in error"), informativeText: NSLocalizedString("iCloud refused the sign-in Apple’s page just gave this app. Try again. If it keeps happening, check that Access iCloud Data on the Web is on for this Apple Account (Settings › your name › iCloud) and that Advanced Data Protection is off.", comment: "iCloud sign-in error"))
 			} catch {
 				showError(error, message: NSLocalizedString("iCloud didn’t accept the sign-in", comment: "iCloud sign-in error"))
 			}

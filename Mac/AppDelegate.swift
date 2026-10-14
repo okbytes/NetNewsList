@@ -20,6 +20,7 @@ import RSCoreResources
 import RSWeb
 import Images
 import HTMLMetadata
+import CloudKitSync
 
 let appName = "NetNewsList"
 
@@ -186,8 +187,11 @@ let appName = "NetNewsList"
 			SavedArticleRequestProcessor.shared.start()
 			ReadingListBackups.shared.start()
 			// A copy that reaches iCloud over the web signs in by itself; ask at once when it hasn’t.
-			if CloudKitWebSync.isEnabled && !CloudKitWebSync.shared.isSignedIn {
-				signInOrOutOfICloud(self)
+			if CloudKitWebSync.isEnabled {
+				NotificationCenter.default.addObserver(self, selector: #selector(iCloudWebSignInDidChange(_:)), name: .CloudKitWebSignInDidChange, object: nil)
+				if !CloudKitWebSync.shared.isSignedIn {
+					signInOrOutOfICloud(self)
+				}
 			}
 		}
 
@@ -399,10 +403,28 @@ let appName = "NetNewsList"
 		let wrappedCompletionHandler = UnsafeSendable(value: completionHandler)
 
 		Task { @MainActor in
-			mainWindowController?.handle(wrappedResponse.value)
+			if wrappedResponse.value.notification.request.identifier == Self.iCloudSignInEndedNotificationID {
+				signInOrOutOfICloud(nil)
+			} else {
+				mainWindowController?.handle(wrappedResponse.value)
+			}
 			wrappedCompletionHandler.value()
 		}
     }
+
+	private static let iCloudSignInEndedNotificationID = "iCloudWebSignInEnded"
+
+	/// iCloud ended the web sign-in (it lasts about two weeks, or web access was turned off).
+	/// Syncing has stopped, so say so, rather than let the Mac quietly fall behind.
+	@objc func iCloudWebSignInDidChange(_ note: Notification) {
+		guard (note.userInfo?[CloudKitWebService.signInEndedByICloudKey] as? Bool) == true, !CloudKitWebSync.shared.isSignedIn else {
+			return
+		}
+		let content = UNMutableNotificationContent()
+		content.title = NSLocalizedString("Sign in to iCloud again", comment: "Notification title")
+		content.body = NSLocalizedString("iCloud ended this Mac’s sign-in, so your reading list isn’t syncing. Click to sign in.", comment: "Notification body")
+		UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: Self.iCloudSignInEndedNotificationID, content: content, trigger: nil))
+	}
 
 	// MARK: Add Article
 	@MainActor func addArticle(_ urlString: String?, title: String? = nil) {

@@ -47,20 +47,26 @@ public enum CloudKitWebSyncError: LocalizedError, Sendable {
 	public private(set) var service: CloudKitWebService?
 
 	/// Whether a sign-in is stored. iCloud can still have ended it; the next sync finds out and
-	/// posts `CloudKitWebSignInDidChange`.
-	public private(set) var isSignedIn = false
+	/// posts `CloudKitWebSignInDidChange`. Read from the token store, which the service updates
+	/// before it posts, so every observer of that notification sees the new state.
+	public var isSignedIn: Bool {
+		tokenStore.loadWebAuthToken() != nil
+	}
 
 	private let tokenStore = KeychainWebAuthTokenStore()
 
 	private init() {
 		service = makeService()
-		isSignedIn = tokenStore.loadWebAuthToken() != nil
-		NotificationCenter.default.addObserver(self, selector: #selector(signInDidChange(_:)), name: .CloudKitWebSignInDidChange, object: nil)
 	}
 
 	/// Whether the build carries no API token and none was entered, so the sign-in has to ask for one.
 	public var needsAPIToken: Bool {
 		service == nil
+	}
+
+	/// Whether the API token in use was entered by the user (the build carries none), so it can be changed.
+	public var isAPITokenEnteredByUser: Bool {
+		buildAPIToken() == nil && UserDefaults.standard.string(forKey: Self.apiTokenKey) != nil
 	}
 
 	/// Stores an API token entered by the user (the build had none) and starts over with it.
@@ -109,14 +115,12 @@ public enum CloudKitWebSyncError: LocalizedError, Sendable {
 	public func adopt(_ signIn: CloudKitWebSignIn) async {
 		UserDefaults.standard.set(signIn.userRecordName, forKey: Self.userRecordNameKey)
 		await service?.adoptSignIn(signIn)
-		isSignedIn = true
 		Self.logger.info("CloudKitWebSync: signed in to iCloud on the web")
 	}
 
 	/// Forgets the sign-in. The articles on this Mac stay; syncing stops until the next sign-in.
 	public func signOut() async {
 		await service?.signOut()
-		isSignedIn = false
 	}
 }
 
@@ -135,18 +139,21 @@ private extension CloudKitWebSync {
 		return CloudKitWebService(configuration: configuration, tokenStore: tokenStore)
 	}
 
+	func buildAPIToken() -> String? {
+		guard let token = Bundle.main.object(forInfoDictionaryKey: "CloudKitAPIToken") as? String, !token.isEmpty else {
+			return nil
+		}
+		return token
+	}
+
 	func configuredAPIToken() -> String? {
-		if let token = Bundle.main.object(forInfoDictionaryKey: "CloudKitAPIToken") as? String, !token.isEmpty {
+		if let token = buildAPIToken() {
 			return token
 		}
 		if let token = UserDefaults.standard.string(forKey: Self.apiTokenKey), !token.isEmpty {
 			return token
 		}
 		return nil
-	}
-
-	@objc func signInDidChange(_ note: Notification) {
-		isSignedIn = tokenStore.loadWebAuthToken() != nil
 	}
 }
 

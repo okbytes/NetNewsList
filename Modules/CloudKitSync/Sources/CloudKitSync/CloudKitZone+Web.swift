@@ -42,6 +42,25 @@ extension CloudKitZone {
 		"cloudkit.web.token.\(zoneID.zoneName).\(zoneID.ownerName)"
 	}
 
+	/// Set while a change fetch is going through the zone from the start (no sync token: a first
+	/// sign-in, Reset iCloud Sync, an expired token), until its last page. Such a fetch lists the
+	/// zone’s whole history, deletions from long ago included, and a deletion of a record that has
+	/// since been saved again here, but not uploaded yet, would delete the new save. So deletions
+	/// are ignored until it ends; what it lists is what iCloud has. Kept across launches, so a
+	/// fetch cut short resumes the same way.
+	var webIsFetchingFromStart: Bool {
+		get {
+			UserDefaults.standard.bool(forKey: webFetchingFromStartKey)
+		}
+		set {
+			UserDefaults.standard.set(newValue ? true : nil, forKey: webFetchingFromStartKey)
+		}
+	}
+
+	var webFetchingFromStartKey: String {
+		"cloudkit.web.fetchingFromStart.\(zoneID.zoneName).\(zoneID.ownerName)"
+	}
+
 	// MARK: - Operations
 
 	func webCreateZoneRecord(_ webDatabase: CloudKitWebDatabase, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
@@ -171,6 +190,9 @@ extension CloudKitZone {
 				var didResetExpiredToken = false
 				while true {
 					let syncToken = webSyncToken
+					if syncToken == nil {
+						webIsFetchingFromStart = true
+					}
 					let page: (changed: [CKRecord], deleted: [CloudKitRecordKey], syncToken: String?, moreComing: Bool)
 					do {
 						page = try await withWebRetries(webDatabase) {
@@ -183,7 +205,10 @@ extension CloudKitZone {
 						continue
 					}
 
-					let deleted = page.deleted.compactMap { key -> CloudKitRecordKey? in
+					if webIsFetchingFromStart && !page.deleted.isEmpty {
+						Self.webLogger.info("CloudKitZone: \(self.zoneID.zoneName, privacy: .public) fetching from the start; ignoring \(page.deleted.count) deletions")
+					}
+					let deleted = webIsFetchingFromStart ? [] : page.deleted.compactMap { key -> CloudKitRecordKey? in
 						guard key.recordType.isEmpty else {
 							return key
 						}
@@ -198,6 +223,9 @@ extension CloudKitZone {
 						webSyncToken = newToken
 					}
 					fetchChangesPageHandler?(zoneID.zoneName, page.changed.count, deleted.count, page.moreComing)
+					if !page.moreComing {
+						webIsFetchingFromStart = false
+					}
 					// A page that says more is coming without a new token would ask for the same page forever.
 					guard page.moreComing, page.syncToken != nil, page.syncToken != syncToken else {
 						break
@@ -227,8 +255,13 @@ extension CloudKitZone {
 				attempt += 1
 				switch CloudKitZoneResult.resolve(error) {
 				case .retry(let seconds):
+					// A longer wait fails at once: the service turns every request away until then
+					// (`CloudKitWebService.throttledUntil`), and a later sync tries again.
+					guard seconds <= webMaxRetryDelay else {
+						throw error
+					}
 					Self.webLogger.debug("CloudKitZone: \(self.zoneID.zoneName, privacy: .public) web request retry in \(seconds) seconds")
-					await delaySeconds(min(seconds, webMaxRetryDelay))
+					await delaySeconds(seconds)
 				case .zoneNotFound where createsMissingZone:
 					Self.webLogger.info("CloudKitZone: \(self.zoneID.zoneName, privacy: .public) zone not found; creating it")
 					try await webDatabase.saveZone(zoneID)

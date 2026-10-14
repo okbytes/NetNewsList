@@ -283,9 +283,16 @@ enum CloudKitAccountZoneError: LocalizedError {
 				let records: [CKRecord]
 				do {
 					records = try await query(ckQuery)
-				} catch let error as CloudKitError where error.error is CloudKitWebServiceError {
-					throw error
 				} catch {
+					// A missing sign-in, the network or a busy iCloud: try again later rather than
+					// make a second account record. Only an answer about the query itself creates one.
+					let underlying = (error as? CloudKitError)?.error ?? error
+					if underlying is CloudKitWebServiceError || CloudKitWebDatabase.isRetryable(underlying) {
+						throw error
+					}
+					if case .retry = CloudKitZoneResult.resolve(underlying) {
+						throw error
+					}
 					records = []
 				}
 				if let record = records.first {

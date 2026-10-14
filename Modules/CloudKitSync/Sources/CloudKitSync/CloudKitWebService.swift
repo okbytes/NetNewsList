@@ -42,6 +42,11 @@ public enum CloudKitWebServiceError: LocalizedError, Sendable {
 	case server(code: String, reason: String?, status: Int, retryAfter: TimeInterval?)
 	/// The response wasn’t what CloudKit Web Services sends.
 	case invalidResponse(status: Int)
+	/// iCloud refused the CloudKit API token itself.
+	case apiTokenRejected(code: String)
+	/// iCloud no longer lets this sign-in reach the private database: Access iCloud Data on the
+	/// Web is off, or Advanced Data Protection is on.
+	case webAccessDisabled
 
 	public var errorDescription: String? {
 		switch self {
@@ -56,6 +61,10 @@ public enum CloudKitWebServiceError: LocalizedError, Sendable {
 			return String(format: NSLocalizedString("iCloud refused the request (%@).", comment: "CloudKit web error"), code)
 		case .invalidResponse(let status):
 			return String(format: NSLocalizedString("iCloud sent an unexpected response (HTTP %d).", comment: "CloudKit web error"), status)
+		case .apiTokenRejected(let code):
+			return String(format: NSLocalizedString("iCloud didn’t accept the CloudKit API token (%@). It has to be a token for this app’s container, made in CloudKit Console for the environment the app uses.", comment: "CloudKit web error"), code)
+		case .webAccessDisabled:
+			return NSLocalizedString("iCloud no longer lets this Mac reach your reading list on the web. Turn on Access iCloud Data on the Web (Settings › your name › iCloud on your iPhone or Mac; it can’t be on with Advanced Data Protection), then sign in to iCloud again.", comment: "CloudKit web error")
 		}
 	}
 }
@@ -68,13 +77,15 @@ public struct CloudKitWebSignIn: Sendable {
 }
 
 public extension Notification.Name {
-	/// Posted on the main thread when the web sign-in starts or ends, including when iCloud ends it.
+	/// Posted on the main thread when the web sign-in starts or ends, including when iCloud ends it
+	/// (then `userInfo[CloudKitWebService.signInEndedByICloudKey]` is true).
 	static let CloudKitWebSignInDidChange = Notification.Name("CloudKitWebSignInDidChange")
 }
 
 public actor CloudKitWebService {
 
 	nonisolated private static let logger = cloudKitLogger
+	public static let signInEndedByICloudKey = "endedByICloud"
 	private static let baseURL = "https://api.apple-cloudkit.com/database/1"
 	/// The headers that carry the replacement web auth token, in the order they’re checked.
 	private static let tokenHeaders = ["X-Apple-CloudKit-Web-Auth-Token", "X-Apple-CloudKit-Session"]
@@ -127,8 +138,12 @@ public actor CloudKitWebService {
 			if let redirectURL {
 				return redirectURL
 			}
+			// No sign-in page to go to: iCloud refused the API token (AUTHENTICATION_FAILED).
+			throw CloudKitWebServiceError.apiTokenRejected(code: "AUTHENTICATION_FAILED")
+		} catch CloudKitWebServiceError.server(let code, _, let status, _) where [400, 401, 403, 404].contains(status) {
+			throw CloudKitWebServiceError.apiTokenRejected(code: code)
 		}
-		throw CloudKitWebServiceError.invalidResponse(status: 421)
+		throw CloudKitWebServiceError.invalidResponse(status: 200)
 	}
 
 	/// Spends the token from the sign-in callback at once on `users/current`, which proves iCloud
@@ -139,7 +154,16 @@ public actor CloudKitWebService {
 			releaseSendSlot()
 		}
 		verifiedReplacementToken = nil
-		let json = try await perform(path: "users/current", body: nil, authenticated: true, signInToken: webAuthToken)
+		let json: [String: Any]
+		do {
+			json = try await perform(path: "users/current", body: nil, authenticated: true, signInToken: webAuthToken)
+		} catch let error where Self.isTransient(error) {
+			// The sign-in took the user a password and a code: don’t throw it away over a dropped
+			// connection or a busy server. One more try, a moment later.
+			Self.logger.info("CloudKitWebService: checking the sign-in failed (\(error.localizedDescription, privacy: .public)); trying again")
+			try? await Task.sleep(for: .seconds(2))
+			json = try await perform(path: "users/current", body: nil, authenticated: true, signInToken: verifiedReplacementToken ?? webAuthToken)
+		}
 		guard let userRecordName = json["userRecordName"] as? String else {
 			throw CloudKitWebServiceError.invalidResponse(status: 200)
 		}
@@ -253,20 +277,32 @@ private extension CloudKitWebService {
 		let serverErrorCode = json?["serverErrorCode"] as? String
 		// Only iCloud’s own answer ends a sign-in. A bare 421 can be HTTP/2’s Misdirected Request.
 		if serverErrorCode == "AUTHENTICATION_REQUIRED" || serverErrorCode == "AUTHENTICATION_FAILED" {
-			if authenticated && signInToken == nil {
+			if authenticated && signInToken == nil && tokenStore.loadWebAuthToken() == token {
 				Self.logger.info("CloudKitWebService: iCloud asked for a new sign-in (\(serverErrorCode ?? "", privacy: .public))")
-				storeToken(nil)
+				storeToken(nil, endedByICloud: true)
 			}
 			let redirectURL = (json?["redirectURL"] as? String).flatMap { URL(string: $0) }
 			throw CloudKitWebServiceError.signInRequired(redirectURL: redirectURL)
 		}
 
+		// Only the sign-in this request used takes the replacement: a sign-out, or a new sign-in,
+		// while the request was out (`signOut` doesn’t wait its turn) stays as it is.
 		if authenticated, let newToken = Self.replacementToken(in: httpResponse) {
 			if signInToken != nil {
 				verifiedReplacementToken = newToken
-			} else {
+			} else if tokenStore.loadWebAuthToken() == token {
 				storeToken(newToken)
 			}
+		}
+
+		// With Advanced Data Protection turned on, or web access turned off, iCloud refuses the
+		// private database to a sign-in that used to work. Signing in again explains why.
+		if serverErrorCode == "ACCESS_DENIED" && !(200..<300).contains(httpResponse.statusCode) && authenticated && signInToken == nil {
+			Self.logger.error("CloudKitWebService: iCloud refused the private database: \(json?["reason"] as? String ?? "", privacy: .public)")
+			if tokenStore.loadWebAuthToken() == token {
+				storeToken(nil, endedByICloud: true)
+			}
+			throw CloudKitWebServiceError.webAccessDisabled
 		}
 
 		guard (200..<300).contains(httpResponse.statusCode) else {
@@ -295,12 +331,13 @@ private extension CloudKitWebService {
 		return url
 	}
 
-	func storeToken(_ token: String?) {
+	func storeToken(_ token: String?, endedByICloud: Bool = false) {
 		let wasSignedIn = tokenStore.loadWebAuthToken() != nil
 		tokenStore.saveWebAuthToken(token)
 		if wasSignedIn != (token != nil) {
+			let userInfo = endedByICloud ? [Self.signInEndedByICloudKey: true] : nil
 			Task { @MainActor in
-				NotificationCenter.default.post(name: .CloudKitWebSignInDidChange, object: nil)
+				NotificationCenter.default.post(name: .CloudKitWebSignInDidChange, object: nil, userInfo: userInfo)
 			}
 		}
 	}
@@ -356,5 +393,23 @@ private extension CloudKitWebService {
 		}
 		logger.error("CloudKitWebService: HTTP \(status, privacy: .public) \(code, privacy: .public): \(reason ?? "", privacy: .public)")
 		return .server(code: code, reason: reason, status: status, retryAfter: retryAfter)
+	}
+}
+
+extension CloudKitWebService {
+
+	/// A failure that trying again shortly can fix: the network, a busy server, a short throttle.
+	static func isTransient(_ error: Error) -> Bool {
+		switch error {
+		case let urlError as URLError:
+			return urlError.code != .cancelled
+		case CloudKitWebServiceError.server(let code, _, let status, let retryAfter):
+			if let retryAfter, retryAfter > longestRetryWait {
+				return false
+			}
+			return ["THROTTLED", "TRY_AGAIN_LATER", "ZONE_BUSY", "INTERNAL_ERROR"].contains(code) || status >= 500 || status == 421
+		default:
+			return false
+		}
 	}
 }

@@ -82,7 +82,11 @@ public final class CloudKitWebDatabase: Sendable {
 						  let recordID = recordIDsByName[received.record.recordID.recordName] else {
 						continue
 					}
-					results[recordID] = .success(try await finish(received))
+					do {
+						results[recordID] = .success(try await finish(received))
+					} catch let error as CloudKitWebAssetUnavailable {
+						results[recordID] = .failure(error.ckError)
+					}
 				}
 			}
 		}
@@ -104,8 +108,14 @@ public final class CloudKitWebDatabase: Sendable {
 		let json = try await post("records/query", body)
 		var records = [CKRecord]()
 		for dictionary in json["records"] as? [[String: Any]] ?? [] {
-			if let received = CloudKitWebRecordCoder.receivedRecord(from: dictionary, zoneID: zoneID) {
-				records.append(try await finish(received))
+			// Asked for no fields (`desiredKeys: []`, as a delete by query does), iCloud leaves the
+			// record type out too; every record a query finds is of the query’s type.
+			if let received = CloudKitWebRecordCoder.receivedRecord(from: dictionary, zoneID: zoneID, recordType: query.recordType) {
+				do {
+					records.append(try await finish(received))
+				} catch let error as CloudKitWebAssetUnavailable {
+					Self.logger.error("CloudKitWebDatabase: skipping \(error.recordName, privacy: .public) in a query: its asset can’t be downloaded")
+				}
 			}
 		}
 		return (records, json["continuationMarker"] as? String)
@@ -135,7 +145,14 @@ public final class CloudKitWebDatabase: Sendable {
 		var deleted = [CloudKitRecordKey]()
 		for dictionary in zoneResult["records"] as? [[String: Any]] ?? [] {
 			if let failure = CloudKitWebRecordCoder.failure(from: dictionary) {
-				throw Self.ckError(for: failure)
+				// A wait iCloud asks for is waited out. Otherwise the record is skipped, as the
+				// CloudKit framework path skips it, so one record can’t stop the zone’s sync for good.
+				let error = Self.ckError(for: failure)
+				if error.userInfo[CKErrorRetryAfterKey] != nil {
+					throw error
+				}
+				Self.logger.error("CloudKitWebDatabase: skipping \(failure.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: \(failure.serverErrorCode, privacy: .public)")
+				continue
 			}
 			guard let recordName = dictionary["recordName"] as? String else {
 				continue
@@ -146,7 +163,13 @@ public final class CloudKitWebDatabase: Sendable {
 				continue
 			}
 			if let received = CloudKitWebRecordCoder.receivedRecord(from: dictionary, zoneID: zoneID) {
-				changed.append(try await finish(received))
+				do {
+					changed.append(try await finish(received))
+				} catch let error as CloudKitWebAssetUnavailable {
+					// Handing the record on without its body would erase the body here. Skipped, it
+					// arrives the next time it changes; a failure that might pass fails the page instead.
+					Self.logger.error("CloudKitWebDatabase: skipping \(error.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: its asset can’t be downloaded")
+				}
 			}
 		}
 		let newSyncToken = (zoneResult["syncToken"] as? String).flatMap { $0.isEmpty ? nil : $0 }
@@ -302,11 +325,26 @@ private extension CloudKitWebDatabase {
 				Self.logger.error("CloudKitWebDatabase: iCloud refused to clear fields; saving without clearing them")
 				sendsClearedFields = false
 				continue
+			} catch let error as CKError where error.code == .limitExceeded || error.code == .invalidArguments {
+				// Too big, or refused for another reason: halve it, as the CloudKit framework path
+				// does, so one record can’t hold back the others. A single record gets the error.
+				guard operations.count > 1 else {
+					return [operations[0].recordID: error]
+				}
+				Self.logger.info("CloudKitWebDatabase: iCloud refused a save of \(operations.count) records (\(error.code.rawValue)); sending it in halves")
+				let half = operations.count / 2
+				var failures = try await send(Array(operations[..<half]), zoneID: zoneID, policy: policy, atomic: atomic)
+				failures.merge(try await send(Array(operations[half...]), zoneID: zoneID, policy: policy, atomic: atomic)) { first, _ in first }
+				return failures
 			}
 
 			let operationsByName = Dictionary(operations.map { ($0.recordID.recordName, $0) }, uniquingKeysWith: { first, _ in first })
 			var failures = [CKRecord.ID: CloudKitWebRecordFailure]()
+			var answeredRecordNames = Set<String>()
 			for dictionary in json["records"] as? [[String: Any]] ?? [] {
+				if let recordName = dictionary["recordName"] as? String {
+					answeredRecordNames.insert(recordName)
+				}
 				if let failure = CloudKitWebRecordCoder.failure(from: dictionary) {
 					if let operation = operationsByName[failure.recordName] {
 						failures[operation.recordID] = failure
@@ -320,9 +358,18 @@ private extension CloudKitWebDatabase {
 				}
 			}
 
+			// A record iCloud’s answer doesn’t mention wasn’t saved, as far as anyone can tell: it’s
+			// reported as failed, so it stays queued and goes again later.
+			for operation in operations where !answeredRecordNames.contains(operation.recordID.recordName) {
+				failures[operation.recordID] = CloudKitWebRecordFailure(recordName: operation.recordID.recordName, serverErrorCode: "TRY_AGAIN_LATER", reason: "iCloud’s answer didn’t mention this record", retryAfter: nil)
+			}
+
 			// Deleting a record iCloud no longer has leaves it gone, which is what was asked.
-			failures = failures.filter { recordID, failure in
-				!(failure.serverErrorCode == "NOT_FOUND" && operationsByName[recordID.recordName]?.operationType == "forceDelete")
+			let goneRecordNames = Set(failures.filter { recordID, failure in
+				failure.serverErrorCode == "NOT_FOUND" && operationsByName[recordID.recordName]?.operationType == "forceDelete"
+			}.keys.map(\.recordName))
+			failures = failures.filter { recordID, _ in
+				!goneRecordNames.contains(recordID.recordName)
 			}
 			guard !failures.isEmpty else {
 				return [:]
@@ -334,6 +381,12 @@ private extension CloudKitWebDatabase {
 			let refusedClears = sendsClearedFields && failures.contains { recordID, failure in
 				failure.serverErrorCode == "BAD_REQUEST" && operationsByName[recordID.recordName]?.hasClearedFields == true
 			}
+			// An atomic request that failed only because a record to delete was already gone saved
+			// nothing else either. Without this, the same deletion fails the same statuses at every send.
+			let failedOnlyForGoneRecords = atomic && !goneRecordNames.isEmpty && failures.values.allSatisfy { $0.serverErrorCode == "ATOMIC_ERROR" }
+			// An atomic request refused without naming the record that caused it: send it again
+			// record by record, so the others are saved and the culprit gets its own error.
+			let failedWithoutCulprit = atomic && failures.values.allSatisfy { $0.serverErrorCode == "ATOMIC_ERROR" }
 
 			if policy == .changedKeys && !didCreateMissingRecords && !missingRecordNames.isEmpty {
 				Self.logger.debug("CloudKitWebDatabase: creating \(missingRecordNames.count) records iCloud doesn’t have yet")
@@ -341,12 +394,23 @@ private extension CloudKitWebDatabase {
 			} else if refusedClears {
 				Self.logger.error("CloudKitWebDatabase: iCloud refused to clear fields; saving without clearing them")
 				sendsClearedFields = false
+			} else if failedOnlyForGoneRecords {
+				Self.logger.debug("CloudKitWebDatabase: sending an atomic save again without deleting \(goneRecordNames.count) records iCloud no longer has")
+			} else if failedWithoutCulprit {
+				Self.logger.info("CloudKitWebDatabase: an atomic save failed without a culprit; sending it again record by record")
+				atomic = false
+				operations = operations.filter { !goneRecordNames.contains($0.recordID.recordName) }
+				continue
 			} else {
 				return try await ckErrors(for: failures, operations: operationsByName, zoneID: zoneID)
 			}
 
-			// Atomic: nothing was saved, so everything goes again. Otherwise only what failed.
+			// Atomic: nothing was saved, so everything goes again but the deletions already done.
+			// Otherwise only what failed.
 			operations = operations.compactMap { operation in
+				guard !goneRecordNames.contains(operation.recordID.recordName) else {
+					return nil
+				}
 				var operation = operation
 				if missingRecordNames.contains(operation.recordID.recordName) {
 					operation.operationType = "create"
@@ -364,20 +428,39 @@ private extension CloudKitWebDatabase {
 		}
 		let conflictedIDs = failures.filter { Self.isConflict($0.value) }.map(\.key)
 		var serverRecords = [CKRecord.ID: CKRecord]()
-		if !conflictedIDs.isEmpty {
-			let fetched = (try? await records(for: conflictedIDs)) ?? [:]
-			for (recordID, result) in fetched {
-				if case .success(let record) = result {
-					serverRecords[recordID] = record
+		// Small lookups, each tried a few times: one big answer, or one bad moment, mustn’t lose
+		// them all.
+		for chunk in conflictedIDs.chunked(into: 20) {
+			for attempt in 1...3 {
+				do {
+					for (recordID, result) in try await records(for: chunk) {
+						if case .success(let record) = result {
+							serverRecords[recordID] = record
+						}
+					}
+					break
+				} catch {
+					guard attempt < 3, CloudKitWebService.isTransient(error) || Self.isRetryable(error) else {
+						Self.logger.error("CloudKitWebDatabase: couldn’t fetch iCloud’s copies of records that conflicted: \(error.localizedDescription, privacy: .public)")
+						break
+					}
+					try? await Task.sleep(for: .seconds(2))
 				}
 			}
 		}
 		var errors = [CKRecord.ID: CKError]()
 		for (recordID, failure) in failures {
 			if Self.isConflict(failure) {
+				guard let serverRecord = serverRecords[recordID] else {
+					// Reported as a conflict without iCloud’s copy, a first upload would go on to
+					// overwrite that copy’s title and saved date. Reported as a failure, it’s sent
+					// again later, and that try fetches the copy.
+					errors[recordID] = CKError(.serviceUnavailable, userInfo: [NSLocalizedDescriptionKey: "Couldn’t fetch iCloud’s copy of a record that already exists", CKErrorRetryAfterKey: NSNumber(value: 10)])
+					continue
+				}
 				var userInfo = [String: Any]()
 				userInfo[NSLocalizedDescriptionKey] = failure.reason
-				userInfo[CKRecordChangedErrorServerRecordKey] = serverRecords[recordID]
+				userInfo[CKRecordChangedErrorServerRecordKey] = serverRecord
 				errors[recordID] = CKError(.serverRecordChanged, userInfo: userInfo)
 			} else {
 				errors[recordID] = Self.ckError(for: failure)
@@ -428,11 +511,24 @@ private extension CloudKitWebDatabase {
 		}
 		let service = try await currentService()
 		for (fieldName, downloadURL) in received.assetDownloadURLs {
+			var attempt = 1
 			let data: Data
-			do {
-				data = try await service.downloadAsset(from: downloadURL)
-			} catch {
-				throw Self.ckError(for: error)
+			while true {
+				do {
+					data = try await service.downloadAsset(from: downloadURL)
+					break
+				} catch {
+					// The network or a busy server: try again a couple of times, then fail the request
+					// so it’s fetched again later. Anything else won’t get better by asking again.
+					guard CloudKitWebService.isTransient(error) else {
+						throw CloudKitWebAssetUnavailable(recordName: record.recordID.recordName, error: error)
+					}
+					guard attempt < 3 else {
+						throw Self.ckError(for: error)
+					}
+					attempt += 1
+					try? await Task.sleep(for: .seconds(2))
+				}
 			}
 			try FileManager.default.createDirectory(at: assetFolder, withIntermediateDirectories: true)
 			let fileURL = assetFolder.appendingPathComponent(UUID().uuidString)
@@ -514,6 +610,21 @@ private extension CloudKitWebDatabase {
 // MARK: - Errors
 
 extension CloudKitWebDatabase {
+
+	/// A CKError iCloud says to try again after, within a minute, or a network failure.
+	public static func isRetryable(_ error: Error) -> Bool {
+		guard let ckError = error as? CKError else {
+			return false
+		}
+		switch ckError.code {
+		case .networkFailure, .networkUnavailable:
+			return true
+		case .serviceUnavailable, .requestRateLimited, .zoneBusy:
+			return (ckError.retryAfterSeconds ?? 0) <= 60
+		default:
+			return false
+		}
+	}
 
 	/// The CKError for a failure iCloud reported for one record or one zone.
 	static func ckError(for failure: CloudKitWebRecordFailure) -> CKError {
@@ -614,5 +725,16 @@ private final class CloudKitWebChangeTags: @unchecked Sendable {
 			lock.unlock()
 		}
 		tags.setObject(tag as NSString, forKey: record)
+	}
+}
+
+/// An asset iCloud listed but won’t hand over (expired address, missing file). The record that
+/// holds it is skipped or reported as failed, never passed on without it.
+private struct CloudKitWebAssetUnavailable: Error {
+	let recordName: String
+	let error: Error
+
+	var ckError: CKError {
+		CKError(.assetNotAvailable, userInfo: [NSUnderlyingErrorKey: error, NSLocalizedDescriptionKey: "An asset of \(recordName) couldn’t be downloaded"])
 	}
 }
