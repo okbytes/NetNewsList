@@ -40,20 +40,27 @@ struct CloudKitArticleStatusUpdate {
 			return .delete
 		}
 
-		// A lone first upload is saved only if the records don’t exist yet, so two devices
-		// saving the same page don’t overwrite each other.
-		if statuses.count == 1, statuses.first?.key == .new {
+		// A first upload is saved only if the records don’t exist yet, so two devices (or the
+		// browser extension) saving the same page don’t overwrite each other. That holds when a
+		// status change or a body is queued with it too (saved, then archived or extracted before
+		// it was sent): the status goes as a status update (`sendsStatus`), and a copy already in
+		// iCloud is merged in rather than overwritten (`ArticleRecordPlan.contentUploads`).
+		if statuses.contains(where: { $0.key == .new }) {
 			return .new
 		}
 
-		// New content, or a first upload bundled with a status change (saved, then marked
-		// read before it was sent): upload status and content, overwriting the server copy.
-		// A pure status change never touches content.
-		if statuses.contains(where: { $0.key == .new || $0.key == .content }) {
+		// New content after the first upload: upload status and content, overwriting the server
+		// copy. A pure status change never touches content.
+		if statuses.contains(where: { $0.key == .content }) {
 			return .all
 		}
 
 		return .statusOnly
+	}
+
+	/// Whether a read or starred change is queued, which a first upload sends as a status update.
+	var sendsStatus: Bool {
+		statuses.contains { $0.key == .read || $0.key == .starred }
 	}
 
 	var isRead: Bool {

@@ -25,9 +25,19 @@ import RSParser
 	}
 
 	@Test func firstUploadWithStatusChangeUploadsContent() throws {
-		// Saved, then archived before the first send: the content must still go up.
+		// Saved, then archived (or extracted) before the first send: the content must still go up,
+		// and the archive with it, but as a first upload, so a copy the browser extension or another
+		// device already put in iCloud is merged in rather than overwritten.
 		let update = try #require(statusUpdate([.new, .read], read: true))
-		#expect(update.record == .all)
+		#expect(update.record == .new)
+		let plan = CloudKitArticlesZone.ArticleRecordPlan([update])
+		#expect(plan.newUpdates.map(\.articleID) == [update.articleID])
+		#expect(plan.statusUpdates.map(\.articleID) == [update.articleID])
+		#expect(plan.contentUpdates.isEmpty)
+
+		let extractedBeforeTheFirstSend = try #require(statusUpdate([.new, .content]))
+		#expect(extractedBeforeTheFirstSend.record == .new)
+		#expect(CloudKitArticlesZone.ArticleRecordPlan([extractedBeforeTheFirstSend]).statusUpdates.isEmpty)
 	}
 
 	@Test func changedContentIsUploadedAsModification() throws {

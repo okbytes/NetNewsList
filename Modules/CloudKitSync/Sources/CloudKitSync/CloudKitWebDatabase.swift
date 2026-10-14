@@ -166,9 +166,15 @@ public final class CloudKitWebDatabase: Sendable {
 				do {
 					changed.append(try await finish(received))
 				} catch let error as CloudKitWebAssetUnavailable {
-					// Handing the record on without its body would erase the body here. Skipped, it
-					// arrives the next time it changes; a failure that might pass fails the page instead.
-					Self.logger.error("CloudKitWebDatabase: skipping \(error.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: its asset can’t be downloaded")
+					// The download address may have expired: a lookup hands out a new one. Handing the
+					// record on without its body would erase the body here, so if that fails too it’s
+					// skipped, and arrives the next time it changes.
+					let recordID = received.record.recordID
+					if case .success(let record)? = try? await records(for: [recordID])[recordID] {
+						changed.append(record)
+					} else {
+						Self.logger.error("CloudKitWebDatabase: skipping \(error.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: its asset can’t be downloaded")
+					}
 				}
 			}
 		}
@@ -359,9 +365,12 @@ private extension CloudKitWebDatabase {
 			}
 
 			// A record iCloud’s answer doesn’t mention wasn’t saved, as far as anyone can tell: it’s
-			// reported as failed, so it stays queued and goes again later.
+			// reported as failed, so it stays queued and goes again later. In an atomic request that
+			// failed, nothing was saved, as with ATOMIC_ERROR, so it counts as that, which keeps the
+			// atomic fallbacks below working.
+			let unansweredCode = atomic && !failures.isEmpty ? "ATOMIC_ERROR" : "TRY_AGAIN_LATER"
 			for operation in operations where !answeredRecordNames.contains(operation.recordID.recordName) {
-				failures[operation.recordID] = CloudKitWebRecordFailure(recordName: operation.recordID.recordName, serverErrorCode: "TRY_AGAIN_LATER", reason: "iCloud’s answer didn’t mention this record", retryAfter: nil)
+				failures[operation.recordID] = CloudKitWebRecordFailure(recordName: operation.recordID.recordName, serverErrorCode: unansweredCode, reason: "iCloud’s answer didn’t mention this record", retryAfter: nil)
 			}
 
 			// Deleting a record iCloud no longer has leaves it gone, which is what was asked.
@@ -518,12 +527,12 @@ private extension CloudKitWebDatabase {
 					data = try await service.downloadAsset(from: downloadURL)
 					break
 				} catch {
-					// The network or a busy server: try again a couple of times, then fail the request
-					// so it’s fetched again later. Anything else won’t get better by asking again.
-					guard CloudKitWebService.isTransient(error) else {
+					// Only a definite refusal skips the record. The network, a busy server or a throttle
+					// is tried again a couple of times, then fails the request, so it’s fetched again later.
+					if Self.isAssetPermanentlyUnavailable(error) {
 						throw CloudKitWebAssetUnavailable(recordName: record.recordID.recordName, error: error)
 					}
-					guard attempt < 3 else {
+					guard CloudKitWebService.isTransient(error), attempt < 3 else {
 						throw Self.ckError(for: error)
 					}
 					attempt += 1
@@ -559,7 +568,28 @@ private extension CloudKitWebDatabase {
 		guard let json = (try? JSONSerialization.jsonObject(with: responseData)) as? [String: Any] else {
 			throw CloudKitWebServiceError.invalidResponse(status: 200)
 		}
+		// A long wait asked for inside an answer that otherwise worked (a zone or a record
+		// throttled) holds every request off until then, as one in a refused answer does.
+		let entries = (json["zones"] as? [[String: Any]] ?? []) + (json["records"] as? [[String: Any]] ?? [])
+		let longestWait = entries.compactMap { entry -> TimeInterval? in
+			guard let code = entry["serverErrorCode"] as? String, ["THROTTLED", "TRY_AGAIN_LATER", "ZONE_BUSY"].contains(code) else {
+				return nil
+			}
+			return (entry["retryAfter"] as? NSNumber)?.doubleValue
+		}.max()
+		if let longestWait {
+			await service.throttle(for: longestWait)
+		}
 		return json
+	}
+
+	/// The asset host refused the file for good: a 4xx other than a timeout, a misdirected request
+	/// or a throttle, with no wait to honor.
+	static func isAssetPermanentlyUnavailable(_ error: Error) -> Bool {
+		guard case CloudKitWebServiceError.server(_, _, let status, let retryAfter) = error else {
+			return false
+		}
+		return retryAfter == nil && (400..<500).contains(status) && ![408, 421, 429].contains(status)
 	}
 
 	static func zoneIDValue(_ zoneID: CKRecordZone.ID) -> [String: Any] {
@@ -677,6 +707,13 @@ extension CloudKitWebDatabase {
 			return retrying(.requestRateLimited, after: 10)
 		case "TRY_AGAIN_LATER":
 			return retrying(.serviceUnavailable, after: 10)
+		case "INTERNAL_ERROR":
+			// A whole request iCloud failed is tried again; one record it failed is skipped, as the
+			// CloudKit framework path does, unless iCloud says to wait.
+			if status != nil || retryAfter != nil {
+				return retrying(.serviceUnavailable, after: 10)
+			}
+			return CKError(.serverRejectedRequest, userInfo: userInfo)
 		case "SYNC_TOKEN_EXPIRED", "CHANGE_TOKEN_EXPIRED":
 			return CKError(.changeTokenExpired, userInfo: userInfo)
 		case "BAD_REQUEST":

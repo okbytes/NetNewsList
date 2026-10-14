@@ -404,7 +404,12 @@ let appName = "NetNewsList"
 
 		Task { @MainActor in
 			if wrappedResponse.value.notification.request.identifier == Self.iCloudSignInEndedNotificationID {
-				signInOrOutOfICloud(nil)
+				// Never the sign-out alert: an old notification can be clicked after signing in again.
+				if CloudKitWebSync.isEnabled && !CloudKitWebSync.shared.isSignedIn {
+					showICloudSignInWindow()
+				} else {
+					showMainWindow(nil)
+				}
 			} else {
 				mainWindowController?.handle(wrappedResponse.value)
 			}
@@ -417,7 +422,11 @@ let appName = "NetNewsList"
 	/// iCloud ended the web sign-in (it lasts about two weeks, or web access was turned off).
 	/// Syncing has stopped, so say so, rather than let the Mac quietly fall behind.
 	@objc func iCloudWebSignInDidChange(_ note: Notification) {
-		guard (note.userInfo?[CloudKitWebService.signInEndedByICloudKey] as? Bool) == true, !CloudKitWebSync.shared.isSignedIn else {
+		guard !CloudKitWebSync.shared.isSignedIn else {
+			UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.iCloudSignInEndedNotificationID])
+			return
+		}
+		guard (note.userInfo?[CloudKitWebService.signInEndedByICloudKey] as? Bool) == true else {
 			return
 		}
 		let content = UNMutableNotificationContent()
@@ -483,10 +492,7 @@ let appName = "NetNewsList"
 			return
 		}
 		guard CloudKitWebSync.shared.isSignedIn else {
-			if iCloudSignInWindowController == nil {
-				iCloudSignInWindowController = ICloudSignInWindowController()
-			}
-			iCloudSignInWindowController?.showWindow(self)
+			showICloudSignInWindow()
 			return
 		}
 		let alert = NSAlert()
@@ -501,6 +507,13 @@ let appName = "NetNewsList"
 		Task {
 			await CloudKitWebSync.shared.signOut()
 		}
+	}
+
+	private func showICloudSignInWindow() {
+		if iCloudSignInWindowController == nil {
+			iCloudSignInWindowController = ICloudSignInWindowController()
+		}
+		iCloudSignInWindowController?.showWindow(self)
 	}
 
 	@IBAction func resetiCloudSync(_ sender: Any?) {

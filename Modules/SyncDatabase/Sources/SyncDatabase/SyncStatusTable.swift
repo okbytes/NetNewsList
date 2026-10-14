@@ -95,6 +95,10 @@ struct SyncStatusTable {
 		try selectPendingArticleIDs([.new, .content], database: database)
 	}
 
+	static func selectPendingFirstUploadArticleIDs(database: FMDatabase) throws -> Set<String> {
+		try selectPendingArticleIDs([.new], database: database)
+	}
+
 	static func resetAllSelectedForProcessing(database: FMDatabase) throws {
 		let updateSQL = "update \(name) set selected = false"
 		guard database.executeUpdateInTransaction(updateSQL) else {

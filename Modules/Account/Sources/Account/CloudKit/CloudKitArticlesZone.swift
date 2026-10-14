@@ -143,7 +143,8 @@ final class CloudKitArticlesZone: CloudKitZone {
 		var statusUpdates = [CloudKitArticleStatusUpdate]()
 		/// Content records saved with `modify`, overwriting the server copy.
 		var contentUpdates = [CloudKitArticleStatusUpdate]()
-		/// First uploads: status and content, saved only if they don’t exist yet.
+		/// First uploads: status and content, saved only if they don’t exist yet. One with a status
+		/// change queued is in `statusUpdates` too, so the change reaches a status record that exists.
 		var newUpdates = [CloudKitArticleStatusUpdate]()
 		/// Articles whose status record is deleted. The content record goes with it
 		/// through its `.deleteSelf` reference. Nothing else ever deletes content.
@@ -157,6 +158,9 @@ final class CloudKitArticlesZone: CloudKitZone {
 					contentUpdates.append(update)
 				case .new:
 					newUpdates.append(update)
+					if update.sendsStatus {
+						statusUpdates.append(update)
+					}
 				case .delete:
 					deletedArticleIDs.append(update.articleID)
 				case .statusOnly:
@@ -230,11 +234,16 @@ final class CloudKitArticlesZone: CloudKitZone {
 		let plan = ArticleRecordPlan(statusUpdates)
 		let statusRecords = plan.statusUpdates.map { makeStatusRecord($0) }
 		var newRecords = [CKRecord]()
+		let sentStatusArticleIDs = Set(plan.statusUpdates.map(\.articleID))
 		for update in plan.newUpdates {
 			guard let article = update.article else {
 				continue
 			}
-			newRecords.append(makeStatusRecord(update))
+			// A status sent as a status update already went with `modify`; saving it again only if
+			// new would always find it there.
+			if !sentStatusArticleIDs.contains(update.articleID) {
+				newRecords.append(makeStatusRecord(update))
+			}
 			newRecords.append(makeArticleRecord(article))
 		}
 		let articleRecords = plan.contentUpdates.compactMap { update in

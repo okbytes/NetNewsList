@@ -140,7 +140,7 @@ public actor CloudKitWebService {
 			}
 			// No sign-in page to go to: iCloud refused the API token (AUTHENTICATION_FAILED).
 			throw CloudKitWebServiceError.apiTokenRejected(code: "AUTHENTICATION_FAILED")
-		} catch CloudKitWebServiceError.server(let code, _, let status, _) where [400, 401, 403, 404].contains(status) {
+		} catch CloudKitWebServiceError.server(let code, _, let status, _) where [400, 401, 403, 404].contains(status) && !["INTERNAL_ERROR", "TRY_AGAIN_LATER", "THROTTLED", "ZONE_BUSY"].contains(code) {
 			throw CloudKitWebServiceError.apiTokenRejected(code: code)
 		}
 		throw CloudKitWebServiceError.invalidResponse(status: 200)
@@ -176,6 +176,17 @@ public actor CloudKitWebService {
 	public func adoptSignIn(_ signIn: CloudKitWebSignIn) {
 		storeToken(signIn.webAuthToken)
 		Self.logger.info("CloudKitWebService: signed in")
+	}
+
+	/// Holds every request off for a wait iCloud asked for that is longer than a retry is worth.
+	func throttle(for seconds: TimeInterval) {
+		guard seconds > Self.longestRetryWait else {
+			return
+		}
+		let until = Date().addingTimeInterval(seconds)
+		if throttledUntil.map({ $0 < until }) ?? true {
+			throttledUntil = until
+		}
 	}
 
 	/// Forgets the sign-in on this Mac.
@@ -310,7 +321,7 @@ private extension CloudKitWebService {
 		guard (200..<300).contains(httpResponse.statusCode) else {
 			let error = Self.serverError(status: httpResponse.statusCode, json: json, response: httpResponse)
 			if case .server(_, _, _, let retryAfter?) = error, retryAfter > Self.longestRetryWait {
-				throttledUntil = Date().addingTimeInterval(retryAfter)
+				throttle(for: retryAfter)
 			}
 			throw error
 		}

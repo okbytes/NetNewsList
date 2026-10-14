@@ -54,8 +54,9 @@ final class CloudKitArticlesZoneDelegate: CloudKitZoneDelegate {
 
 		let pendingReadStatusArticleIDs = (try? await syncDatabase.selectPendingReadStatusArticleIDs()) ?? Set<String>()
 		let pendingStarredStatusArticleIDs = (try? await syncDatabase.selectPendingStarredStatusArticleIDs()) ?? Set<String>()
+		let pendingFirstUploadArticleIDs = (try? await syncDatabase.selectPendingFirstUploadArticleIDs()) ?? Set<String>()
 
-		await delete(recordKeys: deleted, pendingStarredStatusArticleIDs: pendingStarredStatusArticleIDs)
+		await delete(recordKeys: deleted, keeping: pendingStarredStatusArticleIDs.union(pendingFirstUploadArticleIDs))
 		await update(records: changed,
 					 pendingReadStatusArticleIDs: pendingReadStatusArticleIDs,
 					 pendingStarredStatusArticleIDs: pendingStarredStatusArticleIDs)
@@ -82,10 +83,15 @@ final class CloudKitArticlesZoneDelegate: CloudKitZoneDelegate {
 
 private extension CloudKitArticlesZoneDelegate {
 
-	func delete(recordKeys: [CloudKitRecordKey], pendingStarredStatusArticleIDs: Set<String>) async {
+	/// Deletes the articles whose status records iCloud deleted, but `keeping` some: a pending star
+	/// change, and a page saved here whose first upload hasn’t gone yet. That save is newer than any
+	/// deletion this device hasn’t seen: the same page deleted elsewhere earlier (an article’s ID
+	/// comes from its address, so saving it again reuses it), which a change fetch from the start
+	/// over the web lists along with the zone’s whole history. Its first upload puts it back.
+	func delete(recordKeys: [CloudKitRecordKey], keeping keptArticleIDs: Set<String>) async {
 		let receivedRecordIDs = recordKeys.filter({ $0.recordType == CloudKitArticlesZone.CloudKitArticleStatus.recordType }).map({ $0.recordID })
 		let receivedArticleIDs = Set(receivedRecordIDs.map({ stripPrefix($0.externalID) }))
-		let deletableArticleIDs = receivedArticleIDs.subtracting(pendingStarredStatusArticleIDs)
+		let deletableArticleIDs = receivedArticleIDs.subtracting(keptArticleIDs)
 
 		guard !deletableArticleIDs.isEmpty else {
 			return
