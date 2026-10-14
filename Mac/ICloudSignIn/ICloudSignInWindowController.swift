@@ -90,6 +90,25 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 		webView?.stopLoading()
 	}
 
+	/// Asks for the CloudKit API token when the build carries none (a release, which can’t
+	/// include it: the repository is public). It’s kept across updates. Returns whether one was set.
+	static func askForAPIToken() -> Bool {
+		let alert = NSAlert()
+		alert.messageText = NSLocalizedString("Enter the CloudKit API Token", comment: "iCloud sign-in alert title")
+		alert.informativeText = NSLocalizedString("This copy of the app doesn’t include one, and needs it once. It’s the apiToken in local-config.json in the NetNewsList folder on your Mac, or the API token in CloudKit Console (the container’s Tokens & Keys, Development).", comment: "iCloud sign-in alert message")
+		let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+		field.placeholderString = NSLocalizedString("API token", comment: "Text field placeholder")
+		alert.accessoryView = field
+		alert.window.initialFirstResponder = field
+		alert.addButton(withTitle: NSLocalizedString("Continue", comment: "Continue button"))
+		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+		guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+			return false
+		}
+		CloudKitWebSync.shared.setAPIToken(field.stringValue)
+		return !CloudKitWebSync.shared.needsAPIToken
+	}
+
 	// MARK: - WKNavigationDelegate
 
 	func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
@@ -147,7 +166,7 @@ private extension ICloudSignInWindowController {
 
 	func loadSignInPage() async {
 		if CloudKitWebSync.shared.needsAPIToken {
-			guard askForAPIToken() else {
+			guard Self.askForAPIToken() else {
 				close()
 				return
 			}
@@ -162,24 +181,6 @@ private extension ICloudSignInWindowController {
 		} catch {
 			showError(error, message: NSLocalizedString("Couldn’t open Apple’s sign-in page", comment: "iCloud sign-in error"))
 		}
-	}
-
-	/// The build carries no CloudKit API token: asks for the one from CloudKit Console.
-	func askForAPIToken() -> Bool {
-		let alert = NSAlert()
-		alert.messageText = NSLocalizedString("Enter the CloudKit API Token", comment: "iCloud sign-in alert title")
-		alert.informativeText = NSLocalizedString("This copy of the app doesn’t include one. Copy the API token from CloudKit Console (the container’s Tokens & Keys), for the environment your other devices use.", comment: "iCloud sign-in alert message")
-		let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
-		field.placeholderString = NSLocalizedString("API token", comment: "Text field placeholder")
-		alert.accessoryView = field
-		alert.window.initialFirstResponder = field
-		alert.addButton(withTitle: NSLocalizedString("Continue", comment: "Continue button"))
-		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-		guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-			return false
-		}
-		CloudKitWebSync.shared.setAPIToken(field.stringValue)
-		return !CloudKitWebSync.shared.needsAPIToken
 	}
 
 	func finishSignIn(webAuthToken: String) {

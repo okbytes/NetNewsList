@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the work-computer copy of NetNewsList: the full Mac app, Developer ID-signed and without
 # the iCloud and push entitlements, for a managed Mac where IT blocks signing macOS in to iCloud.
-# Usage: scripts/build-work-mac.sh [--no-notarize]
+# Usage: scripts/build-work-mac.sh [--no-notarize] [--no-token]
 #
 # The CloudKit framework only ever uses the Mac's own iCloud account, so this build syncs over
 # CloudKit Web Services with an Apple ID sign-in inside the app (choose NetNewsList › Sign In to
@@ -13,7 +13,9 @@
 #
 # The CloudKit Web Services API token and environment come from NETNEWSLIST_CLOUDKIT_API_TOKEN and
 # NETNEWSLIST_CLOUDKIT_ENVIRONMENT, else from the git-ignored local-config.json at the
-# repository's root (apiToken, environment). Without a token the app asks for one at sign-in. A token is built into the app's Info.plist, so keep the zip to yourself.
+# repository's root (apiToken, environment). Without a token the app asks for one at sign-in.
+# A token is built into the app's Info.plist, so keep that zip to yourself; --no-token leaves it
+# out, for a release anyone can download (scripts/release-work-mac.sh).
 #
 # It notarizes when the notarytool keychain profile NOTARY_PROFILE (default netnewslist-notary)
 # exists; the script prints the one-time command that creates it. Without one, or with
@@ -58,14 +60,16 @@ usage() {
 }
 
 NOTARIZE=1
+WITH_TOKEN=1
 for arg in "$@"; do
     case "$arg" in
         --no-notarize) NOTARIZE=0 ;;
+        --no-token) WITH_TOKEN=0 ;;
         -h | --help)
             usage
             exit 0
             ;;
-        *) fail "Unknown option $arg. Usage: scripts/build-work-mac.sh [--no-notarize]" ;;
+        *) fail "Unknown option $arg. Usage: scripts/build-work-mac.sh [--no-notarize] [--no-token]" ;;
     esac
 done
 
@@ -133,7 +137,9 @@ entitlements_of() {
 # The token and environment the app reads from Info.plist.
 TOKEN="${NETNEWSLIST_CLOUDKIT_API_TOKEN:-}"
 TOKEN_SOURCE="NETNEWSLIST_CLOUDKIT_API_TOKEN"
-if [ -z "$TOKEN" ]; then
+if [ "$WITH_TOKEN" -eq 0 ]; then
+    TOKEN=""
+elif [ -z "$TOKEN" ]; then
     TOKEN=$(config_value apiToken)
     TOKEN_SOURCE=$CONFIG
 fi
@@ -148,6 +154,8 @@ esac
     fail "The CloudKit API token from $TOKEN_SOURCE has characters an API token can't have."
 if [ -n "$TOKEN" ]; then
     echo "▸ Building in the CloudKit API token from $TOKEN_SOURCE (environment: $ENVIRONMENT)."
+elif [ "$WITH_TOKEN" -eq 0 ]; then
+    echo "▸ Leaving the CloudKit API token out (environment: $ENVIRONMENT); the app asks for it once."
 else
     warn "No CloudKit API token (set NETNEWSLIST_CLOUDKIT_API_TOKEN or add apiToken to $CONFIG); the app will ask for one at sign-in."
 fi

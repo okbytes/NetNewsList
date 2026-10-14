@@ -69,11 +69,15 @@ public enum CloudKitWebSyncError: LocalizedError, Sendable {
 		buildAPIToken() == nil && UserDefaults.standard.string(forKey: Self.apiTokenKey) != nil
 	}
 
-	/// Stores an API token entered by the user (the build had none) and starts over with it.
+	/// Stores an API token entered by the user (the build had none) and starts over with it. With
+	/// a sign-in already in place (an update that dropped the built-in token), syncing resumes at once.
 	public func setAPIToken(_ apiToken: String) {
 		let trimmed = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)
 		UserDefaults.standard.set(trimmed.isEmpty ? nil : trimmed, forKey: Self.apiTokenKey)
 		service = makeService()
+		if service != nil && isSignedIn {
+			NotificationCenter.default.post(name: .CloudKitWebSignInDidChange, object: nil)
+		}
 	}
 
 	/// Apple’s sign-in page.

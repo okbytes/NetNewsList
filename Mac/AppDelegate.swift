@@ -191,6 +191,9 @@ let appName = "NetNewsList"
 				NotificationCenter.default.addObserver(self, selector: #selector(iCloudWebSignInDidChange(_:)), name: .CloudKitWebSignInDidChange, object: nil)
 				if !CloudKitWebSync.shared.isSignedIn {
 					signInOrOutOfICloud(self)
+				} else if CloudKitWebSync.shared.needsAPIToken {
+					// An update without the built-in token (a release): the sign-in holds, only the token is missing.
+					_ = ICloudSignInWindowController.askForAPIToken()
 				}
 			}
 		}
