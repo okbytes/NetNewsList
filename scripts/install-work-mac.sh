@@ -18,7 +18,9 @@ fail() {
     exit 1
 }
 
+# Empty when there's no app there. (PlistBuddy reports a missing file on standard output.)
 bundle_id() {
+    [ -f "$1/Contents/Info.plist" ] || return 0
     /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$1/Contents/Info.plist" 2>/dev/null || true
 }
 
