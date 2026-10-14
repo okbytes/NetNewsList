@@ -19,18 +19,18 @@
 # It notarizes when the notarytool keychain profile NOTARY_PROFILE (default netnewslist-notary)
 # exists; the script prints the one-time command that creates it. Without one, or with
 # --no-notarize, the app is signed but not notarized, and Gatekeeper on the work Mac blocks it.
-# Output: build/Work/NetNewsList.app and build/Work/NetNewsList-Work.zip, the copy to install.
+# Output: build/Work.noindex/NetNewsList-Work.zip, the copy to install, and the app it holds.
 #
 # xcodebuild registers every app it builds with LaunchServices, and this one claims netnewslist://,
 # which on this Mac must keep opening ~/Applications/NetNewsList.app (scripts/install-mac.sh) for
 # the browser extension. The script unregisters every copy under build/ when it ends, even after
-# a failure, and checks where netnewslist:// links go. Never open build/Work/NetNewsList.app here.
+# a failure, and checks where netnewslist:// links go. Never open build/Work.noindex/NetNewsList.app here.
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
 cd "$ROOT"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-WORK="build/Work"
+WORK="build/Work.noindex"
 DERIVED="build/WorkDerivedData.noindex"
 ARCHIVE="$WORK/NetNewsList.xcarchive"
 APP="$WORK/NetNewsList.app"
@@ -272,5 +272,6 @@ cat <<EOF
 To install it on the work Mac:
   1. Copy NetNewsList-Work.zip to the work Mac and double-click it to unzip it.
   2. Drag NetNewsList.app to /Applications (or ~/Applications).
-  3. Open it, choose NetNewsList › Sign In to iCloud…, and sign in with your Apple ID.
+  3. Open it. The Sign In to iCloud window opens (or choose NetNewsList › Sign In to iCloud…):
+     sign in with your personal Apple ID and tick Keep me signed in.
 EOF

@@ -21,9 +21,30 @@ Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; 
 
 ## 2. Browser extension: what was checked without you
 
-Done in code on 2026-10-12: the records the extension writes match what the apps write and read, field by field and type by type, and a page it saves becomes a pending article in the Queue that the next app to open extracts. Its 13 tests pass against a fake iCloud. It has never been run in a browser or against real iCloud; section 3 is that test.
+Done in code on 2026-10-12: the records the extension writes match what the apps write and read, field by field and type by type, and a page it saves becomes a pending article in the Queue that the next app to open extracts. Its 13 tests pass against a fake iCloud. It has never been run in a browser or against real iCloud; section 4 is that test.
 
-## 3. Set up the browser extension (try it at home first, then on the work computer)
+## 3. The full app on the work computer (2026-10-13)
+
+The Mac app now runs on a Mac whose macOS isn't signed in to your iCloud: it signs in to iCloud by itself, inside the app, and syncs over CloudKit Web Services, the same way the browser extension's remote mode does. You read, archive and save as at home, offline too. Nobody has run it against real iCloud yet; this is the first real test.
+
+On this Mac, once:
+- [ ] Create a notarization profile, so the work Mac's Gatekeeper opens the app: make an app-specific password at account.apple.com (Sign-In and Security › App-Specific Passwords), then run `xcrun notarytool store-credentials netnewslist-notary --apple-id <your Apple ID> --team-id P4RDBS9676` and paste the password when asked.
+- [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** (any https address works for the app; the extension needs exactly the `callbackURL` in `chrome-extension/local-config.json`). The app reads the token from that file when it's built.
+
+Each time you want a new build on the work Mac:
+- [ ] `scripts/build-work-mac.sh` (a few minutes; it builds, signs with your Developer ID, notarizes and zips). The result is `build/Work.noindex/NetNewsList-Work.zip`. Don't open the app it builds on this Mac: it would take over `netnewslist://` links from your everyday copy.
+- [ ] Copy the zip to the work Mac (AirDrop, a USB stick, a cloud drive), double-click it, and drag NetNewsList.app to Applications (or `~/Applications` if you have no admin rights). If IT blocks apps from identified developers, stop here and tell Claude.
+
+On the work Mac:
+- [ ] Open NetNewsList. The Sign In to iCloud window opens: sign in with your personal Apple ID and tick **Keep me signed in** (otherwise the sign-in lasts 30 minutes). The window closes, and within a minute or two the Queue fills in with your pages, in the same order and with the same "Date Saved" as at home. The first sync downloads everything, text and images, so give it a few minutes on a slow network.
+- [ ] If the window shows an error instead: "Access to iCloud data on the web is turned off" means Settings › your name › iCloud › Access iCloud Data on the Web needs turning on (and Advanced Data Protection must stay off). "iCloud didn't accept the sign-in", or a sign-in page that never finishes, is the problem some developers reported to Apple this autumn; tell Claude what it says.
+- [ ] Archive a page: within about two minutes it leaves the Queue on your iPhone (pull to refresh). Archive one on the iPhone: it leaves the work Mac's Queue within about two minutes.
+- [ ] Save pages without the browser extension: select a web address (or text with links) in any app, right-click › Services › Save to NetNewsList; drag a link from Chrome onto the list; or, for the current page, Chrome's File › Share menu if it lists NetNewsList (turn it on in System Settings › General › Login Items & Extensions › Sharing if it doesn't). Each shows up on the iPhone.
+- [ ] Turn off Wi-Fi: pages and their images still open.
+- [ ] About two weeks later the sign-in expires: the app stops syncing and NetNewsList › Sign In to iCloud… signs in again. If the page offers an account you didn't use before (your work Apple ID, say), the app asks before using it.
+- [ ] Optional: the browser extension still works there in its "Through the NetNewsList app on this Mac" mode, now that the app answers `netnewslist://`. Its right-click Save Link is the only way to save a link without opening, selecting or dragging it.
+
+## 4. Set up the browser extension (try it at home first, then on the work computer)
 
 At home, on this Mac, in Chrome or Helium (so a sign-in problem shows up where it's easy to fix):
 - [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** to exactly the `callbackURL` in `chrome-extension/local-config.json`, and **Allowed Origins** is **Any Domain**.
@@ -38,7 +59,7 @@ Then on the work computer:
 - [ ] `chrome://extensions` → Developer mode → Load unpacked → the folder. Pin it. Sign in as above and save a page.
 - [ ] Keep Advanced Data Protection **off** for your Apple ID, or web sign-in stops working.
 
-## 4. Before a TestFlight or App Store build
+## 5. Before a TestFlight or App Store build
 
 Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the apps stay on Development). Xcode builds use CloudKit's Development environment, and that is where your data lives. Never click "Reset Development Environment" in CloudKit Console; it deletes everything saved.
 
@@ -46,7 +67,7 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 - [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), and switch the extension's options to Production with it.
 - [ ] Repeat sections 1 and 3 on the TestFlight build.
 
-## 5. Decisions (no rush)
+## 6. Decisions (no rush)
 
 - [ ] Backups (File > Show Backups in Finder) stay on this Mac, which has no Time Machine. Copy the folder somewhere else now and then, or ask Claude to have the app write them to a folder you choose (iCloud Drive, Google Drive). Keep `~/Downloads/matter_data_brett_1791749808` too: it's the original text of the 93 Matter pages.
 - [ ] Both apps ask for notification permission at launch, only to badge the app icon with the Queue count. Keep the badge, or drop it and the prompt?
