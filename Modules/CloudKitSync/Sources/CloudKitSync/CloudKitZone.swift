@@ -62,6 +62,9 @@ public typealias CloudKitZoneFetchPageHandler = @MainActor @Sendable (String, In
 
 	var container: CKContainer? { get }
 	var database: CKDatabase? { get }
+	/// Set when the zone reaches iCloud over CloudKit Web Services instead of the CloudKit
+	/// framework (`container` and `database` are then nil). See CloudKitZone+Web.swift.
+	var webDatabase: CloudKitWebDatabase? { get }
 	var delegate: CloudKitZoneDelegate? { get set }
 
 	/// Called after each page of fetchChangesInZone completes.
@@ -78,6 +81,10 @@ public typealias CloudKitZoneFetchPageHandler = @MainActor @Sendable (String, In
 
 	/// Process a remove notification
 	func receiveRemoteNotification(userInfo: [AnyHashable: Any]) async
+
+	/// The record type of a record deleted from this zone, from its name alone. CloudKit Web
+	/// Services may report a deletion without its type; the delegates route deletions by type.
+	func webRecordType(forDeletedRecordName recordName: String) -> CKRecord.RecordType?
 
 }
 
@@ -119,6 +126,11 @@ public extension CloudKitZone {
 	func resetChangeToken() {
 		Self.logger.debug("CloudKitZone: resetChangeToken \(self.zoneID.zoneName, privacy: .public)")
 		changeToken = nil
+		webSyncToken = nil
+	}
+
+	func webRecordType(forDeletedRecordName recordName: String) -> CKRecord.RecordType? {
+		nil
 	}
 
 	func generateRecordID() -> CKRecord.ID {
@@ -146,6 +158,10 @@ public extension CloudKitZone {
 	/// Creates the zone record
 	func createZoneRecord(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: createZoneRecord \(self.zoneID.zoneName, privacy: .public)")
+		if let webDatabase {
+			webCreateZoneRecord(webDatabase, completion: completion)
+			return
+		}
 		guard let database else {
 			completion(.failure(CloudKitZoneError.unknown))
 			return
@@ -165,6 +181,10 @@ public extension CloudKitZone {
 	/// Subscribes to zone changes
 	func subscribeToZoneChanges() {
 		Self.logger.debug("CloudKitZone: subscribeToZoneChanges \(self.zoneID.zoneName, privacy: .public)")
+		// Over the web there are no pushes: the app checks for changes on a timer.
+		guard webDatabase == nil else {
+			return
+		}
 		let subscription = CKRecordZoneSubscription(zoneID: zoneID, subscriptionID: zoneID.zoneName)
 
 		let info = CKSubscription.NotificationInfo()
@@ -181,6 +201,10 @@ public extension CloudKitZone {
 	/// Issue a CKQuery and return the resulting CKRecords.
 	func query(_ ckQuery: CKQuery, desiredKeys: [String]? = nil, pageHandler: CloudKitQueryPageHandler? = nil, completion: @escaping (Result<[CKRecord], Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: query ckQuery \(self.zoneID.zoneName, privacy: .public)")
+		if let webDatabase {
+			webQuery(webDatabase, ckQuery, desiredKeys: desiredKeys, pageHandler: pageHandler, completion: completion)
+			return
+		}
 		var records = [CKRecord]()
 		var pageStartIndex = 0
 
@@ -322,6 +346,10 @@ public extension CloudKitZone {
 		}
 
 		let recordID = CKRecord.ID(recordName: externalID, zoneID: zoneID)
+		if let webDatabase {
+			webFetch(webDatabase, recordID: recordID, completion: completion)
+			return
+		}
 
 		// Wrapper to safely transfer non-Sendable values in @Sendable closure
 		let captures = CloudKitZoneCaptures(zone: self, completion: completion)
@@ -379,6 +407,10 @@ public extension CloudKitZone {
 	/// what to send again.
 	func saveIfNew(_ records: [CKRecord], completion: @escaping (Result<CloudKitUnsavedRecords, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: saveIfNew \(self.zoneID.zoneName, privacy: .public)")
+		if let webDatabase {
+			webSaveIfNew(webDatabase, records, completion: completion)
+			return
+		}
 		let op = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: [CKRecord.ID]())
 		op.savePolicy = .ifServerRecordUnchanged
 		op.isAtomic = false
@@ -461,6 +493,10 @@ public extension CloudKitZone {
 	/// Save the CKSubscription
 	func save(_ subscription: CKSubscription, completion: @escaping (Result<CKSubscription, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: save subscription \(self.zoneID.zoneName, privacy: .public)")
+		guard webDatabase == nil else {
+			completion(.success(subscription))
+			return
+		}
 		let captures = CloudKitZoneCaptures(zone: self, completion: completion)
 
 		database?.save(subscription) { savedSubscription, error in
@@ -496,6 +532,10 @@ public extension CloudKitZone {
 	/// Delete CKRecords using a CKQuery
 	func delete(ckQuery: CKQuery, pageHandler: CloudKitQueryPageHandler? = nil, completion: @escaping (Result<Void, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: delete ckQuery \(self.zoneID.zoneName, privacy: .public)")
+		if let webDatabase {
+			webDelete(webDatabase, ckQuery: ckQuery, pageHandler: pageHandler, completion: completion)
+			return
+		}
 
 		var records = [CKRecord]()
 
@@ -609,6 +649,10 @@ public extension CloudKitZone {
 	/// Delete a CKSubscription
 	func delete(subscriptionID: String, completion: @escaping (Result<Void, Error>) -> Void) {
 		Self.logger.debug("CloudKitZone: delete \(self.zoneID.zoneName, privacy: .public) subscriptionID \(subscriptionID)")
+		guard webDatabase == nil else {
+			completion(.success(()))
+			return
+		}
 		// Wrapper to safely transfer non-Sendable values in @Sendable closure
 		let captures = CloudKitZoneCaptures(zone: self, completion: completion)
 
@@ -635,6 +679,14 @@ public extension CloudKitZone {
 
 	/// Modify and delete the supplied CKRecords and CKRecord.IDs
 	func modify(recordsToSave: [CKRecord], recordIDsToDelete: [CKRecord.ID], completion: @escaping (Result<Void, Error>) -> Void) {
+		if let webDatabase {
+			guard !(recordsToSave.isEmpty && recordIDsToDelete.isEmpty) else {
+				completion(.success(()))
+				return
+			}
+			webModify(webDatabase, recordsToSave: recordsToSave, recordIDsToDelete: recordIDsToDelete, completion: completion)
+			return
+		}
 		modify(recordsToSave: recordsToSave, recordIDsToDelete: recordIDsToDelete, retriesRemaining: networkFailureRetryCount, completion: completion)
 	}
 
@@ -753,6 +805,10 @@ public extension CloudKitZone {
     func fetchChangesInZone(completion: @escaping (Result<Void, Error>) -> Void) {
 
 		Self.logger.debug("CloudKitZone: fetchChangesInZone \(self.zoneID.zoneName, privacy: .public)")
+		if let webDatabase {
+			webFetchChangesInZone(webDatabase, completion: completion)
+			return
+		}
 		var savedChangeToken = changeToken
 		var moreComing = false
 
@@ -964,11 +1020,25 @@ public extension CloudKitZone {
 	/// pushes when other devices change records — it'll only sync on manual
 	/// refresh or relaunch.
 	func subscribeToZoneChanges() async throws {
+		guard webDatabase == nil else {
+			return
+		}
 		let subscription = CKRecordZoneSubscription(zoneID: zoneID, subscriptionID: zoneID.zoneName)
 		let info = CKSubscription.NotificationInfo()
 		info.shouldSendContentAvailable = true
 		subscription.notificationInfo = info
 		_ = try await save(subscription)
+	}
+
+	/// Fetches records by ID; a missing record’s result is a CKError `unknownItem`.
+	func records(for recordIDs: [CKRecord.ID], desiredKeys: [String]? = nil) async throws -> [CKRecord.ID: Result<CKRecord, Error>] {
+		if let webDatabase {
+			return try await webRecords(webDatabase, for: recordIDs, desiredKeys: desiredKeys)
+		}
+		guard let database else {
+			throw CloudKitZoneError.unknown
+		}
+		return try await database.records(for: recordIDs, desiredKeys: desiredKeys)
 	}
 
 	func delete(ckQuery: CKQuery, pageHandler: CloudKitQueryPageHandler? = nil) async throws {

@@ -30,6 +30,12 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
+                            <menuItem title="Sign In to iCloud…" id="iCS-mn-01a">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="signInOrOutOfICloud:" target="-1" id="iCS-ac-01b"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Sign In to X…" id="xSi-mn-01a">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

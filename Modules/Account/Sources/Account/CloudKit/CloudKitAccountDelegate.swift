@@ -46,14 +46,22 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		return CKContainer(identifier: identifier)
 	}()
 
-	private lazy var accountZone = CloudKitAccountZone(container: container)
-	private lazy var articlesZone = CloudKitArticlesZone(container: container)
+	/// Set when this copy of the app reaches iCloud over the web (`CloudKitWebSync`): the zones
+	/// then use it, and the CKContainer is never made.
+	private lazy var webDatabase: CloudKitWebDatabase? = CloudKitWebSync.isEnabled ? CloudKitWebDatabase(serviceProvider: { CloudKitWebSync.shared.service }) : nil
+
+	private lazy var accountZone = webDatabase.map { CloudKitAccountZone(webDatabase: $0) } ?? CloudKitAccountZone(container: container)
+	private lazy var articlesZone = webDatabase.map { CloudKitArticlesZone(webDatabase: $0) } ?? CloudKitArticlesZone(container: container)
 
 	private let mainThreadOperationQueue = MainThreadOperationQueue()
 	private var syncErrorHandler: CloudKitSyncErrorHandler?
 
 	private var lastNoChangeSyncDate: Date?
-	private static let noChangeBackoffInterval: TimeInterval = 30 * 60
+	/// How long a sync that found nothing new holds off the next. Pushes end it early, but over
+	/// the web there are none, so the timer’s checks are what bring other devices’ changes.
+	private var noChangeBackoffInterval: TimeInterval {
+		CloudKitWebSync.isEnabled ? 0 : 30 * 60
+	}
 
 	/// Whether this launch has settled saved dates with iCloud, or is doing it (`settleSavedDatesIfNeeded`).
 	private var didSettleSavedDates = false
@@ -100,6 +108,7 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 
 		NotificationCenter.default.addObserver(self, selector: #selector(syncProgressDidChange(_:)), name: .progressInfoDidChange, object: syncProgress)
 		NotificationCenter.default.addObserver(self, selector: #selector(handleCKAccountChanged(_:)), name: .CKAccountChanged, object: nil)
+		NotificationCenter.default.addObserver(self, selector: #selector(webSignInDidChange(_:)), name: .CloudKitWebSignInDidChange, object: nil)
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public) did complete")
 	}
 
@@ -110,6 +119,27 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			iCloudAccountIsUnavailable = false
 			if wasUnavailable {
 				Self.logger.info("CloudKitAccountDelegate: iCloud account changed — refreshing")
+				try? await refreshAll()
+			}
+		}
+	}
+
+	/// The web sign-in started or ended. A new sign-in syncs at once, finishing the first-launch
+	/// setup if this Mac couldn’t do it without one.
+	@objc func webSignInDidChange(_ note: Notification) {
+		guard isCloudKitEnabled, CloudKitWebSync.isEnabled, CloudKitWebSync.shared.isSignedIn, let account else {
+			return
+		}
+		iCloudAccountIsUnavailable = false
+		lastNoChangeSyncDate = nil
+		Self.logger.info("CloudKitAccountDelegate: signed in to iCloud on the web — syncing")
+		if account.externalID == nil {
+			startFirstLaunchSetup(account: account)
+		} else {
+			Task {
+				if !UserDefaults.standard.bool(forKey: Self.didSaveReadingListFeedKey) {
+					try? await self.ensureReadingListFeedInCloud(account: account)
+				}
 				try? await refreshAll()
 			}
 		}
@@ -170,9 +200,13 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		guard !iCloudAccountIsUnavailable else {
 			return false
 		}
+		// Signed out over the web: nothing can sync until the sign-in, which syncs at once.
+		if CloudKitWebSync.isEnabled && !CloudKitWebSync.shared.isSignedIn {
+			return false
+		}
 		Self.logger.debug("CloudKitAccountDelegate: \(#function, privacy: .public)")
 
-		if let lastNoChangeSyncDate, Date().timeIntervalSince(lastNoChangeSyncDate) < Self.noChangeBackoffInterval {
+		if let lastNoChangeSyncDate, Date().timeIntervalSince(lastNoChangeSyncDate) < noChangeBackoffInterval {
 			Self.logger.debug("CloudKitAccountDelegate: Skipping sync — no changes on last check, backing off")
 			return false
 		}
@@ -685,27 +719,16 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		accountZone.fetchChangesPageHandler = makePageHandler(kind: .refreshFeedList)
 		articlesZone.fetchChangesPageHandler = makePageHandler(kind: .refreshArticleStatuses)
 
+		// Over the web, nothing reaches iCloud before the sign-in, which finishes this setup.
+		let canReachICloud = !CloudKitWebSync.isEnabled || CloudKitWebSync.shared.isSignedIn
+
 		// Check to see if this is a new account and initialize anything we need
 		if account.externalID == nil {
-			Task {
-				do {
-					let externalID = try await accountZone.findOrCreateAccount()
-					account.externalID = externalID
-					do {
-						try await self.ensureReadingListFeedInCloud(account: account)
-					} catch {
-						// Retry the whole first-launch sequence next launch.
-						account.externalID = nil
-						throw error
-					}
-					try? await self.initialRefreshAll(for: account)
-				} catch {
-					Self.logger.error("CloudKitAccountDelegate: \(#function, privacy: .public) error: \(error.localizedDescription)")
-					if let account = self.account {
-						account.postSyncError(error, operation: "Creating account")
-					}
-				}
+			if canReachICloud {
+				startFirstLaunchSetup(account: account)
 			}
+		} else if !canReachICloud {
+			return
 		} else if !UserDefaults.standard.bool(forKey: Self.didSaveReadingListFeedKey) {
 			// An account created before the reading list existed, or a first launch whose
 			// feed save failed: save the reading-list feed record now.
@@ -717,6 +740,30 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		// Checked on every launch, not only for a new account, so a reinstall or a failed
 		// first attempt still ends up with push notifications.
 		subscribeToZoneChangesIfNeeded(account: account)
+	}
+
+	/// Finds or creates the account’s iCloud record, saves the reading-list feed record, then
+	/// fetches everything. A failure is tried again at the next launch (or web sign-in).
+	func startFirstLaunchSetup(account: Account) {
+		Task {
+			do {
+				let externalID = try await accountZone.findOrCreateAccount()
+				account.externalID = externalID
+				do {
+					try await self.ensureReadingListFeedInCloud(account: account)
+				} catch {
+					// Retry the whole first-launch sequence next launch.
+					account.externalID = nil
+					throw error
+				}
+				try? await self.initialRefreshAll(for: account)
+			} catch {
+				Self.logger.error("CloudKitAccountDelegate: \(#function, privacy: .public) error: \(error.localizedDescription)")
+				if let account = self.account {
+					account.postSyncError(error, operation: "Creating account")
+				}
+			}
+		}
 	}
 
 	/// Rebuilds this device’s link to iCloud: forgets the change tokens, finds or recreates
@@ -824,6 +871,11 @@ private extension CloudKitAccountDelegate {
 	/// already exists succeeds, so this is safe to repeat; the flag only avoids a request per
 	/// launch. Failures are logged and retried on the next launch.
 	func subscribeToZoneChangesIfNeeded(account: Account) {
+		// Over the web there are no pushes to subscribe to. Skipping here also keeps the flag
+		// meaning “subscribed through the CloudKit framework” on a Mac that has used both.
+		guard webDatabase == nil else {
+			return
+		}
 		guard !UserDefaults.standard.bool(forKey: Self.didSubscribeToZonesKey) else {
 			return
 		}
@@ -871,6 +923,12 @@ private extension CloudKitAccountDelegate {
 	/// Nil when the iCloud account is available (or the status check itself failed).
 	/// Otherwise an error whose message describes the unavailable state.
 	private func iCloudAccountUnavailableError() async -> Error? {
+		if CloudKitWebSync.isEnabled {
+			if CloudKitWebSync.shared.needsAPIToken {
+				return CloudKitWebServiceError.notConfigured
+			}
+			return CloudKitWebSync.shared.isSignedIn ? nil : CloudKitWebServiceError.signInRequired(redirectURL: nil)
+		}
 		guard let status = try? await container.accountStatus() else {
 			return nil
 		}

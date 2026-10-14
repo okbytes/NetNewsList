@@ -60,7 +60,8 @@ import Account
 			return
 		}
 
-		let interval = lastRunWasIdle ? Self.idleBackoffIntervalSeconds : Self.normalIntervalSeconds
+		// Over the web there are no pushes, so a quiet spell doesn’t slow the checks down.
+		let interval = lastRunWasIdle && !CloudKitWebSync.isEnabled ? Self.idleBackoffIntervalSeconds : Self.normalIntervalSeconds
 		let lastRefreshDate = lastTimedRefresh ?? launchTime
 		var nextRefreshTime = lastRefreshDate.addingTimeInterval(interval)
 		if nextRefreshTime < Date() {

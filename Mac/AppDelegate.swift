@@ -79,6 +79,7 @@ let appName = "NetNewsList"
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
 	private var xSignInWindowController: XSignInWindowController?
+	private var iCloudSignInWindowController: ICloudSignInWindowController?
 	private let appMovementMonitor: RSAppMovementMonitor
 
 	@MainActor override init() {
@@ -184,6 +185,10 @@ let appName = "NetNewsList"
 			ArticleAssetCoordinator.shared.start()
 			SavedArticleRequestProcessor.shared.start()
 			ReadingListBackups.shared.start()
+			// A copy that reaches iCloud over the web signs in by itself; ask at once when it hasn’t.
+			if CloudKitWebSync.isEnabled && !CloudKitWebSync.shared.isSignedIn {
+				signInOrOutOfICloud(self)
+			}
 		}
 
 		ArticleStatusSyncTimer.shared.start()
@@ -363,6 +368,13 @@ let appName = "NetNewsList"
 			menuItem.state = .off
 		}
 
+		// Only a copy that reaches iCloud over the web signs in by itself.
+		if item.action == #selector(signInOrOutOfICloud(_:)), let menuItem = item as? NSMenuItem {
+			menuItem.isHidden = !CloudKitWebSync.isEnabled
+			menuItem.title = CloudKitWebSync.isEnabled && CloudKitWebSync.shared.isSignedIn ? NSLocalizedString("Sign Out of iCloud…", comment: "Menu item") : NSLocalizedString("Sign In to iCloud…", comment: "Menu item")
+			return CloudKitWebSync.isEnabled
+		}
+
 		if item.action == #selector(signInOrOutOfX(_:)), let menuItem = item as? NSMenuItem {
 			menuItem.title = XAccount.shared.isSignedIn ? NSLocalizedString("Sign Out of X…", comment: "Menu item") : NSLocalizedString("Sign In to X…", comment: "Menu item")
 		}
@@ -441,6 +453,31 @@ let appName = "NetNewsList"
 		xSignInWindowController = nil
 		Task {
 			await XAccount.shared.signOut()
+		}
+	}
+
+	@IBAction func signInOrOutOfICloud(_ sender: Any?) {
+		guard CloudKitWebSync.isEnabled else {
+			return
+		}
+		guard CloudKitWebSync.shared.isSignedIn else {
+			if iCloudSignInWindowController == nil {
+				iCloudSignInWindowController = ICloudSignInWindowController()
+			}
+			iCloudSignInWindowController?.showWindow(self)
+			return
+		}
+		let alert = NSAlert()
+		alert.messageText = NSLocalizedString("Sign Out of iCloud?", comment: "Sign out of iCloud alert title")
+		alert.informativeText = NSLocalizedString("The articles on this Mac stay here, but nothing syncs with your other devices until you sign in again.", comment: "Sign out of iCloud alert message")
+		alert.addButton(withTitle: NSLocalizedString("Sign Out", comment: "Sign Out button"))
+		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+		guard alert.runModal() == .alertFirstButtonReturn else {
+			return
+		}
+		iCloudSignInWindowController = nil
+		Task {
+			await CloudKitWebSync.shared.signOut()
 		}
 	}
 

@@ -29,6 +29,7 @@ final class CloudKitArticlesZone: CloudKitZone {
 
 	weak var container: CKContainer?
 	weak var database: CKDatabase?
+	let webDatabase: CloudKitWebDatabase?
 	var delegate: CloudKitZoneDelegate?
 	var fetchChangesPageHandler: CloudKitZoneFetchPageHandler?
 
@@ -67,7 +68,25 @@ final class CloudKitArticlesZone: CloudKitZone {
 	init(container: CKContainer) {
 		self.container = container
 		self.database = container.privateCloudDatabase
+		self.webDatabase = nil
 		self.zoneID = CKRecordZone.ID(zoneName: "Articles", ownerName: CKCurrentUserDefaultName)
+	}
+
+	/// The zone over CloudKit Web Services (`CloudKitWebSync`).
+	init(webDatabase: CloudKitWebDatabase) {
+		self.webDatabase = webDatabase
+		self.zoneID = CKRecordZone.ID(zoneName: "Articles", ownerName: CKCurrentUserDefaultName)
+	}
+
+	/// Status records are `s|<articleID>`, article records `a|<articleID>`.
+	func webRecordType(forDeletedRecordName recordName: String) -> CKRecord.RecordType? {
+		if recordName.hasPrefix("s|") {
+			return CloudKitArticleStatus.recordType
+		}
+		if recordName.hasPrefix("a|") {
+			return CloudKitArticle.recordType
+		}
+		return nil
 	}
 
 	/// Fetches article-status changes for the zone and returns the cumulative
@@ -324,14 +343,14 @@ final class CloudKitArticlesZone: CloudKitZone {
 	/// Settles this device’s proposed saved dates with iCloud (`SavedDatePlan`) and returns the
 	/// dates to store here. Only the `datePublished` of iCloud’s records is read and written.
 	@MainActor func settleSavedDates(_ proposals: [String: Date]) async throws -> [String: Date] {
-		guard !proposals.isEmpty, let database else {
+		guard !proposals.isEmpty, database != nil || webDatabase != nil else {
 			return [String: Date]()
 		}
 		var fetchedRecords = [String: CKRecord]()
 		var missingArticleIDs = Set<String>()
 		for chunk in Array(proposals.keys).chunked(into: 200) {
 			let recordIDs = chunk.map { CKRecord.ID(recordName: Self.articleRecordName($0), zoneID: zoneID) }
-			let results = try await database.records(for: recordIDs, desiredKeys: [CloudKitArticle.Fields.datePublished])
+			let results = try await records(for: recordIDs, desiredKeys: [CloudKitArticle.Fields.datePublished])
 			for (articleID, recordID) in zip(chunk, recordIDs) {
 				switch results[recordID] {
 				case .success(let record):

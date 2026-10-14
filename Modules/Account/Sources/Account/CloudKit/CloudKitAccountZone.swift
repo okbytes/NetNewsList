@@ -26,6 +26,7 @@ enum CloudKitAccountZoneError: LocalizedError {
 
     weak var container: CKContainer?
     weak var database: CKDatabase?
+	let webDatabase: CloudKitWebDatabase?
 	var delegate: CloudKitZoneDelegate?
 	var fetchChangesPageHandler: CloudKitZoneFetchPageHandler?
 
@@ -51,6 +52,13 @@ enum CloudKitAccountZoneError: LocalizedError {
 	init(container: CKContainer) {
 		self.container = container
 		self.database = container.privateCloudDatabase
+		self.webDatabase = nil
+		self.zoneID = CKRecordZone.ID(zoneName: "Account", ownerName: CKCurrentUserDefaultName)
+	}
+
+	/// The zone over CloudKit Web Services (`CloudKitWebSync`).
+	init(webDatabase: CloudKitWebDatabase) {
+		self.webDatabase = webDatabase
 		self.zoneID = CKRecordZone.ID(zoneName: "Account", ownerName: CKCurrentUserDefaultName)
 	}
 
@@ -202,6 +210,11 @@ enum CloudKitAccountZoneError: LocalizedError {
 		let predicate = NSPredicate(format: "isAccount = \"1\"")
 		let ckQuery = CKQuery(recordType: CloudKitContainer.recordType, predicate: predicate)
 
+		if webDatabase != nil {
+			webFindOrCreateAccount(ckQuery, completion: completion)
+			return
+		}
+
 		guard let database else {
 			completion(.failure(CloudKitZoneError.unknown))
 			return
@@ -257,6 +270,31 @@ enum CloudKitAccountZoneError: LocalizedError {
 						}
 					}
 				}
+			}
+		}
+	}
+
+	/// `findOrCreateAccount` over the web, as the CloudKit framework path does it: the account’s
+	/// container record if a query finds one, otherwise a new one, also when the query fails
+	/// (for instance when the schema doesn’t make `isAccount` queryable). A missing sign-in fails.
+	private func webFindOrCreateAccount(_ ckQuery: CKQuery, completion: @escaping @Sendable (Result<String, Error>) -> Void) {
+		Task { @MainActor in
+			do {
+				let records: [CKRecord]
+				do {
+					records = try await query(ckQuery)
+				} catch let error as CloudKitError where error.error is CloudKitWebServiceError {
+					throw error
+				} catch {
+					records = []
+				}
+				if let record = records.first {
+					completion(.success(record.externalID))
+				} else {
+					completion(.success(try await createContainer(name: "Account", isAccount: true)))
+				}
+			} catch {
+				completion(.failure(error))
 			}
 		}
 	}
