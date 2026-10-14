@@ -36,6 +36,7 @@ ARCHIVE="$WORK/NetNewsList.xcarchive"
 APP="$WORK/NetNewsList.app"
 ZIP="$WORK/NetNewsList-Work.zip"
 NOTARY_ZIP="$WORK/NetNewsList-notarize.zip"
+APP_ENTITLEMENTS="$WORK/NetNewsList-entitlements.plist"
 # Holds the token for one xcodebuild run, so it isn't on the command line, where the process list
 # and xcodebuild's own output would show it (-quiet keeps xcodebuild from printing this file's
 # settings). Like every build setting, it still lands in the build log under $DERIVED/Logs.
@@ -83,7 +84,7 @@ unregister_builds() {
 cleanup() {
     local status=$?
     trap - EXIT
-    rm -f "$SETTINGS" "$NOTARY_ZIP"
+    rm -f "$SETTINGS" "$NOTARY_ZIP" "$APP_ENTITLEMENTS"
     unregister_builds
     exit "$status"
 }
@@ -188,11 +189,12 @@ AUTHORITY=$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)
 echo "▸ Checking the entitlements and Info.plist…"
 EXTENSION=$(find "$APP/Contents/PlugIns" -maxdepth 1 -name '*.appex' | head -1)
 [ -n "$EXTENSION" ] || fail "$APP has no share extension."
-APP_ENTITLEMENTS=$(mktemp "$WORK/entitlements.XXXXXX")
-entitlements_of "$APP" >"$APP_ENTITLEMENTS"
+entitlements_of "$APP" >"$APP_ENTITLEMENTS" || fail "Can't read the entitlements of $APP."
 for bundle in "$APP" "$EXTENSION"; do
-    if entitlements_of "$bundle" | grep -q '<key>com\.apple\.developer\.'; then
-        rm -f "$APP_ENTITLEMENTS"
+    # Captured first: with pipefail, grep -q exiting at a match could fail codesign's write and
+    # make the check pass.
+    BUNDLE_ENTITLEMENTS=$(entitlements_of "$bundle") || fail "Can't read the entitlements of $bundle."
+    if grep -q '<key>com\.apple\.developer\.' <<<"$BUNDLE_ENTITLEMENTS"; then
         fail "$bundle has com.apple.developer entitlements, which need a provisioning profile."
     fi
 done
@@ -221,24 +223,29 @@ echo "  Sync:        $TRANSPORT (CloudKit Web Services, $ENVIRONMENT environment
 NOTARIZED=0
 if [ "$NOTARIZE" -eq 0 ]; then
     warn "Not notarizing (--no-notarize)."
-elif xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+elif PROFILE_ERROR=$(xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" 2>&1 >/dev/null); then
     echo "▸ Notarizing with the \"$NOTARY_PROFILE\" profile (usually a few minutes)…"
     ditto -c -k --keepParent "$APP" "$NOTARY_ZIP"
+    # Goes by the status in the output rather than notarytool's exit status, so a rejected app's
+    # log is shown either way.
     RESULT=$(xcrun notarytool submit "$NOTARY_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait \
-        --output-format json) || fail "notarytool couldn't submit the app: $RESULT"
+        --output-format json) || true
     rm -f "$NOTARY_ZIP"
     SUBMISSION=$(plutil -extract id raw -o - - <<<"$RESULT" 2>/dev/null || true)
     STATUS=$(plutil -extract status raw -o - - <<<"$RESULT" 2>/dev/null || true)
     if [ "$STATUS" != "Accepted" ]; then
         [ -z "$SUBMISSION" ] || xcrun notarytool log "$SUBMISSION" --keychain-profile "$NOTARY_PROFILE" >&2 || true
-        fail "Notarization finished as \"${STATUS:-unknown}\" (submission ${SUBMISSION:-unknown}); the log is above."
+        [ -n "$STATUS" ] || fail "notarytool couldn't notarize the app${RESULT:+: $RESULT}"
+        fail "Notarization finished as \"$STATUS\" (submission ${SUBMISSION:-unknown}); the log is above."
     fi
     echo "▸ Stapling the ticket…"
     xcrun stapler staple "$APP"
     spctl --assess --type execute -vv "$APP" || fail "Gatekeeper rejects the notarized app."
     NOTARIZED=1
 else
-    warn "No notarytool profile named \"$NOTARY_PROFILE\" in the keychain. Create it once with:"
+    # notarytool's own message tells a missing profile from, say, no network.
+    warn "Can't notarize with the notarytool profile \"$NOTARY_PROFILE\": $(grep -m1 . <<<"$PROFILE_ERROR" || echo "notarytool failed.")"
+    echo "  If the profile doesn't exist yet, create it once with:" >&2
     echo "    xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id <your Apple ID> --team-id $TEAM_ID" >&2
     echo "  It asks for an app-specific password (account.apple.com › Sign-In and Security ›" >&2
     echo "  App-Specific Passwords). Then run this script again." >&2
