@@ -12,9 +12,8 @@
 # everyday app's.
 #
 # The CloudKit Web Services API token and environment come from NETNEWSLIST_CLOUDKIT_API_TOKEN and
-# NETNEWSLIST_CLOUDKIT_ENVIRONMENT, else from the browser extension's git-ignored
-# chrome-extension/local-config.json (apiToken, environment). Without a token the app asks for
-# one at sign-in. A token is built into the app's Info.plist, so keep the zip to yourself.
+# NETNEWSLIST_CLOUDKIT_ENVIRONMENT, else from the git-ignored local-config.json at the
+# repository's root (apiToken, environment). Without a token the app asks for one at sign-in. A token is built into the app's Info.plist, so keep the zip to yourself.
 #
 # It notarizes when the notarytool keychain profile NOTARY_PROFILE (default netnewslist-notary)
 # exists; the script prints the one-time command that creates it. Without one, or with
@@ -22,8 +21,7 @@
 # Output: build/Work.noindex/NetNewsList-Work.zip, the copy to install, and the app it holds.
 #
 # xcodebuild registers every app it builds with LaunchServices, and this one claims netnewslist://,
-# which on this Mac must keep opening ~/Applications/NetNewsList.app (scripts/install-mac.sh) for
-# the browser extension. The script unregisters every copy under build/ when it ends, even after
+# which on this Mac must keep opening ~/Applications/NetNewsList.app (scripts/install-mac.sh). The script unregisters every copy under build/ when it ends, even after
 # a failure, and checks where netnewslist:// links go. Never open build/Work.noindex/NetNewsList.app here.
 set -euo pipefail
 
@@ -41,7 +39,7 @@ APP_ENTITLEMENTS="$WORK/NetNewsList-entitlements.plist"
 # and xcodebuild's own output would show it (-quiet keeps xcodebuild from printing this file's
 # settings). Like every build setting, it still lands in the build log under $DERIVED/Logs.
 SETTINGS="$WORK/Settings.xcconfig"
-CONFIG="chrome-extension/local-config.json"
+CONFIG="local-config.json"
 TEAM_ID="P4RDBS9676"
 NOTARY_PROFILE="${NOTARY_PROFILE:-netnewslist-notary}"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister

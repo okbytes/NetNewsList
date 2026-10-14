@@ -9,7 +9,7 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 **Start here when picking the work up:**
 1. `Technotes/NetNewsList/ReadingList.md`: how saving, extraction, sync and offline images work, and the traps. Read it before changing sync, retention, account, extraction or ingress code.
 2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
-3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer extension setup).
+3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer setup).
 
 **Branch:** NetNewsList work lands on `main` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). Upstream NetNewsWire is the `upstream` remote; to sync, merge `upstream/main` into `main` (the 2026-10-07 sync's Progress note in `Plan.md` says how its conflicts were resolved). GitHub lists the repository as a fork of Ranchero-Software/NetNewsWire, so pass `--repo okbytes/NetNewsList` to `gh pr create` or the PR goes upstream.
 
@@ -30,9 +30,8 @@ xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
   -destination "platform=iOS Simulator,name=NetNewsList" -xcconfig .github/ios-ci-no-signing.xcconfig
 
-# Extraction module alone (fast), browser extension, lint
+# Extraction module alone (fast), lint
 (cd Modules/Extraction && xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")
-node --test chrome-extension/tests/*.test.mjs   # or, without Node: bun test ./chrome-extension/tests/*.test.mjs
 swiftlint lint --strict
 ```
 
@@ -40,8 +39,8 @@ swiftlint lint --strict
 - Don't run module tests with `swift test`: `AppConfig` force-unwraps `CFBundleExecutable` and crashes outside an app bundle. Use the test plans.
 - An unsigned process traps when it creates a `CKContainer`; CloudKit is never touched under unit tests (`Platform.isRunningUnitTests`). Don't launch the unsigned app expecting iCloud to work, and don't run the signed app without asking: it writes to the user's real iCloud data.
 - `scripts/mine.sh` builds the signed Debug iOS app into Xcode's default DerivedData, installs it on the paired iPhone in place and launches it (`--help` for options); rerunning it after a new signing certificate keeps the app launching. Don't run it without asking: it replaces the build on the user's phone, which syncs with their real iCloud data.
-- `scripts/install-mac.sh` builds the Mac app in Release (development-signed, so still the CloudKit Development environment) and installs it as `~/Applications/NetNewsList.app`, the user's everyday copy; its first install copied NetNewsList Dev's local data into it. Don't run it without asking: it quits and replaces that app. The Mac Debug build is **NetNewsList Dev** (`NetNewsList Dev.app`, link scheme `netnewslist-dev://`), so only the installed app answers `netnewslist://` links from the browser extension; both see the same iCloud data.
-- `scripts/build-work-mac.sh` builds the work-computer copy: Developer ID-signed, notarized when the `netnewslist-notary` notarytool profile exists, no iCloud entitlement (`xcconfig/NetNewsList_work.xcconfig`, bundle ID `eitherslice.NetNewsList.Web`), syncing over CloudKit Web Services with its own sign-in (ReadingList.md, "iCloud on the web"). It builds in the API token from `chrome-extension/local-config.json`. Never open the app it builds on this Mac: it claims `netnewslist://` from the everyday copy. Any build can try the web path with the launch argument `-NetNewsListICloudTransport web` (it then asks for the API token at sign-in, and it writes to the user's real iCloud data, so ask first).
+- `scripts/install-mac.sh` builds the Mac app in Release (development-signed, so still the CloudKit Development environment) and installs it as `~/Applications/NetNewsList.app`, the user's everyday copy; its first install copied NetNewsList Dev's local data into it. Don't run it without asking: it quits and replaces that app. The Mac Debug build is **NetNewsList Dev** (`NetNewsList Dev.app`, link scheme `netnewslist-dev://`), so only the installed app answers `netnewslist://` links; both see the same iCloud data.
+- `scripts/build-work-mac.sh` builds the work-computer copy: Developer ID-signed, notarized when the `netnewslist-notary` notarytool profile exists, no iCloud entitlement (`xcconfig/NetNewsList_work.xcconfig`, bundle ID `eitherslice.NetNewsList.Web`), syncing over CloudKit Web Services with its own sign-in (ReadingList.md, "iCloud on the web"). It builds in the API token from the git-ignored `local-config.json` at the repository's root. Never open the app it builds on this Mac: it claims `netnewslist://` from the everyday copy. Any build can try the web path with the launch argument `-NetNewsListICloudTransport web` (it then asks for the API token at sign-in, and it writes to the user's real iCloud data, so ask first).
 - Real-page extraction can be checked without the app: `Tools/extract-page` (see its README).
 - `./buildscripts/make_safari_ext_js.sh` regenerates `Shared/ShareExtension/SafariExt.js` from the vendored Readability.js and DOMPurify; rerun it after updating them.
 
@@ -49,10 +48,10 @@ swiftlint lint --strict
 
 - `Modules/`: local Swift packages (RSCore, RSParser, RSWeb, RSDatabase, Articles, ArticlesDatabase, SyncDatabase, Account, CloudKitSync, Images, HTMLMetadata, ActivityLog, ErrorLog, **Extraction**). Apps reference package products by name; new packages need `XCSwiftPackageProductDependency` and build-file entries in `project.pbxproj` (copy the `HTMLMetadata` or `Extraction` entries).
 - `Shared/`: code for both apps, including `Extraction/` (`ExtractionCoordinator`, `ExtractedContentFormatter`, `SavedArticleRequestProcessor`), `ArticleAssets/` (offline images), `AddArticle/`, `AppIntents/`, `ShareExtension/` (the files the share extensions compile), `SmartFeeds/` (Queue and Archive).
-- `Mac/`, `iOS/`: platform UI. `chrome-extension/`: the Chromium extension (local and remote mode). `Technotes/NetNewsList/`: this project's docs.
+- `Mac/`, `iOS/`: platform UI. `Technotes/NetNewsList/`: this project's docs. The Chromium extension was removed on 2026-10-14 (`git log --diff-filter=D -- chrome-extension` finds the commit).
 - The Xcode project uses **file-system-synchronized groups**: new files under `Mac/`, `iOS/`, `Shared/` join the app targets automatically; extension targets compile only the files listed in their `PBXFileSystemSynchronizedBuildFileExceptionSet`. Build settings live in `xcconfig/` only; a build phase fails the Mac build if `project.pbxproj` gains `buildSettings`. Xcode sometimes rewrites the project file while the user has it open; build on top of its version.
 - Identity: team `P4RDBS9676`, organization identifier `eitherslice`, bundle IDs `eitherslice.NetNewsList` and `eitherslice.NetNewsList.iOS` (`-DEBUG` suffix in Debug), container `iCloud.eitherslice.NetNewsList`, URL scheme `netnewslist://` (`netnewslist-dev://` for the Mac Debug build, NetNewsList Dev). `PRODUCT_MODULE_NAME` is still `NetNewsWire` (tests use `@testable import NetNewsWire`).
-- The browser extension's CloudKit API token (Development) is in the git-ignored `chrome-extension/local-config.json`. Never commit it; the repository is public.
+- The CloudKit Web Services API token (Development) is in the git-ignored `local-config.json` at the repository's root. Never commit it; the repository is public.
 
 ## Working conventions
 

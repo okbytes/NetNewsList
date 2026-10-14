@@ -3,8 +3,7 @@
 //  NetNewsList
 //
 //  netnewslist://add?url={page}&title={optional title}
-//  Used by the browser extension’s local mode, Shortcuts and anything else that
-//  can open a URL. The Mac Debug build, NetNewsList Dev, registers netnewslist-dev
+//  Used by Shortcuts and anything else that can open a URL. The Mac Debug build, NetNewsList Dev, registers netnewslist-dev
 //  instead, so these links reach the installed app.
 //
 

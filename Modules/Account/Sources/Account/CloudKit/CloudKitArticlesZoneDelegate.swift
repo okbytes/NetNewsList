@@ -126,7 +126,7 @@ private extension CloudKitArticlesZoneDelegate {
 
 		for (feedID, parsedItems) in feedIDsAndItems {
 			// A record without a body doesn’t replace one this device hasn’t uploaded yet. That record
-			// is a pending save made elsewhere (the browser extension, another device) before this
+			// is a pending save made elsewhere (another device’s save by address) before this
 			// device’s body reached iCloud; the queued upload overwrites it. Without an upload queued,
 			// the record wins, so a page deleted and saved again elsewhere starts fresh here too.
 			// Read here rather than when the fetch began, so a body saved and queued during the

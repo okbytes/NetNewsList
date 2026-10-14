@@ -46,8 +46,8 @@ struct CloudKitArticleStatusUpdate {
 			return .delete
 		}
 
-		// A first upload is saved only if the records don’t exist yet, so two devices (or the
-		// browser extension) saving the same page don’t overwrite each other. That holds when a
+		// A first upload is saved only if the records don’t exist yet, so two devices saving the
+		// same page don’t overwrite each other. That holds when a
 		// status change or a body is queued with it too (saved, then archived or extracted before
 		// it was sent): the status goes as a status update (`sendsStatus`), and a copy already in
 		// iCloud is merged in rather than overwritten (`ArticleRecordPlan.contentUploads`).

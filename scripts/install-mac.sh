@@ -4,7 +4,7 @@
 #
 # This is the copy for everyday use. The Debug build Xcode runs is "NetNewsList Dev"; both read
 # and write the same iCloud data (the CloudKit Development environment), and only this one answers
-# netnewslist:// links, which the browser extension sends. Rerun after pulling to update it, and
+# netnewslist:// links. Rerun after pulling to update it, and
 # once a year after a new Apple Development certificate, or the app stops launching.
 #
 # The first install copies NetNewsList Dev's local data into the new app before it's used: the

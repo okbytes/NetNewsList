@@ -171,10 +171,10 @@ final class CloudKitArticlesZone: CloudKitZone {
 
 		/// First uploads that found the article already in iCloud. `serverCopies` are iCloud’s copies
 		/// of them, merged into the articles here (`CloudKitArticlesZoneDelegate.mergeICloudCopies`)
-		/// so a later upload from here doesn’t erase what only iCloud’s copy has (the browser
-		/// extension’s title and saved date). `articleIDs` are those whose copy has no body while
-		/// this device has one: that copy is a pending save made elsewhere (the browser extension,
-		/// another device), save-if-new leaves it as it is, so this device’s body goes up as a
+		/// so a later upload from here doesn’t erase what only iCloud’s copy has (another device’s
+		/// title and saved date). `articleIDs` are those whose copy has no body while this device
+		/// has one: that copy is a pending save made elsewhere (another device’s save by address),
+		/// save-if-new leaves it as it is, so this device’s body goes up as a
 		/// content upload, which overwrites it. When CloudKit doesn’t send its copy, the body goes
 		/// up all the same. The content upload also sends this device’s status, unread, which is
 		/// what saving a page again does anyway (it moves an archived page back to the Queue).

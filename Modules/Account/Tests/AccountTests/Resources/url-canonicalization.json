@@ -1,5 +1,5 @@
 {
-  "comment": "Shared by URLCanonicalizer (Swift) and the browser extension (JavaScript). Both must produce `output` for every `input`; null means the URL cannot be saved.",
+  "comment": "URLCanonicalizer must produce `output` for every `input`; null means the URL cannot be saved. The removed browser extension had a JavaScript copy of these rules checked against the same vectors.",
   "vectors": [
     { "input": "https://example.com/post", "output": "https://example.com/post" },
     { "input": "HTTPS://Example.COM/Post", "output": "https://example.com/Post" },

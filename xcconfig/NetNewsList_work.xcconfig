@@ -12,8 +12,8 @@
 BUNDLE_ID_SUFFIX = .Web
 APP_GROUP_SUFFIX = .Web
 
-// The everyday app's name and link scheme: on the work computer it's the only copy, and the
-// browser extension's local mode sends netnewslist:// links.
+// The everyday app's name and link scheme: on the work computer it's the only copy, so
+// netnewslist:// links (Shortcuts, other apps) reach it.
 MAC_APP_NAME = NetNewsList
 MAC_URL_SCHEME = netnewslist
 

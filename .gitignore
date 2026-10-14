@@ -89,4 +89,5 @@ fastlane/test_output
 
 
 # Browser extension settings with a CloudKit API token; never commit it
-chrome-extension/local-config.json
+# The CloudKit Web Services API token the work build builds in (scripts/build-work-mac.sh)
+/local-config.json

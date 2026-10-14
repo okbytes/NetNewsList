@@ -4,13 +4,12 @@ Things only you can do. Everything else is tracked in `Technotes/NetNewsList/Pla
 
 ## 1. Try it on your devices
 
-Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; rerun it after pulling changes). On the Mac, NetNewsList in `~/Applications` is the everyday copy: `scripts/install-mac.sh` updates it after pulling. The NetNewsWire scheme in Xcode runs **NetNewsList Dev**, for testing; both see the same iCloud data, and the browser extension always opens NetNewsList. Claude checked iCloud sync between the Mac app and the simulator on 2026-10-10 (Plan.md, "first two-device run"); nothing else below has been tried on a device.
+Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; rerun it after pulling changes). On the Mac, NetNewsList in `~/Applications` is the everyday copy: `scripts/install-mac.sh` updates it after pulling. The NetNewsWire scheme in Xcode runs **NetNewsList Dev**, for testing; both see the same iCloud data, and `netnewslist://` links always open NetNewsList. Claude checked iCloud sync between the Mac app and the simulator on 2026-10-10 (Plan.md, "first two-device run"); nothing else below has been tried on a device.
 
 - [ ] **iCloud sync (PR5–6).** On the real iPhone: the whole item, especially delete and the two relaunches, which Claude didn't run. Also note how long a page saved on the Mac takes to appear while the iPhone app stays open (the simulator never got iCloud pushes). Save a page on the Mac (⌘N). It appears on the iPhone within about a minute while the app is open. Archive it on the iPhone: it leaves the Queue on both devices and the Mac's Queue count drops. Move it back to the Queue on the Mac: it returns on the iPhone. Save the same URL again with `/` or `?utm_source=x` added: still one row. Quit and relaunch both apps twice: nothing disappears. In CloudKit Console (Development), the Articles zone has `s|…` and `a|…` records and the Account zone has one Reading List feed record.
 - [ ] **Extraction (PR7).** Save 6–8 varied pages (news, blog, docs, a very long page, a JavaScript-heavy site). Each goes from "Saving the page…" to full text. On the one that fails, right-click → Retry with Live Page. Open in Browser (compass button on the Mac, safari button on the iPhone) opens the page in your browser. The very long page's `Article` record in CloudKit Console has `contentHTMLAsset`.
 - [ ] **Saving from elsewhere (PR8).** Share → NetNewsList from Safari on both platforms. Share from iPhone Safari with the app force-quit, then open the app: it's saved and reaches the Mac. Shortcuts has "Save to NetNewsList" on both platforms; a Shortcut passing "Get Article using Safari Reader" as Body arrives already filled in. The same URL saved twice never makes a second row.
 - [ ] **Safari capture.** Share a page you're signed in to (a paywalled article you subscribe to) from Safari: the saved copy has the full text.
-- [ ] **Browser extension, this Mac (PR8).** Load `chrome-extension/` unpacked in Chrome or Helium, click the toolbar button, tick "Always allow" once, then save a few more pages: no more prompts. (If Chrome asks again on each new site, tell Claude.)
 - [ ] **Mac interface (simplified 2026-10-11).** Two panes, the list and the article; the window opens on the Queue every launch, oldest first. "…" in the toolbar (and ⌘1/⌘2, Go menu) switches between Queue and Archive, with a check on the current one; the window title says which. "+" opens Add Article. Opening an article doesn't archive it; the archive-box button (⇧⌘U) does and selects the next article; in the Archive the button is Move to Queue. Delete Article… asks, then the article is gone here (the article pane clears) and, after Sync Now, on the iPhone. Dragging a link from the browser onto the list saves it. Favicons show next to articles and in the article header. ⌘F finds text in the article. No sidebar, search, Archive All, Show Original, Preferences or toolbar customization.
 - [ ] **iPhone interface (simplified 2026-10-11).** Opens on the Queue every launch: one-line rows with small icons. "…" (top left) → Archive pushes the Archive (back returns to the Queue); "…" → Settings has only Sort Oldest to Newest, X Account and Troubleshooting. "+" (top right) opens Add Article. Tapping a row opens the article; its top bar has Archive / Move to Queue, Open in Browser (opens Safari, no in-app browser) and Share (with Find in Article). Opening doesn't archive. Delete in the context menu and on a full swipe asks first. Links in an article open in Safari. Pull to refresh syncs. On an iPad: the list and the article side by side. The widget and the Home Screen quick actions open the Queue.
 - [ ] **X posts (2026-10-11).** Save a few X links from the X app and Safari: a short post, a long post, a thread (share its first or last post), a post with photos, a quote post and an X Article. Each saves as the post itself (never X's "Log in or sign up" page), a thread as all of the author's posts in order. Then sign in (Mac: NetNewsList menu > Sign In to X…; iPhone: Settings > Articles > X Account) and save a few more; tell Claude if a post that works signed out breaks signed in. The same post shared from twitter.com and x.com is one row.
@@ -19,17 +18,13 @@ Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; 
 
 - [ ] **Services menu (2026-10-13).** After installing the new build (`scripts/install-mac.sh`), select some text containing a web address in any app (Notes, Chrome, Mail), right-click › Services › Save to NetNewsList: the page appears in the Queue. Select a bare address, then a paragraph with two links: both save. With no address in the selection the item isn't shown. If it's missing entirely, log out and back in once (macOS caches the Services list) and tell Claude.
 
-## 2. Browser extension: what was checked without you
+## 2. The full app on the work computer (2026-10-13)
 
-Done in code on 2026-10-12: the records the extension writes match what the apps write and read, field by field and type by type, and a page it saves becomes a pending article in the Queue that the next app to open extracts. Its 13 tests pass against a fake iCloud. It has never been run in a browser or against real iCloud; section 4 is that test.
-
-## 3. The full app on the work computer (2026-10-13)
-
-The Mac app now runs on a Mac whose macOS isn't signed in to your iCloud: it signs in to iCloud by itself, inside the app, and syncs over CloudKit Web Services, the same way the browser extension's remote mode does. You read, archive and save as at home, offline too. Nobody has run it against real iCloud yet; this is the first real test.
+The Mac app now runs on a Mac whose macOS isn't signed in to your iCloud: it signs in to iCloud by itself, inside the app, and syncs over CloudKit Web Services. You read, archive and save as at home, offline too. Nobody has run it against real iCloud yet; this is the first real test.
 
 On this Mac, once:
 - [ ] Create a notarization profile, so the work Mac's Gatekeeper opens the app: make an app-specific password at account.apple.com (Sign-In and Security › App-Specific Passwords), then run `xcrun notarytool store-credentials netnewslist-notary --apple-id <your Apple ID> --team-id P4RDBS9676` and paste the password when asked.
-- [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** (any https address works for the app; the extension needs exactly the `callbackURL` in `chrome-extension/local-config.json`). The app reads the token from that file when it's built.
+- [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** (to any https address: the app stops the sign-in before it gets there). The work build reads the token from `local-config.json` at the repository's root (git-ignored; it moved there from `chrome-extension/` when the extension was removed).
 
 Each time you want a new build on the work Mac:
 - [ ] `scripts/build-work-mac.sh` (a few minutes; it builds, signs with your Developer ID, notarizes and zips). The result is `build/Work.noindex/NetNewsList-Work.zip`. Don't open the app it builds on this Mac: it would take over `netnewslist://` links from your everyday copy.
@@ -39,35 +34,20 @@ On the work Mac:
 - [ ] Open NetNewsList. The Sign In to iCloud window opens: sign in with your personal Apple ID and tick **Keep me signed in** (otherwise the sign-in lasts 30 minutes). The window closes, and within a minute or two the Queue fills in with your pages, in the same order and with the same "Date Saved" as at home. The first sync downloads everything, text and images, so give it a few minutes on a slow network.
 - [ ] If the window shows an error instead: "Access to iCloud data on the web is turned off" means Settings › your name › iCloud › Access iCloud Data on the Web needs turning on (and Advanced Data Protection must stay off). "iCloud didn't accept the sign-in", or a sign-in page that never finishes, is the problem some developers reported to Apple this autumn; tell Claude what it says.
 - [ ] Archive a page: within about two minutes it leaves the Queue on your iPhone (pull to refresh). Archive one on the iPhone: it leaves the work Mac's Queue within about two minutes.
-- [ ] Save pages without the browser extension: select a web address (or text with links) in any app, right-click › Services › Save to NetNewsList; drag a link from Chrome onto the list; or, for the current page, Chrome's File › Share menu if it lists NetNewsList (turn it on in System Settings › General › Login Items & Extensions › Sharing if it doesn't). Each shows up on the iPhone.
+- [ ] Save pages: select a web address (or text with links) in any app, right-click › Services › Save to NetNewsList; drag a link from Chrome onto the list; or, for the current page, Chrome's File › Share menu if it lists NetNewsList (turn it on in System Settings › General › Login Items & Extensions › Sharing if it doesn't). Each shows up on the iPhone.
 - [ ] Turn off Wi-Fi: pages and their images still open.
 - [ ] About two weeks later the sign-in expires: a notification says so, and clicking it (or NetNewsList › Sign In to iCloud…) signs in again. If the page offers an account you didn't use before (your work Apple ID, say), the app asks before using it.
-- [ ] Optional: the browser extension still works there in its "Through the NetNewsList app on this Mac" mode, now that the app answers `netnewslist://`. Its right-click Save Link is the only way to save a link without opening, selecting or dragging it.
+- [ ] Optional: a Shortcut with a keyboard shortcut that saves the link you copied (right-click › Copy Link Address, then the key): Get Clipboard › Get URLs from Input › Save to NetNewsList. Chrome puts no Services or Quick Actions on a plain link, so this or dragging is the way to save a link without opening it.
 
-## 4. Set up the browser extension (try it at home first, then on the work computer)
-
-At home, on this Mac, in Chrome or Helium (so a sign-in problem shows up where it's easy to fix):
-- [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** to exactly the `callbackURL` in `chrome-extension/local-config.json`, and **Allowed Origins** is **Any Domain**.
-- [ ] `chrome://extensions` → Developer mode → Load unpacked → `chrome-extension` (version 1.2). Options → "Straight to iCloud" → Sign In to iCloud, tick **Keep me signed in**. The options page should say signed in, with no red message. If it shows a red message right after signing in, tell Claude what it says (Apple has had reports of web sign-in being refused; Plan.md section 8 item 11 has fallbacks).
-- [ ] Save two pages with the toolbar button and one with right-click → Save Link (the badge flashes ✓). Within a minute they show on the Mac and iPhone, in the order and with the "Date Saved" you saved them, and fill in with the text while an app is open. Saving the same pages again from the Mac makes no duplicates.
-- [ ] Options → Sign Out, then save a page: the badge shows **!** and the page waits; sign in again and it goes through.
-- [ ] Save a page with the extension, then (before the iPhone app has synced) share the same page from Safari on the iPhone, ideally one you're signed in to. Once both apps have synced, the iPhone's full text should be on both devices, with the extension's title and Date Saved.
-
-Then on the work computer:
-- [ ] In Helium open `chrome://policy` first. If Developer mode is greyed out or extensions are blocked by policy, stop: the extension can't be installed there (Plan.md section 8 item 11 has the fallbacks).
-- [ ] Copy the `chrome-extension` folder **including `local-config.json`** (it holds the API token and isn't in git) to a place it will stay (the extension's identity, sign-in and queue are tied to the folder's path). Or copy it without that file and, in Options, enter both the API token and the sign-in callback URL, then Save Settings.
-- [ ] `chrome://extensions` → Developer mode → Load unpacked → the folder. Pin it. Sign in as above and save a page.
-- [ ] Keep Advanced Data Protection **off** for your Apple ID, or web sign-in stops working.
-
-## 5. Before a TestFlight or App Store build
+## 3. Before a TestFlight or App Store build
 
 Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the apps stay on Development). Xcode builds use CloudKit's Development environment, and that is where your data lives. Never click "Reset Development Environment" in CloudKit Console; it deletes everything saved.
 
-- [ ] CloudKit Console: deploy the Development schema to Production (it includes `Article.datePublished` as a timestamp, which the extension and the Matter import write).
-- [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), and switch the extension's options to Production with it.
-- [ ] Repeat sections 1 and 3 on the TestFlight build.
+- [ ] CloudKit Console: deploy the Development schema to Production (it includes `Article.datePublished` as a timestamp, which the apps and the Matter import write).
+- [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), put it in `local-config.json` with `"environment": "production"`, and rebuild the work copy.
+- [ ] Repeat sections 1 and 2 on the TestFlight build.
 
-## 6. Decisions (no rush)
+## 4. Decisions (no rush)
 
 - [ ] Backups (File > Show Backups in Finder) stay on this Mac, which has no Time Machine. Copy the folder somewhere else now and then, or ask Claude to have the app write them to a folder you choose (iCloud Drive, Google Drive). Keep `~/Downloads/matter_data_brett_1791749808` too: it's the original text of the 93 Matter pages.
 - [ ] Both apps ask for notification permission at launch, only to badge the app icon with the Queue count. Keep the badge, or drop it and the prompt?

@@ -26,8 +26,8 @@ import RSParser
 
 	@Test func firstUploadWithStatusChangeUploadsContent() throws {
 		// Saved, then archived (or extracted) before the first send: the content must still go up,
-		// and the archive with it, but as a first upload, so a copy the browser extension or another
-		// device already put in iCloud is merged in rather than overwritten.
+		// and the archive with it, but as a first upload, so a copy another device already put in
+		// iCloud is merged in rather than overwritten.
 		let update = try #require(statusUpdate([.new, .read], read: true))
 		#expect(update.record == .new)
 		let plan = CloudKitArticlesZone.ArticleRecordPlan([update])
@@ -135,8 +135,8 @@ import RSParser
 			accountManager.deleteAccount(account)
 		}
 
-		// A Shortcut saved a page here with a body but no title, before this device saw the
-		// browser extension's save of the same page in iCloud.
+		// A Shortcut saved a page here with a body but no title, before this device saw another
+		// device's save of the same page in iCloud.
 		let content = ReadingListContent(contentHTML: "<p>Body</p>", summary: "Excerpt", imageURL: "https://example.com/lead.jpg", byline: "Byline")
 		let saved = try await account.saveArticle(url: "https://example.com/page", title: nil, content: content)
 		// Another page went the same way, but was deleted here while its first upload was under way.
@@ -207,7 +207,7 @@ import RSParser
 		])
 
 		// iCloud sends all three without a body or a title. For the first two that's a pending
-		// save the browser extension made before this device's body got there; for the third,
+		// save another device made before this device's body got there; for the third,
 		// a fresh save after a delete this device missed.
 		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
 		let records = [firstUpload, contentUpload, uploaded].map { article in

@@ -5,8 +5,8 @@
 //  One page, one article: two devices saving the same page must compute the same
 //  article ID, so every saved URL is reduced to a canonical form first.
 //
-//  The browser extension implements the same rules in JavaScript. Both are checked
-//  against the vectors in Tests/AccountTests/Resources/url-canonicalization.json.
+//  The rules are checked against the vectors in
+//  Tests/AccountTests/Resources/url-canonicalization.json.
 //
 
 import Foundation
