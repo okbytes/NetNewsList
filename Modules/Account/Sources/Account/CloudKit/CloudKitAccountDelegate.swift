@@ -792,7 +792,11 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			for feed in account.flattenedFeeds() {
 				articles.formUnion(await account.fetchArticlesAsync(.feed(feed)))
 			}
-			await storeArticleChanges(new: articles, updated: nil, deleted: nil)
+			// Re-uploads, queued with the flag off: unlike a save made here, a deletion from iCloud
+			// still removes one (`CloudKitArticlesZoneDelegate.delete`). A save here still waiting
+			// to go keeps its own row.
+			let pendingSaves = (try? await syncDatabase.selectPendingFirstUploadArticleIDs()) ?? Set<String>()
+			await insertSyncStatuses(articles: articles.filter { !pendingSaves.contains($0.articleID) }, statusKey: .new, flag: false)
 			_ = try await sendArticleStatus(account: account, showProgress: true)
 		}
 	}

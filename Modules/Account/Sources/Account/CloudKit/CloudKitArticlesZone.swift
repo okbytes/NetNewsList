@@ -277,12 +277,15 @@ final class CloudKitArticlesZone: CloudKitZone {
 		result.contentUploadCount = plan.newUpdates.count - result.failedFirstUploadArticleIDs.count
 
 		let contentUploads = plan.contentUploads(forUnsaved: unsavedRecords)
+		// Any later upload from here writes every field (a content upload in this run, or the body
+		// extraction stores afterwards), so iCloud’s copy goes into the article here now, whether
+		// or not a content upload follows. Otherwise that upload would erase a title, address or
+		// saved date only iCloud’s copy has, and a body here would differ from iCloud’s for good.
+		if !contentUploads.serverCopies.isEmpty {
+			await (delegate as? CloudKitArticlesZoneDelegate)?.mergeICloudCopies(contentUploads.serverCopies)
+		}
 		if !contentUploads.articleIDs.isEmpty {
 			Self.logger.info("CloudKitArticlesZone: \(contentUploads.articleIDs.count, privacy: .public) first uploads found the article in iCloud without a body; sending the body as content")
-			// A content upload writes every field, so iCloud’s copy goes into the article here
-			// first. Otherwise the upload would erase a title, address or saved date that only
-			// iCloud’s copy has.
-			await (delegate as? CloudKitArticlesZoneDelegate)?.mergeICloudCopies(contentUploads.serverCopies)
 			result.articleIDsNeedingContentUpload = contentUploads.articleIDs
 		}
 

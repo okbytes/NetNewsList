@@ -174,6 +174,7 @@ public actor CloudKitWebService {
 
 	/// Signs in with a verified sign-in: its token is used from the next request on.
 	public func adoptSignIn(_ signIn: CloudKitWebSignIn) {
+		throttledUntil = nil
 		storeToken(signIn.webAuthToken)
 		Self.logger.info("CloudKitWebService: signed in")
 	}
@@ -191,6 +192,7 @@ public actor CloudKitWebService {
 
 	/// Forgets the sign-in on this Mac.
 	public func signOut() {
+		throttledUntil = nil
 		storeToken(nil)
 		Self.logger.info("CloudKitWebService: signed out")
 	}
@@ -259,7 +261,8 @@ private extension CloudKitWebService {
 		guard !configuration.apiToken.isEmpty else {
 			throw CloudKitWebServiceError.notConfigured
 		}
-		if let throttledUntil, throttledUntil > Date() {
+		// A wait iCloud asked for holds off syncing, not signing in: the sign-in page and its check go.
+		if authenticated, signInToken == nil, let throttledUntil, throttledUntil > Date() {
 			throw CloudKitWebServiceError.server(code: "THROTTLED", reason: "iCloud asked to wait", status: 429, retryAfter: throttledUntil.timeIntervalSinceNow)
 		}
 		var token: String?

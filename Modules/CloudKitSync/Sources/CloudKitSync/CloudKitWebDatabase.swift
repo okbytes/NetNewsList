@@ -169,10 +169,15 @@ public final class CloudKitWebDatabase: Sendable {
 					// The download address may have expired: a lookup hands out a new one. Handing the
 					// record on without its body would erase the body here, so if that fails too it’s
 					// skipped, and arrives the next time it changes.
+					// A lookup that fails for a reason that might pass (network, sign-in, a wait) fails
+					// the page, so its token isn’t kept and it’s fetched again.
 					let recordID = received.record.recordID
-					if case .success(let record)? = try? await records(for: [recordID])[recordID] {
+					switch try await records(for: [recordID])[recordID] {
+					case .success(let record)?:
 						changed.append(record)
-					} else {
+					case .failure(let lookupError)? where lookupError.userInfo[CKErrorRetryAfterKey] != nil || Self.isRetryable(lookupError):
+						throw lookupError
+					default:
 						Self.logger.error("CloudKitWebDatabase: skipping \(error.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: its asset can’t be downloaded")
 					}
 				}
@@ -570,7 +575,9 @@ private extension CloudKitWebDatabase {
 		}
 		// A long wait asked for inside an answer that otherwise worked (a zone or a record
 		// throttled) holds every request off until then, as one in a refused answer does.
-		let entries = (json["zones"] as? [[String: Any]] ?? []) + (json["records"] as? [[String: Any]] ?? [])
+		// changes/zone nests each zone’s records in its zone entry; other answers list them at the top.
+		let zones = json["zones"] as? [[String: Any]] ?? []
+		let entries = zones + zones.flatMap { $0["records"] as? [[String: Any]] ?? [] } + (json["records"] as? [[String: Any]] ?? [])
 		let longestWait = entries.compactMap { entry -> TimeInterval? in
 			guard let code = entry["serverErrorCode"] as? String, ["THROTTLED", "TRY_AGAIN_LATER", "ZONE_BUSY"].contains(code) else {
 				return nil
@@ -578,7 +585,9 @@ private extension CloudKitWebDatabase {
 			return (entry["retryAfter"] as? NSNumber)?.doubleValue
 		}.max()
 		if let longestWait {
-			await service.throttle(for: longestWait)
+			// One record’s or zone’s wait holds off everything, so it’s held for 15 minutes at most;
+			// the next answer says again if iCloud still wants it.
+			await service.throttle(for: min(longestWait, 15 * 60))
 		}
 		return json
 	}

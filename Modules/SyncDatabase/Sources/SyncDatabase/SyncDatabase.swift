@@ -62,7 +62,8 @@ public actor SyncDatabase {
 		try SyncStatusTable.selectPendingContentArticleIDs(database: database)
 	}
 
-	/// Articles saved here whose first upload is queued or in flight.
+	/// Articles saved here whose first upload is queued or in flight (not Reset iCloud Sync’s
+	/// re-uploads, which are queued with the flag off).
 	public func selectPendingFirstUploadArticleIDs() throws -> Set<String> {
 		try SyncStatusTable.selectPendingFirstUploadArticleIDs(database: database)
 	}

@@ -95,8 +95,21 @@ struct SyncStatusTable {
 		try selectPendingArticleIDs([.new, .content], database: database)
 	}
 
+	/// First uploads of saves made here: `.new` rows with the flag set. Reset iCloud Sync queues
+	/// its re-uploads with the flag off.
 	static func selectPendingFirstUploadArticleIDs(database: FMDatabase) throws -> Set<String> {
-		try selectPendingArticleIDs([.new], database: database)
+		let operation = "Reading pending first uploads"
+		let sql = "select distinct articleID from \(name) where key = ? and flag = 1;"
+		guard let resultSet = database.executeQuery(sql, withArgumentsIn: [SyncStatus.Key.new.rawValue]) else {
+			throw database.syncDatabaseError(operation: operation)
+		}
+
+		let articleIDs = resultSet.mapToSet { $0.swiftString(forColumnIndex: 0) }
+		guard !database.hadError() else {
+			throw database.syncDatabaseError(operation: operation)
+		}
+
+		return articleIDs
 	}
 
 	static func resetAllSelectedForProcessing(database: FMDatabase) throws {

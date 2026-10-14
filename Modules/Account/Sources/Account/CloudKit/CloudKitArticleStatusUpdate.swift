@@ -37,6 +37,12 @@ struct CloudKitArticleStatusUpdate {
 
 	var record: Record {
 		if statuses.contains(where: { $0.key == .deleted }) {
+			// Deleted here, then saved again before the delete went: deleting removes the article
+			// at once, so it exists here again only because of that save, which is newer. It goes up
+			// as a full upload (unread, with its new saved date) instead of the delete.
+			if article != nil && statuses.contains(where: { $0.key == .new }) {
+				return .all
+			}
 			return .delete
 		}
 

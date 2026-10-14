@@ -56,6 +56,13 @@ import RSParser
 	@Test func deleteWins() throws {
 		let update = try #require(statusUpdate([.content, .deleted]))
 		#expect(update.record == .delete)
+
+		// Deleted, then saved again before the delete went: the article is here again only because
+		// of that save, which goes up whole instead of the delete. Without the article, the delete wins.
+		let savedAgain = try #require(statusUpdate([.deleted, .new, .content]))
+		#expect(savedAgain.record == .all)
+		let gone = try #require(CloudKitArticleStatusUpdate(articleID: "a", statuses: [syncStatus(.deleted), syncStatus(.new)], article: nil))
+		#expect(gone.record == .delete)
 	}
 
 	@Test func contentUpdateWithoutArticleIsDropped() {

@@ -33,7 +33,8 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 
 	/// Articles whose first upload or content upload failed. Queued again once this run finishes,
 	/// so a failing upload is retried on the next send instead of looping in this one.
-	private var failedFirstUploadArticleIDs = Set<String>()
+	/// Refused first uploads, each with its `.new` row’s flag (a save made here, or a re-upload).
+	private var failedFirstUploads = [String: Bool]()
 	private var failedContentArticleIDs = Set<String>()
 
 	init(account: Account, articlesZone: CloudKitArticlesZone, database: SyncDatabase, syncErrorHandler: CloudKitSyncErrorHandler?) {
@@ -139,7 +140,9 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 				await syncDatabase.insertStatuses(Set(result.articleIDsNeedingContentUpload.map { SyncStatus(articleID: $0, key: .content, flag: true) }))
 			}
 			if let firstUploadError = result.firstUploadError {
-				failedFirstUploadArticleIDs.formUnion(result.failedFirstUploadArticleIDs)
+				for articleID in result.failedFirstUploadArticleIDs {
+					failedFirstUploads[articleID] = syncStatuses.first { $0.articleID == articleID && $0.key == .new }?.flag ?? true
+				}
 				syncErrorHandler?(firstUploadError, "Uploading new articles", #fileID, #function, #line)
 			}
 			if let contentError = result.contentError {
@@ -156,9 +159,9 @@ final class CloudKitSendStatusOperation: MainThreadOperation, @unchecked Sendabl
 	}
 
 	func requeueFailedUploads() async {
-		let firstUploads = failedFirstUploadArticleIDs.map { SyncStatus(articleID: $0, key: .new, flag: true) }
+		let firstUploads = failedFirstUploads.map { SyncStatus(articleID: $0.key, key: .new, flag: $0.value) }
 		let contentUploads = failedContentArticleIDs.map { SyncStatus(articleID: $0, key: .content, flag: true) }
-		failedFirstUploadArticleIDs.removeAll()
+		failedFirstUploads.removeAll()
 		failedContentArticleIDs.removeAll()
 		guard !firstUploads.isEmpty || !contentUploads.isEmpty else {
 			return
