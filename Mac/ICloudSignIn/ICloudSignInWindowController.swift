@@ -185,8 +185,43 @@ private extension ICloudSignInWindowController {
 			do {
 				try await CloudKitWebSync.shared.completeSignIn(webAuthToken: webAuthToken)
 				close()
+			} catch CloudKitWebSyncError.differentAccount(let signIn) {
+				askAboutDifferentAccount(signIn)
 			} catch {
 				showError(error, message: NSLocalizedString("iCloud didn’t accept the sign-in", comment: "iCloud sign-in error"))
+			}
+		}
+	}
+
+	/// The sign-in is for another Apple Account than last time, perhaps a work account the page
+	/// filled in. Using it would send this Mac’s changes to that account’s iCloud.
+	func askAboutDifferentAccount(_ signIn: CloudKitWebSignIn) {
+		guard let window else {
+			return
+		}
+		let alert = NSAlert()
+		alert.alertStyle = .warning
+		alert.messageText = NSLocalizedString("Use a Different Apple Account?", comment: "iCloud sign-in alert title")
+		alert.informativeText = NSLocalizedString("You signed in with a different Apple Account from the one this Mac used before. Your reading list is in that other account. With this one, changes you make here would go to this account’s iCloud instead.", comment: "iCloud sign-in alert message")
+		alert.addButton(withTitle: NSLocalizedString("Sign In Again", comment: "Sign In Again button"))
+		alert.addButton(withTitle: NSLocalizedString("Use This Account", comment: "Use This Account button"))
+		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+		alert.beginSheetModal(for: window) { [weak self] response in
+			guard let self else {
+				return
+			}
+			Task { @MainActor in
+				switch response {
+				case .alertFirstButtonReturn:
+					// Forget the page’s own sign-in, so it asks for the account again.
+					await self.webView?.configuration.websiteDataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+					await self.loadSignInPage()
+				case .alertSecondButtonReturn:
+					await CloudKitWebSync.shared.adopt(signIn)
+					self.close()
+				default:
+					self.close()
+				}
 			}
 		}
 	}

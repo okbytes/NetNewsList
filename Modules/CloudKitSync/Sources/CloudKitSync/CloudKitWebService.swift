@@ -60,6 +60,13 @@ public enum CloudKitWebServiceError: LocalizedError, Sendable {
 	}
 }
 
+/// A sign-in iCloud has accepted but the app hasn’t adopted yet: the app first checks that it
+/// is the Apple Account it used before (`CloudKitWebService.adoptSignIn`).
+public struct CloudKitWebSignIn: Sendable {
+	public let userRecordName: String
+	let webAuthToken: String
+}
+
 public extension Notification.Name {
 	/// Posted on the main thread when the web sign-in starts or ends, including when iCloud ends it.
 	static let CloudKitWebSignInDidChange = Notification.Name("CloudKitWebSignInDidChange")
@@ -81,6 +88,8 @@ public actor CloudKitWebService {
 
 	/// Set when iCloud asks to wait longer than a retry is worth: requests fail at once until then.
 	private var throttledUntil: Date?
+	/// The token that replaced a sign-in token being verified (`verifySignIn`), not yet stored.
+	private var verifiedReplacementToken: String?
 	private static let longestRetryWait: TimeInterval = 60
 
 	private var isSending = false
@@ -122,26 +131,27 @@ public actor CloudKitWebService {
 		throw CloudKitWebServiceError.invalidResponse(status: 421)
 	}
 
-	/// Stores the token from the sign-in callback and spends it at once on `users/current`,
-	/// which proves iCloud accepts it. Returns the user’s record name.
-	@discardableResult
-	public func completeSignIn(webAuthToken: String) async throws -> String {
+	/// Spends the token from the sign-in callback at once on `users/current`, which proves iCloud
+	/// accepts it and says whose account it is. Nothing is stored until `adoptSignIn`.
+	public func verifySignIn(webAuthToken: String) async throws -> CloudKitWebSignIn {
 		await acquireSendSlot()
 		defer {
 			releaseSendSlot()
 		}
-		storeToken(webAuthToken)
-		do {
-			let json = try await perform(path: "users/current", body: nil, authenticated: true)
-			guard let userRecordName = json["userRecordName"] as? String else {
-				throw CloudKitWebServiceError.invalidResponse(status: 200)
-			}
-			Self.logger.info("CloudKitWebService: signed in")
-			return userRecordName
-		} catch {
-			storeToken(nil)
-			throw error
+		verifiedReplacementToken = nil
+		let json = try await perform(path: "users/current", body: nil, authenticated: true, signInToken: webAuthToken)
+		guard let userRecordName = json["userRecordName"] as? String else {
+			throw CloudKitWebServiceError.invalidResponse(status: 200)
 		}
+		let signIn = CloudKitWebSignIn(userRecordName: userRecordName, webAuthToken: verifiedReplacementToken ?? webAuthToken)
+		verifiedReplacementToken = nil
+		return signIn
+	}
+
+	/// Signs in with a verified sign-in: its token is used from the next request on.
+	public func adoptSignIn(_ signIn: CloudKitWebSignIn) {
+		storeToken(signIn.webAuthToken)
+		Self.logger.info("CloudKitWebService: signed in")
 	}
 
 	/// Forgets the sign-in on this Mac.
@@ -208,7 +218,9 @@ private extension CloudKitWebService {
 	}
 
 	/// One request. Only called while holding the send slot, so the token it uses is the latest.
-	func perform(path: String, body: Data?, authenticated: Bool) async throws -> [String: Any] {
+	/// With `signInToken`, the request uses that token instead of the stored one, and leaves the
+	/// stored one alone; the token that replaces it goes to `verifiedReplacementToken`.
+	func perform(path: String, body: Data?, authenticated: Bool, signInToken: String? = nil) async throws -> [String: Any] {
 		guard !configuration.apiToken.isEmpty else {
 			throw CloudKitWebServiceError.notConfigured
 		}
@@ -217,7 +229,7 @@ private extension CloudKitWebService {
 		}
 		var token: String?
 		if authenticated {
-			token = tokenStore.loadWebAuthToken()
+			token = signInToken ?? tokenStore.loadWebAuthToken()
 			guard token != nil else {
 				throw CloudKitWebServiceError.signInRequired(redirectURL: nil)
 			}
@@ -241,7 +253,7 @@ private extension CloudKitWebService {
 		let serverErrorCode = json?["serverErrorCode"] as? String
 		// Only iCloud’s own answer ends a sign-in. A bare 421 can be HTTP/2’s Misdirected Request.
 		if serverErrorCode == "AUTHENTICATION_REQUIRED" || serverErrorCode == "AUTHENTICATION_FAILED" {
-			if authenticated {
+			if authenticated && signInToken == nil {
 				Self.logger.info("CloudKitWebService: iCloud asked for a new sign-in (\(serverErrorCode ?? "", privacy: .public))")
 				storeToken(nil)
 			}
@@ -250,7 +262,11 @@ private extension CloudKitWebService {
 		}
 
 		if authenticated, let newToken = Self.replacementToken(in: httpResponse) {
-			storeToken(newToken)
+			if signInToken != nil {
+				verifiedReplacementToken = newToken
+			} else {
+				storeToken(newToken)
+			}
 		}
 
 		guard (200..<300).contains(httpResponse.statusCode) else {

@@ -16,6 +16,16 @@ import os
 import Security
 import CloudKitSync
 
+public enum CloudKitWebSyncError: LocalizedError, Sendable {
+	/// The sign-in is for another Apple Account than the one this Mac used before. It isn’t used
+	/// unless the user says so (`CloudKitWebSync.adopt`).
+	case differentAccount(CloudKitWebSignIn)
+
+	public var errorDescription: String? {
+		NSLocalizedString("This is a different Apple Account from the one this Mac signed in with before.", comment: "iCloud sign-in error")
+	}
+}
+
 @MainActor public final class CloudKitWebSync {
 
 	public static let shared = CloudKitWebSync()
@@ -23,6 +33,8 @@ import CloudKitSync
 	nonisolated private static let logger = cloudKitLogger
 	nonisolated private static let transportKey = "NetNewsListICloudTransport"
 	nonisolated private static let apiTokenKey = "CloudKitWebAPIToken"
+	/// The account of the last sign-in, so a sign-in to another one by mistake isn’t used silently.
+	nonisolated private static let userRecordNameKey = "CloudKitWebUserRecordName"
 
 	/// Whether this copy of the app reaches iCloud over the web. A launch argument
 	/// (`-NetNewsListICloudTransport web`) overrides Info.plist.
@@ -78,12 +90,25 @@ import CloudKitSync
 		return nil
 	}
 
-	/// Finishes a sign-in with the token from the sign-in page’s callback, then syncs.
+	/// Finishes a sign-in with the token from the sign-in page’s callback, then syncs. Throws
+	/// `CloudKitWebSyncError.differentAccount` for another Apple Account than last time:
+	/// syncing with it would send this Mac’s changes to that account’s iCloud.
 	public func completeSignIn(webAuthToken: String) async throws {
 		guard let service else {
 			throw CloudKitWebServiceError.notConfigured
 		}
-		try await service.completeSignIn(webAuthToken: webAuthToken)
+		let signIn = try await service.verifySignIn(webAuthToken: webAuthToken)
+		if let previousUser = UserDefaults.standard.string(forKey: Self.userRecordNameKey), previousUser != signIn.userRecordName {
+			Self.logger.info("CloudKitWebSync: the sign-in is for a different Apple Account than before")
+			throw CloudKitWebSyncError.differentAccount(signIn)
+		}
+		await adopt(signIn)
+	}
+
+	/// Uses a verified sign-in, and remembers its account.
+	public func adopt(_ signIn: CloudKitWebSignIn) async {
+		UserDefaults.standard.set(signIn.userRecordName, forKey: Self.userRecordNameKey)
+		await service?.adoptSignIn(signIn)
 		isSignedIn = true
 		Self.logger.info("CloudKitWebSync: signed in to iCloud on the web")
 	}
