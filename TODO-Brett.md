@@ -23,7 +23,7 @@ Your iPhone has the current build (installed 2026-10-10 with `scripts/mine.sh`; 
 The Mac app now runs on a Mac whose macOS isn't signed in to your iCloud: it signs in to iCloud by itself, inside the app, and syncs over CloudKit Web Services. You read, archive and save as at home, offline too. Nobody has run it against real iCloud yet; this is the first real test.
 
 On this Mac, once:
-- [ ] Create a notarization profile, so the work Mac's Gatekeeper opens the app: make an app-specific password at account.apple.com (Sign-In and Security › App-Specific Passwords), then run `xcrun notarytool store-credentials netnewslist-notary --apple-id <your Apple ID> --team-id P4RDBS9676` and paste the password when asked.
+- [x] Create a notarization profile, so the work Mac's Gatekeeper opens the app (done 2026-10-14; the first notarized build passed Gatekeeper here): make an app-specific password at account.apple.com (Sign-In and Security › App-Specific Passwords), then run `xcrun notarytool store-credentials netnewslist-notary --apple-id <your Apple ID> --team-id P4RDBS9676` and paste the password when asked.
 - [ ] CloudKit Console → `iCloud.eitherslice.NetNewsList` → Development → Tokens & Keys → the API token: **Sign In Callback** is **URL Redirect** (to any https address: the app stops the sign-in before it gets there). The work build reads the token from `local-config.json` at the repository's root (git-ignored; it moved there from `chrome-extension/` when the extension was removed).
 
 Each time you want a new build on the work Mac:
