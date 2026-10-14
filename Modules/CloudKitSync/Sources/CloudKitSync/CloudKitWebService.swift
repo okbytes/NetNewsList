@@ -249,7 +249,9 @@ private extension CloudKitWebService {
 			throw CloudKitWebServiceError.signInRequired(redirectURL: redirectURL)
 		}
 
-		if authenticated, let newToken = Self.replacementToken(in: httpResponse) {
+		// A sign-out while this request was out (`signOut` doesn’t wait its turn) stays signed out:
+		// only a sign-in still in place takes the replacement.
+		if authenticated, tokenStore.loadWebAuthToken() != nil, let newToken = Self.replacementToken(in: httpResponse) {
 			storeToken(newToken)
 		}
 

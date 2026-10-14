@@ -104,7 +104,9 @@ public final class CloudKitWebDatabase: Sendable {
 		let json = try await post("records/query", body)
 		var records = [CKRecord]()
 		for dictionary in json["records"] as? [[String: Any]] ?? [] {
-			if let received = CloudKitWebRecordCoder.receivedRecord(from: dictionary, zoneID: zoneID) {
+			// Asked for no fields (`desiredKeys: []`, as a delete by query does), iCloud leaves the
+			// record type out too; every record a query finds is of the query’s type.
+			if let received = CloudKitWebRecordCoder.receivedRecord(from: dictionary, zoneID: zoneID, recordType: query.recordType) {
 				records.append(try await finish(received))
 			}
 		}
@@ -135,7 +137,14 @@ public final class CloudKitWebDatabase: Sendable {
 		var deleted = [CloudKitRecordKey]()
 		for dictionary in zoneResult["records"] as? [[String: Any]] ?? [] {
 			if let failure = CloudKitWebRecordCoder.failure(from: dictionary) {
-				throw Self.ckError(for: failure)
+				// A wait iCloud asks for is waited out. Otherwise the record is skipped, as the
+				// CloudKit framework path skips it, so one record can’t stop the zone’s sync for good.
+				let error = Self.ckError(for: failure)
+				if error.userInfo[CKErrorRetryAfterKey] != nil {
+					throw error
+				}
+				Self.logger.error("CloudKitWebDatabase: skipping \(failure.recordName, privacy: .public) in \(zoneID.zoneName, privacy: .public)’s changes: \(failure.serverErrorCode, privacy: .public)")
+				continue
 			}
 			guard let recordName = dictionary["recordName"] as? String else {
 				continue
@@ -321,8 +330,11 @@ private extension CloudKitWebDatabase {
 			}
 
 			// Deleting a record iCloud no longer has leaves it gone, which is what was asked.
-			failures = failures.filter { recordID, failure in
-				!(failure.serverErrorCode == "NOT_FOUND" && operationsByName[recordID.recordName]?.operationType == "forceDelete")
+			let goneRecordNames = Set(failures.filter { recordID, failure in
+				failure.serverErrorCode == "NOT_FOUND" && operationsByName[recordID.recordName]?.operationType == "forceDelete"
+			}.keys.map(\.recordName))
+			failures = failures.filter { recordID, _ in
+				!goneRecordNames.contains(recordID.recordName)
 			}
 			guard !failures.isEmpty else {
 				return [:]
@@ -334,6 +346,9 @@ private extension CloudKitWebDatabase {
 			let refusedClears = sendsClearedFields && failures.contains { recordID, failure in
 				failure.serverErrorCode == "BAD_REQUEST" && operationsByName[recordID.recordName]?.hasClearedFields == true
 			}
+			// An atomic request that failed only because a record to delete was already gone saved
+			// nothing else either. Without this, the same deletion fails the same statuses at every send.
+			let failedOnlyForGoneRecords = atomic && !goneRecordNames.isEmpty && failures.values.allSatisfy { $0.serverErrorCode == "ATOMIC_ERROR" }
 
 			if policy == .changedKeys && !didCreateMissingRecords && !missingRecordNames.isEmpty {
 				Self.logger.debug("CloudKitWebDatabase: creating \(missingRecordNames.count) records iCloud doesn’t have yet")
@@ -341,12 +356,18 @@ private extension CloudKitWebDatabase {
 			} else if refusedClears {
 				Self.logger.error("CloudKitWebDatabase: iCloud refused to clear fields; saving without clearing them")
 				sendsClearedFields = false
+			} else if failedOnlyForGoneRecords {
+				Self.logger.debug("CloudKitWebDatabase: sending an atomic save again without deleting \(goneRecordNames.count) records iCloud no longer has")
 			} else {
 				return try await ckErrors(for: failures, operations: operationsByName, zoneID: zoneID)
 			}
 
-			// Atomic: nothing was saved, so everything goes again. Otherwise only what failed.
+			// Atomic: nothing was saved, so everything goes again but the deletions already done.
+			// Otherwise only what failed.
 			operations = operations.compactMap { operation in
+				guard !goneRecordNames.contains(operation.recordID.recordName) else {
+					return nil
+				}
 				var operation = operation
 				if missingRecordNames.contains(operation.recordID.recordName) {
 					operation.operationType = "create"

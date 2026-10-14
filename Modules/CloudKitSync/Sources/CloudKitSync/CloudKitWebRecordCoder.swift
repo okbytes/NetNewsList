@@ -31,11 +31,12 @@ enum CloudKitWebRecordCoder {
 	// MARK: - Receiving
 
 	/// A record dictionary from lookup, query or changes, or nil when it describes a failure or a deletion.
-	static func receivedRecord(from dictionary: [String: Any], zoneID: CKRecordZone.ID) -> CloudKitWebReceivedRecord? {
+	/// `recordType` is the type to use when the dictionary has none.
+	static func receivedRecord(from dictionary: [String: Any], zoneID: CKRecordZone.ID, recordType knownRecordType: CKRecord.RecordType? = nil) -> CloudKitWebReceivedRecord? {
 		guard dictionary["serverErrorCode"] == nil,
 			  (dictionary["deleted"] as? Bool) != true,
 			  let recordName = dictionary["recordName"] as? String,
-			  let recordType = dictionary["recordType"] as? String else {
+			  let recordType = dictionary["recordType"] as? String ?? knownRecordType else {
 			return nil
 		}
 		let record = CKRecord(recordType: recordType, recordID: CKRecord.ID(recordName: recordName, zoneID: zoneID))

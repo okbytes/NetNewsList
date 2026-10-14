@@ -227,8 +227,13 @@ extension CloudKitZone {
 				attempt += 1
 				switch CloudKitZoneResult.resolve(error) {
 				case .retry(let seconds):
+					// A longer wait fails at once: the service turns every request away until then
+					// (`CloudKitWebService.throttledUntil`), and a later sync tries again.
+					guard seconds <= webMaxRetryDelay else {
+						throw error
+					}
 					Self.webLogger.debug("CloudKitZone: \(self.zoneID.zoneName, privacy: .public) web request retry in \(seconds) seconds")
-					await delaySeconds(min(seconds, webMaxRetryDelay))
+					await delaySeconds(seconds)
 				case .zoneNotFound where createsMissingZone:
 					Self.webLogger.info("CloudKitZone: \(self.zoneID.zoneName, privacy: .public) zone not found; creating it")
 					try await webDatabase.saveZone(zoneID)

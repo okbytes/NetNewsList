@@ -70,9 +70,11 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 	}
 
 	override func showWindow(_ sender: Any?) {
-		let isFirstShow = webView?.url == nil
+		// Each sign-in starts on a fresh page: a window shown again (iCloud ended the last sign-in)
+		// still holds the last one's spent page, and Apple's sign-in address expires.
+		let isOpen = window?.isVisible == true || window?.isMiniaturized == true
 		super.showWindow(sender)
-		if isFirstShow {
+		if !isOpen {
 			window?.center()
 			Task { @MainActor in
 				await loadSignInPage()
