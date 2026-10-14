@@ -86,6 +86,12 @@
 	</array>
 	<key>CloudKitContainerIdentifier</key>
 	<string>iCloud.$(ORGANIZATION_IDENTIFIER).NetNewsList</string>
+	<key>NetNewsListICloudTransport</key>
+	<string>$(NETNEWSLIST_ICLOUD_TRANSPORT)</string>
+	<key>CloudKitEnvironment</key>
+	<string>$(NETNEWSLIST_CLOUDKIT_ENVIRONMENT)</string>
+	<key>CloudKitAPIToken</key>
+	<string>$(NETNEWSLIST_CLOUDKIT_API_TOKEN)</string>
 	<key>UserAgent</key>
 	<string>NetNewsList</string>
 	<key>UserAgentExtended</key>

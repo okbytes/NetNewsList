@@ -1,0 +1,37 @@
+// The work-computer build of the Mac app: Developer ID-signed and without the iCloud and push
+// entitlements, so it needs no provisioning profile and runs on a Mac that isn't registered with
+// the team or signed in to iCloud. It syncs over CloudKit Web Services with an Apple ID sign-in
+// inside the app. scripts/build-work-mac.sh passes this file to xcodebuild with -xcconfig.
+//
+// An -xcconfig file applies to every target in the build (the app, the share extension and the
+// Swift packages), so this sets only what's right for all of them or what only the app and the
+// share extension read.
+
+// Its own bundle IDs (eitherslice.NetNewsList.Web, .Web.ShareExtension) and app group, so it never
+// shares a container, settings or share inbox with the everyday app.
+BUNDLE_ID_SUFFIX = .Web
+APP_GROUP_SUFFIX = .Web
+
+// The everyday app's name and link scheme: on the work computer it's the only copy, and the
+// browser extension's local mode sends netnewslist:// links.
+MAC_APP_NAME = NetNewsList
+MAC_URL_SCHEME = netnewslist
+
+// Sandbox, app group, user-selected files and outgoing connections; no aps-environment or iCloud.
+MAC_APP_ENTITLEMENTS = Mac/Resources/NetNewsList-Web.entitlements
+
+// Read by the app from Info.plist. scripts/build-work-mac.sh supplies
+// NETNEWSLIST_CLOUDKIT_ENVIRONMENT and NETNEWSLIST_CLOUDKIT_API_TOKEN.
+NETNEWSLIST_ICLOUD_TRANSPORT = web
+
+// Developer ID, signed manually: nothing left in the entitlements needs a provisioning profile
+// (a team-prefixed app group doesn't on macOS).
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Developer ID Application
+CODE_SIGN_IDENTITY[sdk=macosx*] = Developer ID Application
+DEVELOPMENT_TEAM = P4RDBS9676
+PROVISIONING_PROFILE_SPECIFIER =
+
+// Notarization requires the hardened runtime and a secure timestamp on every signature.
+ENABLE_HARDENED_RUNTIME = YES
+OTHER_CODE_SIGN_FLAGS = --timestamp
