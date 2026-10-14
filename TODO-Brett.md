@@ -41,7 +41,7 @@ On the work Mac:
 - [ ] Archive a page: within about two minutes it leaves the Queue on your iPhone (pull to refresh). Archive one on the iPhone: it leaves the work Mac's Queue within about two minutes.
 - [ ] Save pages without the browser extension: select a web address (or text with links) in any app, right-click › Services › Save to NetNewsList; drag a link from Chrome onto the list; or, for the current page, Chrome's File › Share menu if it lists NetNewsList (turn it on in System Settings › General › Login Items & Extensions › Sharing if it doesn't). Each shows up on the iPhone.
 - [ ] Turn off Wi-Fi: pages and their images still open.
-- [ ] About two weeks later the sign-in expires: the app stops syncing and NetNewsList › Sign In to iCloud… signs in again. If the page offers an account you didn't use before (your work Apple ID, say), the app asks before using it.
+- [ ] About two weeks later the sign-in expires: a notification says so, and clicking it (or NetNewsList › Sign In to iCloud…) signs in again. If the page offers an account you didn't use before (your work Apple ID, say), the app asks before using it.
 - [ ] Optional: the browser extension still works there in its "Through the NetNewsList app on this Mac" mode, now that the app answers `netnewslist://`. Its right-click Save Link is the only way to save a link without opening, selecting or dragging it.
 
 ## 4. Set up the browser extension (try it at home first, then on the work computer)
