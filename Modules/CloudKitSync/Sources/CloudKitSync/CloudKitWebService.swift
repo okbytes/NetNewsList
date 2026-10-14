@@ -285,6 +285,18 @@ private extension CloudKitWebService {
 			throw CloudKitWebServiceError.signInRequired(redirectURL: redirectURL)
 		}
 
+		// With Advanced Data Protection turned on, or web access turned off, iCloud refuses the
+		// private database to a sign-in that used to work. Signing in again explains why. Checked
+		// before a replacement token is stored: once it is, the sign-in no longer looks like this
+		// request’s, and wouldn’t end.
+		if serverErrorCode == "ACCESS_DENIED" && !(200..<300).contains(httpResponse.statusCode) && authenticated && signInToken == nil {
+			Self.logger.error("CloudKitWebService: iCloud refused the private database: \(json?["reason"] as? String ?? "", privacy: .public)")
+			if tokenStore.loadWebAuthToken() == token {
+				storeToken(nil, endedByICloud: true)
+			}
+			throw CloudKitWebServiceError.webAccessDisabled
+		}
+
 		// Only the sign-in this request used takes the replacement: a sign-out, or a new sign-in,
 		// while the request was out (`signOut` doesn’t wait its turn) stays as it is.
 		if authenticated, let newToken = Self.replacementToken(in: httpResponse) {
@@ -293,16 +305,6 @@ private extension CloudKitWebService {
 			} else if tokenStore.loadWebAuthToken() == token {
 				storeToken(newToken)
 			}
-		}
-
-		// With Advanced Data Protection turned on, or web access turned off, iCloud refuses the
-		// private database to a sign-in that used to work. Signing in again explains why.
-		if serverErrorCode == "ACCESS_DENIED" && !(200..<300).contains(httpResponse.statusCode) && authenticated && signInToken == nil {
-			Self.logger.error("CloudKitWebService: iCloud refused the private database: \(json?["reason"] as? String ?? "", privacy: .public)")
-			if tokenStore.loadWebAuthToken() == token {
-				storeToken(nil, endedByICloud: true)
-			}
-			throw CloudKitWebServiceError.webAccessDisabled
 		}
 
 		guard (200..<300).contains(httpResponse.statusCode) else {
@@ -398,7 +400,8 @@ private extension CloudKitWebService {
 
 extension CloudKitWebService {
 
-	/// A failure that trying again shortly can fix: the network, a busy server, a short throttle.
+	/// A failure that trying again shortly can fix: the network, a busy server, a short throttle
+	/// (also a bare 429, as the asset host might send it).
 	static func isTransient(_ error: Error) -> Bool {
 		switch error {
 		case let urlError as URLError:
@@ -407,7 +410,7 @@ extension CloudKitWebService {
 			if let retryAfter, retryAfter > longestRetryWait {
 				return false
 			}
-			return ["THROTTLED", "TRY_AGAIN_LATER", "ZONE_BUSY", "INTERNAL_ERROR"].contains(code) || status >= 500 || status == 421
+			return ["THROTTLED", "TRY_AGAIN_LATER", "ZONE_BUSY", "INTERNAL_ERROR"].contains(code) || status >= 500 || status == 421 || status == 429
 		default:
 			return false
 		}
