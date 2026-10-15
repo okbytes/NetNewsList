@@ -17,7 +17,7 @@ struct ArticleTheme: Sendable {
 	let css: String
 
 	private init() {
-		css = Self.bundledText("core", "css") + "\n" + Self.bundledText("stylesheet", "css")
+		css = Self.bundledText("core", "css") + "\n" + Self.bundledText("stylesheet", "css") + "\n" + ArticleFonts.css
 		template = Self.bundledText("template", "html")
 	}
 

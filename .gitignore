@@ -91,3 +91,7 @@ fastlane/test_output
 # Browser extension settings with a CloudKit API token; never commit it
 # The CloudKit Web Services API token the work build builds in (scripts/build-work-mac.sh)
 /local-config.json
+
+# The Breve faces the iOS app carries for article text (see ArticleFonts.swift).
+# They're licensed fonts and the repository is public: never commit them.
+iOS/Resources/ArticleFonts/

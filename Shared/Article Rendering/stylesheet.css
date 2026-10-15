@@ -158,6 +158,17 @@ body > .systemMessage {
 	text-autospace: normal;
 }
 
+/* The title and body are set in Breve; the header, dateline and system messages keep
+   the system font. ArticleFonts.swift defines the Breve families. */
+
+.articleBody {
+	font-family: "Breve Text", -apple-system;
+}
+
+.articleTitle, .articleBody :is(h1, h2) {
+	font-family: "Breve Title", -apple-system;
+}
+
 .articleBody {
 	margin-top: 20px;
 	line-height: 1.6em;
