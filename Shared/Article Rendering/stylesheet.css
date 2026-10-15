@@ -199,9 +199,10 @@ pre {
 	line-height: 1.4286em;
 }
 
+/* SF Mono's letters are taller and wider than Breve Text's; at 0.9em code sits level with the text. */
 code, pre {
 	font-family: "SF Mono Regular", Menlo, Courier, monospace;
-	font-size: 1em;
+	font-size: 0.9em;
 	-webkit-hyphens: none;
 	background: var(--code-background-color);
 }
@@ -409,6 +410,11 @@ a.footnote:hover,
 		word-break: break-word;
 		-webkit-hyphens: auto;
 		-webkit-text-size-adjust: none;
+	}
+
+	/* Breve Text reads small at the Dynamic Type size; the title and header stay at it. */
+	.articleBody {
+		font-size: calc(1rem + 2px);
 	}
 
 	:root {
