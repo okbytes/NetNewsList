@@ -18,6 +18,8 @@ final class PreloadedWebView: WKWebView {
 	init(articleIconSchemeHandler: ArticleIconSchemeHandler) {
 		let configuration = WebViewConfiguration.configuration(with: articleIconSchemeHandler)
 		super.init(frame: .zero, configuration: configuration)
+		// Shown before a page draws; the pages set the same color (stylesheet.css, blank.html).
+		backgroundColor = UIColor(named: "articleBackgroundColor")
 		fullscreenStateObservation = observe(\.fullscreenState, options: []) { [weak self] _, _ in
 			Task { @MainActor in
 				guard let self else {

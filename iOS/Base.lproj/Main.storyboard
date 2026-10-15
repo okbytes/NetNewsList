@@ -26,7 +26,7 @@
                             </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="VUw-jc-0yf"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" name="articleBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="VUw-jc-0yf" firstAttribute="trailing" secondItem="h1Q-FS-jlg" secondAttribute="trailing" id="2Nt-fa-LhC"/>
                             <constraint firstItem="h1Q-FS-jlg" firstAttribute="leading" secondItem="VUw-jc-0yf" secondAttribute="leading" id="Vgz-hA-Zrp"/>
@@ -161,6 +161,9 @@
         <image name="multiply.circle" catalog="system" width="128" height="123"/>
         <image name="multiply.circle.fill" catalog="system" width="128" height="123"/>
         <image name="square.and.arrow.up.fill" catalog="system" width="117" height="128"/>
+        <namedColor name="articleBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </namedColor>
         <namedColor name="barBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </namedColor>

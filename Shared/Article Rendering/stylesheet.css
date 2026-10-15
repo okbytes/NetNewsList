@@ -199,10 +199,10 @@ pre {
 	line-height: 1.4286em;
 }
 
-/* SF Mono's letters are taller and wider than Breve Text's; at 0.9em code sits level with the text. */
+/* SF Mono's letters are taller and wider than Breve Text's; smaller, code sits level with the text. */
 code, pre {
 	font-family: "SF Mono Regular", Menlo, Courier, monospace;
-	font-size: 0.9em;
+	font-size: 0.85em;
 	-webkit-hyphens: none;
 	background: var(--code-background-color);
 }
@@ -412,9 +412,18 @@ a.footnote:hover,
 		-webkit-text-size-adjust: none;
 	}
 
-	/* Breve Text reads small at the Dynamic Type size; the title and header stay at it. */
+	/* Sizes follow the Dynamic Type size (the rem). At the default, 17px, the body is 18px,
+	   code 17px and the title 24px; the header stays at 17px. */
 	.articleBody {
-		font-size: calc(1rem + 2px);
+		font-size: calc(1rem + 1px);
+	}
+
+	.articleTitle h1 {
+		font-size: calc(1rem + 7px);
+	}
+
+	code, pre {
+		font-size: calc(1em - 1px);
 	}
 
 	:root {
@@ -435,6 +444,7 @@ a.footnote:hover,
 			--block-quote-border-color: rgba(94, 158, 244, 0.75);
 			--header-table-border-color: rgba(255, 255, 255, 0.2);
 			--ios-hover-color: #444444; /* placeholder */
+			background-color: #151515; /* articleBackgroundColor, just off black */
 		}
 	}
 
