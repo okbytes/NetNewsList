@@ -18,9 +18,9 @@ final class ArticleViewController: UIViewController {
 	@IBOutlet private var searchBar: ArticleSearchBar!
 	@IBOutlet private var searchBarBottomConstraint: NSLayoutConstraint!
 
+	/// Holds the article's web view. It has no data source, so there's no swiping between articles:
+	/// a horizontal swipe is only ever the back swipe to the list. The keyboard still moves between them.
 	private var pageViewController: UIPageViewController!
-	private var isPageTransitionInProgress = false
-	private var pendingSetViewController: WebViewController?
 
 	private var currentWebViewController: WebViewController? {
 		return pageViewController?.viewControllers?.first as? WebViewController
@@ -49,23 +49,10 @@ final class ArticleViewController: UIViewController {
 
 			if let controller = currentWebViewController, controller.article != article {
 				controller.setArticle(article)
-				if isPageTransitionInProgress {
-					// Calling setViewControllers during an active page transition trips a UIPageViewController
-					// internal assertion (NSInternalInconsistencyException) and crashes the app. Stash the
-					// controller and flush it from didFinishAnimating once the transition has ended.
-					pendingSetViewController = controller
-				} else {
-					DispatchQueue.main.async {
-						// You have to set the view controller to clear out the UIPageViewController child controller cache.
-						// You also have to do it in an async call or you will get a strange assertion error.
-						// Re-check the transition state: a user swipe between enqueue and execution can flip
-						// isPageTransitionInProgress to true, and calling setViewControllers then would crash.
-						if self.isPageTransitionInProgress {
-							self.pendingSetViewController = controller
-						} else {
-							self.pageViewController.setViewControllers([controller], direction: .forward, animated: false, completion: nil)
-						}
-					}
+				DispatchQueue.main.async {
+					// You have to set the view controller to clear out the UIPageViewController child controller cache.
+					// You also have to do it in an async call or you will get a strange assertion error.
+					self.pageViewController.setViewControllers([controller], direction: .forward, animated: false, completion: nil)
 				}
 			}
 			updateUI()
@@ -103,15 +90,6 @@ final class ArticleViewController: UIViewController {
 		navigationItem.rightBarButtonItems = [shareBarButtonItem, openInBrowserBarButtonItem, archiveBarButtonItem]
 
 		pageViewController = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: [:])
-		pageViewController.delegate = self
-		pageViewController.dataSource = self
-
-		// This code is to disallow paging if we scroll from the left edge.  If this code is removed
-		// PoppableGestureRecognizerDelegate will allow us to both navigate back and page back at the
-		// same time. That is really weird when it happens.
-		let panGestureRecognizer = UIPanGestureRecognizer()
-		panGestureRecognizer.delegate = self
-		pageViewController.scrollViewInsidePageControl?.addGestureRecognizer(panGestureRecognizer)
 
 		pageViewController.view.translatesAutoresizingMaskIntoConstraints = false
 		view.addSubview(pageViewController.view)
@@ -335,85 +313,6 @@ extension ArticleViewController {
 			})
 		}
 	}
-
-}
-
-// MARK: UIPageViewControllerDataSource
-
-extension ArticleViewController: UIPageViewControllerDataSource {
-
-	func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-		guard let webViewController = viewController as? WebViewController,
-			let currentArticle = webViewController.article,
-			let article = coordinator.findPrevArticle(currentArticle) else {
-			return nil
-		}
-		return createWebViewController(article)
-	}
-
-	func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-		guard let webViewController = viewController as? WebViewController,
-			let currentArticle = webViewController.article,
-			let article = coordinator.findNextArticle(currentArticle) else {
-			return nil
-		}
-		return createWebViewController(article)
-	}
-
-}
-
-// MARK: UIPageViewControllerDelegate
-
-extension ArticleViewController: UIPageViewControllerDelegate {
-
-	func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
-		isPageTransitionInProgress = true
-	}
-
-	func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-		isPageTransitionInProgress = false
-
-		if let pending = pendingSetViewController {
-			pendingSetViewController = nil
-			// Async because UIKit is still finishing the swipe — a synchronous
-			// setViewControllers here triggers an assertion in _UIQueuingScrollView.
-			DispatchQueue.main.async {
-				if self.isPageTransitionInProgress {
-					self.pendingSetViewController = pending
-				} else {
-					self.pageViewController.setViewControllers([pending], direction: .forward, animated: false, completion: nil)
-				}
-			}
-		}
-
-		guard finished, completed else { return }
-		guard let article = currentWebViewController?.article else { return }
-
-		coordinator.selectArticle(article, animations: [.select, .scroll, .navigation])
-
-		for viewController in previousViewControllers {
-			if let webViewController = viewController as? WebViewController {
-				webViewController.stopWebViewActivity()
-			}
-		}
-	}
-}
-
-// MARK: UIGestureRecognizerDelegate
-
-extension ArticleViewController: UIGestureRecognizerDelegate {
-
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        return true
-    }
-
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-		let point = gestureRecognizer.location(in: nil)
-		if point.x > 40 {
-			return true
-		}
-		return false
-    }
 
 }
 
