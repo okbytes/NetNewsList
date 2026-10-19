@@ -5,6 +5,8 @@
 //  Local copies of saved articles’ images, so they show offline. One folder per
 //  article in Application Support (not Caches, which CacheCleaner and the system
 //  empty), never backed up and never synced: each device downloads its own.
+//  It also keeps when this device first saw each article in the Archive, so
+//  ArticleAssetCoordinator can drop the images of ones archived for 30 days.
 //  See Technotes/NetNewsList/Plan.md, 3.3.
 //
 
@@ -31,6 +33,11 @@ actor ArticleAssetStore {
 	private let session: URLSession
 	private var downloads = [String: Task<Data?, Never>]()
 
+	/// articleID: when this device first saw the article in the Archive. The file's
+	/// name starts with a dot so `storedArticleIDs()` doesn't take it for an article.
+	private var archiveDates: [String: Date]
+	private let archiveDatesURL: URL
+
 	init() {
 		let applicationSupport = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)) ?? FileManager.default.temporaryDirectory
 		var rootURL = applicationSupport.appendingPathComponent("NetNewsList", isDirectory: true).appendingPathComponent("ArticleAssets", isDirectory: true)
@@ -39,6 +46,10 @@ actor ArticleAssetStore {
 		resourceValues.isExcludedFromBackup = true
 		try? rootURL.setResourceValues(resourceValues)
 		self.rootURL = rootURL
+
+		let archiveDatesURL = rootURL.appendingPathComponent(".archive-dates.json")
+		self.archiveDatesURL = archiveDatesURL
+		self.archiveDates = (try? Data(contentsOf: archiveDatesURL)).flatMap { try? JSONDecoder().decode([String: Date].self, from: $0) } ?? [:]
 
 		let configuration = URLSessionConfiguration.ephemeral
 		configuration.timeoutIntervalForRequest = Self.timeout
@@ -105,6 +116,50 @@ actor ArticleAssetStore {
 	func storedArticleIDs() -> Set<String> {
 		let folders = (try? FileManager.default.contentsOfDirectory(atPath: rootURL.path)) ?? []
 		return Set(folders.filter { !$0.hasPrefix(".") })
+	}
+
+	// MARK: - Archive dates
+
+	/// Notes that these articles are in the Archive. One already noted keeps its first date.
+	func noteArchived(articleIDs: some Collection<String>, date: Date = Date()) {
+		var changed = false
+		for articleID in articleIDs where archiveDates[articleID] == nil {
+			archiveDates[articleID] = date
+			changed = true
+		}
+		if changed {
+			saveArchiveDates()
+		}
+	}
+
+	/// Forgets the Archive dates of articles back in the Queue or deleted.
+	func noteNotArchived(articleIDs: some Collection<String>) {
+		var changed = false
+		for articleID in articleIDs where archiveDates.removeValue(forKey: articleID) != nil {
+			changed = true
+		}
+		if changed {
+			saveArchiveDates()
+		}
+	}
+
+	/// The articles noted as in the Archive.
+	func archivedArticleIDs() -> Set<String> {
+		Set(archiveDates.keys)
+	}
+
+	/// The articles noted as in the Archive since before `date`.
+	func articleIDsArchived(before date: Date) -> Set<String> {
+		Set(archiveDates.filter { $0.value < date }.keys)
+	}
+
+	/// Deletes the images of those of `articleIDs` noted as in the Archive since before
+	/// `date`, checked here so an article just moved back to the Queue keeps its images.
+	/// Returns the articles whose images went.
+	func deleteAssetsOfArticlesArchived(before date: Date, among articleIDs: Set<String>) -> Set<String> {
+		let longArchived = articleIDsArchived(before: date).intersection(articleIDs)
+		deleteAssets(articleIDs: longArchived)
+		return longArchived
 	}
 
 	nonisolated func directoryURL(articleID: String) -> URL {
@@ -231,6 +286,14 @@ private extension ArticleAssetStore {
 			return nil
 		}
 		return data
+	}
+
+	func saveArchiveDates() {
+		do {
+			try JSONEncoder().encode(archiveDates).write(to: archiveDatesURL, options: .atomic)
+		} catch {
+			Self.logger.error("ArticleAssetStore: couldn’t save the Archive dates: \(error.localizedDescription, privacy: .public)")
+		}
 	}
 
 	func storedBytes(articleID: String) -> Int {
