@@ -130,6 +130,18 @@ extension Notification.Name {
 		return nil
 	}
 
+	/// The favicon already on disk for a home page, read synchronously and without starting a download.
+	/// `favicon(withHomePageURL:)` returns nil until its asynchronous disk read finishes, so after each
+	/// launch a view would show no icon at first; this lets it show the stored one at once.
+	public func diskCachedFavicon(withHomePageURL homePageURL: String) -> IconImage? {
+		guard let faviconURL = ImageMetadataDatabase.shared.faviconURL(forHomePageURL: homePageURL.normalizedURL),
+			  let data = diskCache[faviconURL.md5String], !data.isEmpty,
+			  let image = RSImage(data: data) else {
+			return nil
+		}
+		return IconImage(image)
+	}
+
 	public func favicon(with faviconURL: String, homePageURL: String?) -> IconImage? {
 		guard canAttemptDownload(faviconURL) else {
 			return nil

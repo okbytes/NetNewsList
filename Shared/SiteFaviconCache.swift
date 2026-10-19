@@ -5,7 +5,8 @@
 //  Favicons by site. Every saved article belongs to one synthetic feed, so the
 //  feed-keyed icon caches would give every article the same icon; this one asks
 //  FaviconDownloader for the article’s own site instead. When an icon arrives,
-//  FaviconDownloader posts .FaviconDidBecomeAvailable and views ask again.
+//  FaviconDownloader posts .FaviconDidBecomeAvailable and views ask again. An icon
+//  already on disk is returned at once, so icons don't pop in after each launch.
 //
 
 import Foundation
@@ -31,7 +32,15 @@ import Images
 			return favicon
 		}
 		// The downloader may have dropped its copy under memory pressure.
-		return favicons[host]
+		if let favicon = favicons[host] {
+			return favicon
+		}
+		// After a launch the downloader reads its disk cache asynchronously; read the stored icon now.
+		if let favicon = FaviconDownloader.shared.diskCachedFavicon(withHomePageURL: homePageURL) {
+			favicons[host] = favicon
+			return favicon
+		}
+		return nil
 	}
 
 	/// Starts downloads for the sites of these articles, once per site.
