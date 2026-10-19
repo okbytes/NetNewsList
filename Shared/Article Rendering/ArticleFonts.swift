@@ -2,12 +2,13 @@
 //  ArticleFonts.swift
 //  NetNewsList
 //
-//  Article text is set in Breve (DSType Foundry): Breve Text for the body and
-//  Breve Title for headlines; everything else keeps the system font.
+//  Article text is set in Breve (DSType Foundry): Breve Text for the body on the
+//  Mac, Breve News (cut for narrow columns) for the body on the iPhone, and Breve
+//  Title for headlines; everything else keeps the system font.
 //
 //  The installed Breve files name each style as a family of its own, so CSS can't
 //  ask for "Breve Text" bold. These @font-face rules gather the styles into the
-//  "Breve Text" and "Breve Title" families stylesheet.css uses. A Mac finds them
+//  body and "Breve Title" families stylesheet.css uses. A Mac finds them
 //  among its installed fonts by PostScript name. The iOS app carries the faces put
 //  in the git-ignored iOS/Resources/ArticleFonts/ and inlines them as data: URLs,
 //  since WebKit blocks fonts from a custom URL scheme on an https page as mixed
@@ -66,7 +67,12 @@ enum ArticleFonts {
 	private static let faces: [Face] = {
 		let textStyles = [("Light", 300), ("Book", 400), ("Medium", 500), ("Semi Bold", 600), ("Bold", 700), ("Black", 900)]
 		let titleStyles = [("Thin", 100), ("Extra Light", 200)] + textStyles
-		let families = [("Breve Text", textStyles), ("Breve Title", titleStyles)]
+		#if os(iOS)
+		let bodyFamily = "Breve News"
+		#else
+		let bodyFamily = "Breve Text"
+		#endif
+		let families = [(bodyFamily, textStyles), ("Breve Title", titleStyles)]
 
 		return families.flatMap { family, styles in
 			styles.flatMap { style, weight in

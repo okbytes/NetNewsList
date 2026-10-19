@@ -158,8 +158,8 @@ body > .systemMessage {
 	text-autospace: normal;
 }
 
-/* The title and body are set in Breve; the header, dateline and system messages keep
-   the system font. ArticleFonts.swift defines the Breve families. */
+/* The title and body are set in Breve (the iPhone's body in Breve News, below); the header,
+   dateline and system messages keep the system font. ArticleFonts.swift defines the Breve families. */
 
 .articleBody {
 	font-family: "Breve Text", -apple-system;
@@ -415,6 +415,7 @@ a.footnote:hover,
 	/* Sizes follow the Dynamic Type size (the rem). At the default, 17px, the body is 18px,
 	   code 17px and the title 24px; the header stays at 17px. */
 	.articleBody {
+		font-family: "Breve News", -apple-system;
 		font-size: calc(1rem + 1px);
 	}
 
