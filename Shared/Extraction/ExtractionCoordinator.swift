@@ -215,6 +215,10 @@ private extension ExtractionCoordinator {
 		isSuspended = false
 		scheduleDrain()
 		runNextJobIfIdle()
+		// The X sign-in state is read from the cookie store, which isn’t always right at launch.
+		Task { @MainActor in
+			await XAccount.shared.updateSignInState()
+		}
 	}
 
 	/// WebKit stops running JavaScript in the background, so put the current job back and wait.
@@ -322,6 +326,7 @@ private extension ExtractionCoordinator {
 					statusID = id
 					xURL = URL(string: "https://x.com/i/status/\(id)") ?? url
 				}
+				await XAccount.shared.updateSignInState()
 				page = try await extractor.extractXPage(url: xURL, statusID: statusID, userAgent: userAgent, websiteDataStore: XAccount.shared.websiteDataStore)
 			} else if job.usesLivePage {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)

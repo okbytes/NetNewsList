@@ -35,6 +35,7 @@ public enum CloudKitWebSyncError: LocalizedError, Sendable {
 	nonisolated private static let apiTokenKey = "CloudKitWebAPIToken"
 	/// The account of the last sign-in, so a sign-in to another one by mistake isn’t used silently.
 	nonisolated private static let userRecordNameKey = "CloudKitWebUserRecordName"
+	nonisolated private static let signInDateKey = "CloudKitWebSignInDate"
 
 	/// Whether this copy of the app reaches iCloud over the web. A launch argument
 	/// (`-NetNewsListICloudTransport web`) overrides Info.plist.
@@ -115,11 +116,23 @@ public enum CloudKitWebSyncError: LocalizedError, Sendable {
 		await adopt(signIn)
 	}
 
-	/// Uses a verified sign-in, and remembers its account.
+	/// Uses a verified sign-in, and remembers its account and when it was made.
 	public func adopt(_ signIn: CloudKitWebSignIn) async {
 		UserDefaults.standard.set(signIn.userRecordName, forKey: Self.userRecordNameKey)
+		UserDefaults.standard.set(Date(), forKey: Self.signInDateKey)
 		await service?.adoptSignIn(signIn)
-		Self.logger.info("CloudKitWebSync: signed in to iCloud on the web")
+		Self.logger.notice("CloudKitWebSync: signed in to iCloud on the web")
+	}
+
+	/// When the current sign-in was made. A sign-in made with Keep me signed in lasts two weeks,
+	/// so the Mac renews it before then (`ICloudSignInRenewer`).
+	public var signInDate: Date? {
+		UserDefaults.standard.object(forKey: Self.signInDateKey) as? Date
+	}
+
+	/// Whether this Mac has ever signed in: a silent renewal is worth a try only then.
+	public var hasSignedInBefore: Bool {
+		UserDefaults.standard.string(forKey: Self.userRecordNameKey) != nil
 	}
 
 	/// Forgets the sign-in. The articles on this Mac stay; syncing stops until the next sign-in.
@@ -171,6 +184,7 @@ final class KeychainWebAuthTokenStore: CloudKitWebAuthTokenStore, @unchecked Sen
 	private var didLoad = false
 	private let service = (Bundle.main.bundleIdentifier ?? "NetNewsList") + ".CloudKitWebAuthToken"
 	private let account = "webAuthToken"
+	private let previousAccount = "previousWebAuthToken"
 
 	func loadWebAuthToken() -> String? {
 		lock.lock()
@@ -178,7 +192,7 @@ final class KeychainWebAuthTokenStore: CloudKitWebAuthTokenStore, @unchecked Sen
 			lock.unlock()
 		}
 		if !didLoad {
-			cachedToken = readKeychain()
+			cachedToken = readKeychain(account: account)
 			didLoad = true
 		}
 		return cachedToken
@@ -191,17 +205,35 @@ final class KeychainWebAuthTokenStore: CloudKitWebAuthTokenStore, @unchecked Sen
 		}
 		cachedToken = token
 		didLoad = true
-		writeKeychain(token)
+		writeKeychain(token, account: account)
 	}
 
-	private var baseQuery: [String: Any] {
+	/// The token the current one replaced. Read rarely (only when iCloud refuses the current
+	/// one), so it isn’t cached.
+	func loadPreviousWebAuthToken() -> String? {
+		lock.lock()
+		defer {
+			lock.unlock()
+		}
+		return readKeychain(account: previousAccount)
+	}
+
+	func savePreviousWebAuthToken(_ token: String?) {
+		lock.lock()
+		defer {
+			lock.unlock()
+		}
+		writeKeychain(token, account: previousAccount)
+	}
+
+	private func baseQuery(account: String) -> [String: Any] {
 		[kSecClass as String: kSecClassGenericPassword,
 		 kSecAttrService as String: service,
 		 kSecAttrAccount as String: account]
 	}
 
-	private func readKeychain() -> String? {
-		var query = baseQuery
+	private func readKeychain(account: String) -> String? {
+		var query = baseQuery(account: account)
 		query[kSecReturnData as String] = true
 		query[kSecMatchLimit as String] = kSecMatchLimitOne
 		var result: AnyObject?
@@ -215,7 +247,8 @@ final class KeychainWebAuthTokenStore: CloudKitWebAuthTokenStore, @unchecked Sen
 		return String(data: data, encoding: .utf8)
 	}
 
-	private func writeKeychain(_ token: String?) {
+	private func writeKeychain(_ token: String?, account: String) {
+		let baseQuery = baseQuery(account: account)
 		guard let token else {
 			let status = SecItemDelete(baseQuery as CFDictionary)
 			if status != errSecSuccess && status != errSecItemNotFound {

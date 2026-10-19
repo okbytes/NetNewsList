@@ -23,32 +23,6 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ICloudSignIn")
 
-	/// The sign-in page’s own website data, kept apart from the X sign-in and the article views,
-	/// so Apple can recognize this Mac the next time and the sign-in lasts as long as Apple allows.
-	private static let websiteDataStoreIdentifier = UUID(uuidString: "5B0B7E52-7F4D-4C8E-9A57-2F6E0C1D9A31") ?? UUID()
-	private static let messageHandlerName = "netNewsListICloudSignIn"
-
-	/// Gives Apple’s sign-in page an opener to report to, forwarding its messages to the app.
-	private static let openerScript = """
-	(function () {
-		if (window.opener) {
-			return;
-		}
-		var bridge = {
-			postMessage: function (message) {
-				try {
-					window.webkit.messageHandlers.\(messageHandlerName).postMessage(JSON.stringify(message));
-				} catch (error) {}
-			}
-		};
-		try {
-			Object.defineProperty(window, "opener", { value: bridge, configurable: true });
-		} catch (error) {
-			window.opener = bridge;
-		}
-	})();
-	"""
-
 	private var webView: WKWebView?
 	private var isFinishingSignIn = false
 
@@ -58,19 +32,17 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 		window.isReleasedWhenClosed = false
 		self.init(window: window)
 
-		let configuration = WKWebViewConfiguration()
-		configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: Self.websiteDataStoreIdentifier)
 		let messageProxy = ICloudSignInMessageProxy()
-		configuration.userContentController.add(messageProxy, name: Self.messageHandlerName)
-		configuration.userContentController.addUserScript(WKUserScript(source: Self.openerScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-		let webView = WKWebView(frame: window.contentLayoutRect, configuration: configuration)
+		let webView = WKWebView(frame: window.contentLayoutRect, configuration: ICloudSignInPage.makeConfiguration(messageHandler: messageProxy))
 		webView.autoresizingMask = [.width, .height]
 		webView.navigationDelegate = self
 		webView.uiDelegate = self
 		window.contentView = webView
 		window.delegate = self
 		self.webView = webView
-		messageProxy.windowController = self
+		messageProxy.handler = { [weak self] body, host in
+			self?.handleSignInPageMessage(body, from: host)
+		}
 	}
 
 	override func showWindow(_ sender: Any?) {
@@ -119,6 +91,13 @@ final class ICloudSignInWindowController: NSWindowController, NSWindowDelegate, 
 		return .cancel
 	}
 
+	/// Shows the window on a sign-in the page already gave (a silent renewal that turned out to
+	/// be for another Apple Account), so the user can decide.
+	func showAskingAboutDifferentAccount(_ signIn: CloudKitWebSignIn) {
+		showWindow(nil)
+		askAboutDifferentAccount(signIn)
+	}
+
 	func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
 		showLoadError(error)
 	}
@@ -143,18 +122,17 @@ private extension ICloudSignInWindowController {
 	/// A message Apple’s sign-in page posted to its opener: the sign-in token when the page was
 	/// set up to post it, or why the sign-in failed.
 	func handleSignInPageMessage(_ body: Any, from host: String) {
-		guard host == "apple-cloudkit.com" || host.hasSuffix(".apple-cloudkit.com") || host.hasSuffix(".apple.com"),
-			  let string = body as? String,
-			  let message = (try? JSONSerialization.jsonObject(with: Data(string.utf8))) as? [String: Any] else {
-			return
-		}
-		if let token = message["ckSession"] as? String ?? message["ckWebAuthToken"] as? String, !token.isEmpty {
+		switch ICloudSignInPage.message(body, from: host) {
+		case .token(let token):
 			finishSignIn(webAuthToken: token)
-			return
+		case .error(let errorMessage):
+			showSignInPageError(errorMessage)
+		case nil:
+			break
 		}
-		guard let errorMessage = message["errorMessage"] as? String, errorMessage != "window closed" else {
-			return
-		}
+	}
+
+	func showSignInPageError(_ errorMessage: String) {
 		let explanation: String
 		if errorMessage == "accessError" {
 			explanation = NSLocalizedString("Access to iCloud data on the web is turned off for this Apple Account. On your iPhone or Mac, turn on Access iCloud Data on the Web (Settings › your name › iCloud), then try again. It can’t be turned on while Advanced Data Protection is on.", comment: "iCloud sign-in error")
@@ -284,13 +262,112 @@ private extension ICloudSignInWindowController {
 	}
 }
 
-/// Receives the sign-in page’s messages without the web view’s content controller keeping the
-/// window controller alive.
-private final class ICloudSignInMessageProxy: NSObject, WKScriptMessageHandler {
+/// What the sign-in page is given, for the window and for the silent renewal alike: its own
+/// persistent website data, so Apple can recognize this Mac the next time and the sign-in lasts
+/// as long as Apple allows; an opener to report to; and Keep me signed in ticked.
+@MainActor enum ICloudSignInPage {
 
-	weak var windowController: ICloudSignInWindowController?
+	/// The sign-in page’s own website data, kept apart from the X sign-in and the article views.
+	static let websiteDataStoreIdentifier = UUID(uuidString: "5B0B7E52-7F4D-4C8E-9A57-2F6E0C1D9A31") ?? UUID()
+	static let messageHandlerName = "netNewsListICloudSignIn"
+
+	enum Message {
+		case token(String)
+		case error(String)
+	}
+
+	static func makeConfiguration(messageHandler: WKScriptMessageHandler) -> WKWebViewConfiguration {
+		let configuration = WKWebViewConfiguration()
+		configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: websiteDataStoreIdentifier)
+		configuration.userContentController.add(messageHandler, name: messageHandlerName)
+		configuration.userContentController.addUserScript(WKUserScript(source: openerScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+		configuration.userContentController.addUserScript(WKUserScript(source: keepMeSignedInScript, injectionTime: .atDocumentEnd, forMainFrameOnly: false))
+		return configuration
+	}
+
+	/// A message Apple’s sign-in page posted to its opener: the sign-in token when the page was
+	/// set up to post it, or why the sign-in failed. Nil for anything else.
+	static func message(_ body: Any, from host: String) -> Message? {
+		guard host == "apple-cloudkit.com" || host.hasSuffix(".apple-cloudkit.com") || host.hasSuffix(".apple.com"),
+			  let string = body as? String,
+			  let message = (try? JSONSerialization.jsonObject(with: Data(string.utf8))) as? [String: Any] else {
+			return nil
+		}
+		if let token = message["ckSession"] as? String ?? message["ckWebAuthToken"] as? String, !token.isEmpty {
+			return .token(token)
+		}
+		guard let errorMessage = message["errorMessage"] as? String, errorMessage != "window closed" else {
+			return nil
+		}
+		return .error(errorMessage)
+	}
+
+	/// Gives Apple’s sign-in page an opener to report to, forwarding its messages to the app.
+	private static let openerScript = """
+	(function () {
+		if (window.opener) {
+			return;
+		}
+		var bridge = {
+			postMessage: function (message) {
+				try {
+					window.webkit.messageHandlers.\(messageHandlerName).postMessage(JSON.stringify(message));
+				} catch (error) {}
+			}
+		};
+		try {
+			Object.defineProperty(window, "opener", { value: bridge, configurable: true });
+		} catch (error) {
+			window.opener = bridge;
+		}
+	})();
+	"""
+
+	/// Ticks Keep me signed in on Apple’s page, in whichever frame it renders it: a sign-in made
+	/// with it lasts two weeks instead of thirty minutes, and Apple remembers this Mac. Checked
+	/// once per box, so the user can still untick it.
+	private static let keepMeSignedInScript = """
+	(function () {
+		var seen = new WeakSet();
+		function isRememberMe(box) {
+			var text = ((box.id || "") + " " + (box.name || "") + " " + (box.getAttribute("aria-label") || "")).toLowerCase();
+			if (text.indexOf("remember") !== -1 || text.indexOf("keep") !== -1) {
+				return true;
+			}
+			var label = box.labels && box.labels.length ? box.labels[0] : box.closest("label");
+			return !!(label && /keep me signed in|remember me/i.test(label.textContent || ""));
+		}
+		function tick() {
+			var boxes = document.querySelectorAll("input[type=checkbox]");
+			for (var i = 0; i < boxes.length; i++) {
+				var box = boxes[i];
+				if (seen.has(box) || !isRememberMe(box)) {
+					continue;
+				}
+				seen.add(box);
+				if (!box.checked) {
+					box.click();
+					if (!box.checked) {
+						box.checked = true;
+						box.dispatchEvent(new Event("input", { bubbles: true }));
+						box.dispatchEvent(new Event("change", { bubbles: true }));
+					}
+				}
+			}
+		}
+		tick();
+		new MutationObserver(tick).observe(document.documentElement, { childList: true, subtree: true });
+	})();
+	"""
+}
+
+/// Receives the sign-in page’s messages without the web view’s content controller keeping the
+/// window controller or renewer alive.
+final class ICloudSignInMessageProxy: NSObject, WKScriptMessageHandler {
+
+	var handler: ((Any, String) -> Void)?
 
 	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-		windowController?.handleSignInPageMessage(message.body, from: message.frameInfo.securityOrigin.host)
+		handler?(message.body, message.frameInfo.securityOrigin.host)
 	}
 }

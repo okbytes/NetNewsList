@@ -81,6 +81,7 @@ let appName = "NetNewsList"
 	private var errorLogWindowController: ErrorLogWindowController?
 	private var xSignInWindowController: XSignInWindowController?
 	private var iCloudSignInWindowController: ICloudSignInWindowController?
+	private var iCloudRenewalTimer: Timer?
 	private let appMovementMonitor: RSAppMovementMonitor
 
 	@MainActor override init() {
@@ -190,10 +191,22 @@ let appName = "NetNewsList"
 			if CloudKitWebSync.isEnabled {
 				NotificationCenter.default.addObserver(self, selector: #selector(iCloudWebSignInDidChange(_:)), name: .CloudKitWebSignInDidChange, object: nil)
 				if !CloudKitWebSync.shared.isSignedIn {
-					signInOrOutOfICloud(self)
+					if CloudKitWebSync.shared.hasSignedInBefore && !CloudKitWebSync.shared.needsAPIToken {
+						// The sign-in is gone (iCloud ended it while the app was closed, or the keychain
+						// lost it); Apple’s page may still know this Mac and sign in by itself.
+						renewICloudSignIn(force: true)
+					} else {
+						signInOrOutOfICloud(self)
+					}
 				} else if CloudKitWebSync.shared.needsAPIToken {
 					// An update without the built-in token (a release): the sign-in holds, only the token is missing.
 					_ = ICloudSignInWindowController.askForAPIToken()
+				}
+				// A sign-in made with Keep me signed in lasts two weeks: renew it before then.
+				iCloudRenewalTimer = Timer.scheduledTimer(withTimeInterval: 60 * 60, repeats: true) { [weak self] _ in
+					Task { @MainActor in
+						self?.renewICloudSignInIfDue()
+					}
 				}
 			}
 		}
@@ -271,15 +284,43 @@ let appName = "NetNewsList"
 		}
 	}
 
+	/// Over the web, every answer carries the next sign-in token, so a request cut off by quitting
+	/// (an update, a restart) leaves the app with a spent one and the next launch signed out.
+	/// Send what’s pending and let the request out finish before the app goes.
+	func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+		guard CloudKitWebSync.isEnabled, !isShutDownSyncDone, let service = CloudKitWebSync.shared.service else {
+			return .terminateNow
+		}
+		shuttingDown = true
+		Task { @MainActor in
+			await withTaskGroup(of: Void.self) { group in
+				group.addTask {
+					await AccountManager.shared.sendArticleStatusAll()
+				}
+				group.addTask {
+					try? await Task.sleep(for: .seconds(8))
+				}
+				await group.next()
+				group.cancelAll()
+			}
+			await service.waitUntilIdle(timeout: 4)
+			isShutDownSyncDone = true
+			NSApp.reply(toApplicationShouldTerminate: true)
+		}
+		return .terminateLater
+	}
+
 	func applicationWillTerminate(_ notification: Notification) {
 		shuttingDown = true
 		saveState()
 
 		AccountManager.shared.saveAllIfNeeded()
 
-		Task { @MainActor in
-			await AccountManager.shared.sendArticleStatusAll()
-			isShutDownSyncDone = true
+		if !isShutDownSyncDone {
+			Task { @MainActor in
+				await AccountManager.shared.sendArticleStatusAll()
+				isShutDownSyncDone = true
+			}
 		}
 
 		let timeout = Date().addingTimeInterval(2)
@@ -307,6 +348,8 @@ let appName = "NetNewsList"
 	@objc func didWakeNotification(_ note: Notification) {
 		Task { @MainActor in
 			ArticleStatusSyncTimer.shared.fireOldTimer()
+			renewICloudSignInIfDue()
+			await XAccount.shared.updateSignInState()
 		}
 	}
 
@@ -384,6 +427,10 @@ let appName = "NetNewsList"
 
 		if item.action == #selector(signInOrOutOfX(_:)), let menuItem = item as? NSMenuItem {
 			menuItem.title = XAccount.shared.isSignedIn ? NSLocalizedString("Sign Out of X…", comment: "Menu item") : NSLocalizedString("Sign In to X…", comment: "Menu item")
+			// Look again, in case the cookie store’s answer at launch was wrong; the title follows.
+			Task { @MainActor in
+				await XAccount.shared.updateSignInState()
+			}
 		}
 
 		return true
@@ -422,8 +469,9 @@ let appName = "NetNewsList"
 
 	private static let iCloudSignInEndedNotificationID = "iCloudWebSignInEnded"
 
-	/// iCloud ended the web sign-in (it lasts about two weeks, or web access was turned off).
-	/// Syncing has stopped, so say so, rather than let the Mac quietly fall behind.
+	/// iCloud ended the web sign-in (it lasts at most two weeks, or web access was turned off).
+	/// Apple’s page may sign in again by itself; when it can’t, syncing has stopped, so say so
+	/// rather than let the Mac quietly fall behind.
 	@objc func iCloudWebSignInDidChange(_ note: Notification) {
 		guard !CloudKitWebSync.shared.isSignedIn else {
 			UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.iCloudSignInEndedNotificationID])
@@ -432,6 +480,43 @@ let appName = "NetNewsList"
 		guard (note.userInfo?[CloudKitWebService.signInEndedByICloudKey] as? Bool) == true else {
 			return
 		}
+		renewICloudSignIn(force: true)
+	}
+
+	/// Renews the sign-in before Apple ends it, when it’s old enough.
+	func renewICloudSignInIfDue() {
+		guard ICloudSignInRenewer.shared.isRenewalDue else {
+			return
+		}
+		renewICloudSignIn(force: false)
+	}
+
+	/// Signs in again through Apple’s page out of sight; when the page needs the user, shows a
+	/// notification that opens the sign-in (the window itself, when the sign-in is already gone
+	/// and the app was just opened).
+	func renewICloudSignIn(force: Bool) {
+		Task { @MainActor in
+			let wasSignedIn = CloudKitWebSync.shared.isSignedIn
+			switch await ICloudSignInRenewer.shared.renew(force: force) {
+			case .renewed, .skipped:
+				return
+			case .differentAccount(let signIn):
+				showICloudSignInWindow()
+				iCloudSignInWindowController?.showAskingAboutDifferentAccount(signIn)
+			case .needsUser:
+				guard !CloudKitWebSync.shared.isSignedIn else {
+					return
+				}
+				if !wasSignedIn && NSApp.isActive && iCloudSignInWindowController?.window?.isVisible != true {
+					showICloudSignInWindow()
+				} else {
+					postICloudSignInEndedNotification()
+				}
+			}
+		}
+	}
+
+	func postICloudSignInEndedNotification() {
 		let content = UNMutableNotificationContent()
 		content.title = NSLocalizedString("Sign in to iCloud again", comment: "Notification title")
 		content.body = NSLocalizedString("iCloud ended this Mac’s sign-in, so your reading list isn’t syncing. Click to sign in.", comment: "Notification body")

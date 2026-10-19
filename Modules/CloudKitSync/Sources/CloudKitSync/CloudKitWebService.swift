@@ -27,10 +27,14 @@ public struct CloudKitWebConfiguration: Sendable, Equatable {
 	}
 }
 
-/// Keeps the web auth token between launches.
+/// Keeps the web auth token between launches, with the token it replaced: when a response is
+/// lost (the Mac slept or the app quit while a request was out), the replacement never arrived,
+/// and the token before it is the only one that might still be good.
 public protocol CloudKitWebAuthTokenStore: Sendable {
 	func loadWebAuthToken() -> String?
 	func saveWebAuthToken(_ token: String?)
+	func loadPreviousWebAuthToken() -> String?
+	func savePreviousWebAuthToken(_ token: String?)
 }
 
 public enum CloudKitWebServiceError: LocalizedError, Sendable {
@@ -105,6 +109,8 @@ public actor CloudKitWebService {
 
 	private var isSending = false
 	private var waitingToSend = [CheckedContinuation<Void, Never>]()
+	/// How long a refused token waits before the same request goes once more with it.
+	private static let refusalRetryDelay: Duration = .seconds(5)
 
 	public init(configuration: CloudKitWebConfiguration, tokenStore: any CloudKitWebAuthTokenStore, session: URLSession? = nil) {
 		self.configuration = configuration
@@ -125,6 +131,20 @@ public actor CloudKitWebService {
 	/// Whether a web auth token is stored. It may still have expired; the next request finds out.
 	public var isSignedIn: Bool {
 		tokenStore.loadWebAuthToken() != nil
+	}
+
+	/// Whether a request is out. Its answer carries the next token, so quitting before it arrives
+	/// leaves the app with a spent one.
+	public var isBusy: Bool {
+		isSending
+	}
+
+	/// Waits until no request is out, or until `timeout` passes.
+	public func waitUntilIdle(timeout: TimeInterval) async {
+		let deadline = Date().addingTimeInterval(timeout)
+		while isSending && Date() < deadline {
+			try? await Task.sleep(for: .milliseconds(100))
+		}
 	}
 
 	// MARK: - Sign-In
@@ -175,8 +195,9 @@ public actor CloudKitWebService {
 	/// Signs in with a verified sign-in: its token is used from the next request on.
 	public func adoptSignIn(_ signIn: CloudKitWebSignIn) {
 		throttledUntil = nil
+		tokenStore.savePreviousWebAuthToken(nil)
 		storeToken(signIn.webAuthToken)
-		Self.logger.info("CloudKitWebService: signed in")
+		Self.logger.notice("CloudKitWebService: signed in")
 	}
 
 	/// Holds every request off for a wait iCloud asked for that is longer than a retry is worth.
@@ -193,8 +214,9 @@ public actor CloudKitWebService {
 	/// Forgets the sign-in on this Mac.
 	public func signOut() {
 		throttledUntil = nil
+		tokenStore.savePreviousWebAuthToken(nil)
 		storeToken(nil)
-		Self.logger.info("CloudKitWebService: signed out")
+		Self.logger.notice("CloudKitWebService: signed out")
 	}
 
 	/// The signed-in user’s record name. Throws `signInRequired` when there is no valid sign-in.
@@ -257,7 +279,9 @@ private extension CloudKitWebService {
 	/// One request. Only called while holding the send slot, so the token it uses is the latest.
 	/// With `signInToken`, the request uses that token instead of the stored one, and leaves the
 	/// stored one alone; the token that replaces it goes to `verifiedReplacementToken`.
-	func perform(path: String, body: Data?, authenticated: Bool, signInToken: String? = nil) async throws -> [String: Any] {
+	/// `isRetry` marks the second try after iCloud refused the stored token; a second refusal ends
+	/// the sign-in.
+	func perform(path: String, body: Data?, authenticated: Bool, signInToken: String? = nil, isRetry: Bool = false) async throws -> [String: Any] {
 		guard !configuration.apiToken.isEmpty else {
 			throw CloudKitWebServiceError.notConfigured
 		}
@@ -291,9 +315,31 @@ private extension CloudKitWebService {
 		let serverErrorCode = json?["serverErrorCode"] as? String
 		// Only iCloud’s own answer ends a sign-in. A bare 421 can be HTTP/2’s Misdirected Request.
 		if serverErrorCode == "AUTHENTICATION_REQUIRED" || serverErrorCode == "AUTHENTICATION_FAILED" {
+			let code = serverErrorCode ?? ""
 			if authenticated && signInToken == nil && tokenStore.loadWebAuthToken() == token {
-				Self.logger.info("CloudKitWebService: iCloud asked for a new sign-in (\(serverErrorCode ?? "", privacy: .public))")
-				storeToken(nil, endedByICloud: true)
+				// A refusal isn’t final the first time. The answer may carry the next token (seen in
+				// 2026); the token before this one may still be good when this one’s response was
+				// lost; and Apple has refused good tokens for a moment. One more try, then the end.
+				if !isRetry {
+					if let renewed = Self.replacementToken(in: httpResponse), renewed != token {
+						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)) and sent another; trying it")
+						storeToken(renewed)
+					} else if let previous = tokenStore.loadPreviousWebAuthToken(), previous != token {
+						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)); trying the one before it")
+						tokenStore.savePreviousWebAuthToken(nil)
+						storeToken(previous)
+					} else {
+						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)); trying once more in a moment")
+						try? await Task.sleep(for: Self.refusalRetryDelay)
+					}
+					if tokenStore.loadWebAuthToken() != nil {
+						return try await perform(path: path, body: body, authenticated: authenticated, isRetry: true)
+					}
+				} else {
+					Self.logger.error("CloudKitWebService: iCloud refused the sign-in token again (\(code, privacy: .public)); the sign-in has ended")
+					tokenStore.savePreviousWebAuthToken(nil)
+					storeToken(nil, endedByICloud: true)
+				}
 			}
 			let redirectURL = (json?["redirectURL"] as? String).flatMap { URL(string: $0) }
 			throw CloudKitWebServiceError.signInRequired(redirectURL: redirectURL)
@@ -306,6 +352,7 @@ private extension CloudKitWebService {
 		if serverErrorCode == "ACCESS_DENIED" && !(200..<300).contains(httpResponse.statusCode) && authenticated && signInToken == nil {
 			Self.logger.error("CloudKitWebService: iCloud refused the private database: \(json?["reason"] as? String ?? "", privacy: .public)")
 			if tokenStore.loadWebAuthToken() == token {
+				tokenStore.savePreviousWebAuthToken(nil)
 				storeToken(nil, endedByICloud: true)
 			}
 			throw CloudKitWebServiceError.webAccessDisabled
@@ -317,6 +364,8 @@ private extension CloudKitWebService {
 			if signInToken != nil {
 				verifiedReplacementToken = newToken
 			} else if tokenStore.loadWebAuthToken() == token {
+				// Keep the one it replaces: if this response had been lost, it would be all we had.
+				tokenStore.savePreviousWebAuthToken(token)
 				storeToken(newToken)
 			}
 		}
