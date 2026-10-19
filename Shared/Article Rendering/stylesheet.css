@@ -412,11 +412,11 @@ a.footnote:hover,
 		-webkit-text-size-adjust: none;
 	}
 
-	/* Sizes follow the Dynamic Type size (the rem). At the default, 17px, the body is 18px,
-	   code 17px and the title 24px; the header stays at 17px. */
+	/* Sizes follow the Dynamic Type size (the rem). At the default, 17px, the body is 19px,
+	   code 18px and the title 24px; the header stays at 17px. */
 	.articleBody {
 		font-family: "Breve News", -apple-system;
-		font-size: calc(1rem + 1px);
+		font-size: calc(1rem + 2px);
 	}
 
 	.articleTitle h1 {

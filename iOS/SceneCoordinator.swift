@@ -266,7 +266,8 @@ enum ShowFeedName {
 	}
 
 	/// Queue shows only articles not yet archived and Archive only archived ones. An article
-	/// whose status changed leaves the list it no longer belongs in (an open article stays open);
+	/// whose status changed leaves the list it no longer belongs in (an open article stays open,
+	/// unless it was archived here, which closes it first);
 	/// one that now belongs (undo, or a change from another device) is fetched in.
 	private func keepOnlyListMembers(changed articleIDs: Set<String>) {
 		let smartFeeds = SmartFeedsController.shared
@@ -504,11 +505,20 @@ enum ShowFeedName {
 		}
 	}
 
+	/// Archiving the open article, or moving it back to the Queue, closes it first, as in Mail:
+	/// on iPhone the article pops off and its row then leaves the list in view.
 	func toggleRead(_ article: Article) {
 		guard !article.status.read || article.isAvailableToMarkUnread else {
 			return
 		}
-		markArticlesWithUndo([article], statusKey: .read, flag: !article.status.read)
+		let flag = !article.status.read
+		guard isCurrentArticle(article) else {
+			markArticlesWithUndo([article], statusKey: .read, flag: flag)
+			return
+		}
+		closeArticle { [weak self] in
+			self?.markArticlesWithUndo([article], statusKey: .read, flag: flag)
+		}
 	}
 
 	func showSettings() {
@@ -751,6 +761,31 @@ private extension SceneCoordinator {
 			return
 		}
 		navigationController.popToViewController(mainTimelineViewController, animated: true)
+	}
+
+	/// Closes the open article and brings the list into view, then runs `completion`. On iPhone
+	/// the article stays drawn while it pops, and `completion` waits for the list to show.
+	func closeArticle(completion: @escaping () -> Void) {
+		guard rootSplitViewController.isCollapsed else {
+			selectArticle(nil)
+			completion()
+			return
+		}
+		showCurrentList()
+		let finish = { [weak self] in
+			self?.deselectArticle(animations: [])
+			completion()
+		}
+		guard let transitionCoordinator = listNavigationController?.transitionCoordinator else {
+			finish()
+			return
+		}
+		let isScheduled = transitionCoordinator.animate(alongsideTransition: nil) { _ in
+			finish()
+		}
+		if !isScheduled {
+			finish()
+		}
 	}
 
 	/// Shows the article column; on iPhone, pushes the article. A list push or pop that's still
