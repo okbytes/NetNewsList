@@ -2,48 +2,16 @@
   "sourceLanguage" : "en",
   "strings" : {
     "Adding feed" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadiendo fuente"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Avatars" : {
-      "comment" : "Activity owner name",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avatares"
-          }
-        }
-      }
+      "comment" : "Activity owner name"
     },
     "Cleaning up iCloud records" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Limpiando registros de iCloud"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Creating folder" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Creando carpeta"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Downloading avatar %@" : {
       "comment" : "Activity kind — downloading an author avatar — %@ is the URL"
@@ -58,48 +26,16 @@
       "comment" : "Activity kind — downloading HTML metadata — %@ is the URL"
     },
     "Exporting OPML" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportando OPML"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Favicons" : {
-      "comment" : "Activity owner name",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favicons"
-          }
-        }
-      }
+      "comment" : "Activity owner name"
     },
     "Feed Finder" : {
-      "comment" : "Activity owner name",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscador de fuentes"
-          }
-        }
-      }
+      "comment" : "Activity owner name"
     },
     "Feed Images" : {
-      "comment" : "Activity owner name",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Imágenes de fuentes"
-          }
-        }
-      }
+      "comment" : "Activity owner name"
     },
     "Feed redirect" : {
       "comment" : "Activity kind"
@@ -111,162 +47,58 @@
       "comment" : "Activity kind"
     },
     "Fetching iCloud stats" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Obteniendo estadísticas de iCloud"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Finding feed %@" : {
       "comment" : "Activity kind — finding a feed at %@ URL"
     },
     "HTML Metadata" : {
-      "comment" : "Activity owner name",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Metadatos HTML"
-          }
-        }
-      }
+      "comment" : "Activity owner name"
     },
     "Importing OPML" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importando OPML"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Moving feed" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moviendo fuente"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Receiving sync notification" : {
       "comment" : "Activity kind"
     },
     "Refresh all" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizar todo"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Refreshing articles" : {
       "comment" : "Activity kind"
     },
     "Refreshing feed list" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizando lista de fuentes"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Refreshing feed: %@" : {
       "comment" : "Activity kind — refreshing a feed — %@ is the feed name or URL"
     },
     "Refreshing missing articles" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizando artículos faltantes"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Refreshing statuses" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizando estados"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Removing feed" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminando fuente"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Removing folder" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminando carpeta"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Renaming feed" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Renombrando fuente"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Renaming folder" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Renombrando carpeta"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Restoring feed" : {
       "comment" : "Activity kind"
     },
     "Restoring folder" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurando carpeta"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Scanning iCloud article records" : {
       "comment" : "Activity kind"
@@ -275,59 +107,19 @@
       "comment" : "Activity kind"
     },
     "Sending statuses" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviando estados"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Subscribing to feed" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suscribiéndose a fuente"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Subscribing to zone changes" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suscribiéndose a cambios de zona"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Vacuuming database" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compactando base de datos"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     },
     "Validating credentials" : {
-      "comment" : "Activity kind",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Validando credenciales"
-          }
-        }
-      }
+      "comment" : "Activity kind"
     }
   },
   "version" : "1.0"
