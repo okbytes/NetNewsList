@@ -55,12 +55,10 @@ private extension AboutWindowController {
 
 		// Version
 		let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-		let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-		let versionString = "Version \(version) (Build \(build))"
-		versionLabel.stringValue = versionString
+		versionLabel.stringValue = "Version \(version)"
 
 		// Copyright
-		let copyrightText = Bundle.main.infoDictionary!["NSHumanReadableCopyright"] as! String
+		let copyrightText = Bundle.main.infoDictionary?["NSHumanReadableCopyright"] as? String ?? ""
 		let copyrightAttributedString = NSMutableAttributedString(string: copyrightText)
 		let copyrightFullRange = NSRange(location: 0, length: copyrightAttributedString.length)
 
@@ -70,9 +68,8 @@ private extension AboutWindowController {
 		copyrightAttributedString.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: copyrightFullRange)
 		copyrightAttributedString.addAttribute(.font, value: NSFont.preferredFont(forTextStyle: .subheadline), range: copyrightFullRange)
 
-		if let nameRange = copyrightText.range(of: "Brent Simmons") {
+		if let nameRange = copyrightText.range(of: "NetNewsWire"), let url = URL(string: "https://github.com/Ranchero-Software/NetNewsWire") {
 			let nsRange = NSRange(nameRange, in: copyrightText)
-			let url = URL(string: "https://inessential.com/")!
 			copyrightAttributedString.addAttribute(.link, value: url, range: nsRange)
 		}
 

@@ -991,24 +991,6 @@
         }
       }
     },
-    "kfC-NQ-g3E.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"How To Support NetNewsWire\"; ObjectID = \"kfC-NQ-g3E\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "How To Support NetNewsWire"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cómo apoyar a NetNewsWire"
-          }
-        }
-      }
-    },
     "L20-jv-7c9.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Today\"; ObjectID = \"L20-jv-7c9\";",
       "extractionState" : "extracted_with_value",
@@ -1059,24 +1041,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ventana principal"
-          }
-        }
-      }
-    },
-    "mE2-pM-rQF.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Bug Tracker\"; ObjectID = \"mE2-pM-rQF\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Bug Tracker"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seguimiento de errores"
           }
         }
       }
@@ -1167,24 +1131,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ir"
-          }
-        }
-      }
-    },
-    "OKC-FV-V33.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Discourse Forum\"; ObjectID = \"OKC-FV-V33\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Discourse Forum"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Foro de Discourse"
           }
         }
       }
@@ -1351,24 +1297,6 @@
         }
       }
     },
-    "q2Z-9K-GBd.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"Website\"; ObjectID = \"q2Z-9K-GBd\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Website"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sitio web"
-          }
-        }
-      }
-    },
     "q3p-nE-m2k.title" : {
       "comment" : "Class = \"NSMenuItem\"; title = \"Next Unread\"; ObjectID = \"q3p-nE-m2k\";",
       "extractionState" : "extracted_with_value",
@@ -1401,24 +1329,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buscar siguiente"
-          }
-        }
-      }
-    },
-    "QfD-Xw-sdF.title" : {
-      "comment" : "Class = \"NSMenuItem\"; title = \"GitHub Repository\"; ObjectID = \"QfD-Xw-sdF\";",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "GitHub Repository"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Repositorio de GitHub"
           }
         }
       }

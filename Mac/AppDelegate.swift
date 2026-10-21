@@ -675,40 +675,12 @@ let appName = "NetNewsList"
 		keyboardShortcutsWindowController!.showWindow(self)
 	}
 
-	@IBAction func openWebsite(_ sender: Any?) {
-		HelpURL.website.open()
-	}
-
 	@IBAction func openReleaseNotes(_ sender: Any?) {
 		HelpURL.releaseNotes.open()
 	}
 
-	@IBAction func openHowToSupport(_ sender: Any?) {
-		HelpURL.howToSupportNetNewsWire.open()
-	}
-
-	@IBAction func openTechnotes(_ sender: Any?) {
-		HelpURL.technotes.open()
-	}
-
-	@IBAction func openRepository(_ sender: Any?) {
-		HelpURL.githubRepo.open()
-	}
-
-	@IBAction func openBugTracker(_ sender: Any?) {
-		HelpURL.bugTracker.open()
-	}
-
-	@IBAction func openDiscourse(_ sender: Any?) {
-		HelpURL.discourse.open()
-	}
-
 	@IBAction func showHelp(_ sender: Any?) {
 		HelpURL.helpHome.open()
-	}
-
-	@IBAction func showPrivacyPolicy(_ sender: Any?) {
-		HelpURL.privacyPolicy.open()
 	}
 
 	@IBAction func gotoQueue(_ sender: Any?) {

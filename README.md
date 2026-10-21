@@ -2,11 +2,11 @@
 
 # NetNewsList
 
-NetNewsList is a personal reading list for the Mac and iPhone: save a web page from anywhere, read it later, offline, in a clean three-pane reader. It is a fork of [NetNewsWire](https://github.com/Ranchero-Software/NetNewsWire), keeping its reading experience (timeline, article view, themes, keyboard navigation, search) and replacing feeds with saved pages.
+NetNewsList is a personal reading list for the Mac and iPhone: save a web page from anywhere, read it later, offline, in a quiet reader: the list beside the article on the Mac and iPad, one after the other on the iPhone. It is a fork of [NetNewsWire](https://github.com/Ranchero-Software/NetNewsWire), keeping its list, article view and keyboard navigation and replacing feeds with saved pages.
 
 - **Saving.** Add Article (⌘N, with the clipboard’s URL filled in), the share sheet on both platforms, a “Save to NetNewsList” action in Shortcuts and Siri, `netnewslist://add?url=…&title=…`, dragging a link onto the Mac window, and Save to NetNewsList in the Mac’s Services menu for a web address selected in any app. On a Mac whose macOS isn’t signed in to your iCloud (a work computer), the Mac app signs in to iCloud by itself (`scripts/build-work-mac.sh`).
 - **Reading offline.** When a page is saved, the app downloads it once, extracts the article with Readability.js in a hidden web view (the page’s own scripts never run), sanitizes it with DOMPurify, and keeps the text and images. Saved pages stay readable after the original disappears.
-- **Lists.** Inbox (unread), Starred, Archive (read) and All. Archiving is marking as read; deleting removes a page everywhere.
+- **Queue and Archive.** Saved pages wait in the Queue, oldest first. Archiving moves a page to the Archive and Move to Queue brings it back; deleting removes it everywhere.
 - **Sync.** Only through your private iCloud database (CloudKit). There are no servers and no accounts other than iCloud.
 
 ## Building

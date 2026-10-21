@@ -553,40 +553,10 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="rK6-cL-4Vj"/>
-                            <menuItem title="Website" id="q2Z-9K-GBd">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="openWebsite:" target="-1" id="rmL-lt-p8g"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Change Log" id="b5s-xg-B1w" userLabel="Release Notes">
+                            <menuItem title="Release Notes" id="b5s-xg-B1w">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="openReleaseNotes:" target="-1" id="7LS-uW-Yp0"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="NetNewsWire, Which This Is Based On" id="kfC-NQ-g3E">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="openHowToSupport:" target="-1" id="SIw-Ug-A4D"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="GitHub Repository" id="QfD-Xw-sdF">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="openRepository:" target="-1" id="7xZ-V2-iPD"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Bug Tracker" id="mE2-pM-rQF">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="openBugTracker:" target="-1" id="fZQ-ng-gIm"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Discussions" id="OKC-FV-V33">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="openDiscourse:" target="-1" id="pHL-0j-vVt"/>
                                 </connections>
                             </menuItem>
                         </items>

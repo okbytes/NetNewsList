@@ -13,13 +13,7 @@ enum HelpURL: String {
 	// NetNewsList has no website of its own; help lives with the code.
 	case helpHome = "https://github.com/okbytes/NetNewsList#readme"
 	case website = "https://github.com/okbytes/NetNewsList"
-	case releaseNotes = "https://github.com/okbytes/NetNewsList/commits/"
-	case howToSupportNetNewsWire = "https://netnewswire.com/"
-	case githubRepo = "https://github.com/okbytes/NetNewsList/tree/main"
-	case bugTracker = "https://github.com/okbytes/NetNewsList/issues"
-	case discourse = "https://github.com/okbytes/NetNewsList/discussions"
-	case technotes = "https://github.com/okbytes/NetNewsList/tree/main/Technotes/NetNewsList"
-	case privacyPolicy = "https://github.com/okbytes/NetNewsList/blob/main/Technotes/NetNewsList/Privacy.md"
+	case releaseNotes = "https://github.com/okbytes/NetNewsList/releases"
 
 #if os(macOS)
 	@MainActor func open() {
