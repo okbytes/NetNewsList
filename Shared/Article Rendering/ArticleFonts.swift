@@ -2,13 +2,13 @@
 //  ArticleFonts.swift
 //  NetNewsList
 //
-//  Article text is set in Breve (DSType Foundry): Breve Text for the body on the
-//  Mac, Breve News (cut for narrow columns) for the body on the iPhone, and Breve
-//  Title for headlines; everything else keeps the system font.
+//  Article body text is set in Breve (DSType Foundry): Breve Text on the Mac and
+//  Breve News (cut for narrow columns) on the iPhone; titles, headings and
+//  everything else keep the system font.
 //
 //  The installed Breve files name each style as a family of its own, so CSS can't
 //  ask for "Breve Text" bold. These @font-face rules gather the styles into the
-//  body and "Breve Title" families stylesheet.css uses. A Mac finds them
+//  body family stylesheet.css uses. A Mac finds them
 //  among its installed fonts by PostScript name. The iOS app carries the faces put
 //  in the git-ignored iOS/Resources/ArticleFonts/ and inlines them as data: URLs,
 //  since WebKit blocks fonts from a custom URL scheme on an https page as mixed
@@ -65,20 +65,16 @@ enum ArticleFonts {
 	}
 
 	private static let faces: [Face] = {
-		let textStyles = [("Light", 300), ("Book", 400), ("Medium", 500), ("Semi Bold", 600), ("Bold", 700), ("Black", 900)]
-		let titleStyles = [("Thin", 100), ("Extra Light", 200)] + textStyles
+		let styles = [("Light", 300), ("Book", 400), ("Medium", 500), ("Semi Bold", 600), ("Bold", 700), ("Black", 900)]
 		#if os(iOS)
-		let bodyFamily = "Breve News"
+		let family = "Breve News"
 		#else
-		let bodyFamily = "Breve Text"
+		let family = "Breve Text"
 		#endif
-		let families = [(bodyFamily, textStyles), ("Breve Title", titleStyles)]
 
-		return families.flatMap { family, styles in
-			styles.flatMap { style, weight in
-				[false, true].map { italic in
-					Face(family: family, style: style, weight: weight, italic: italic)
-				}
+		return styles.flatMap { style, weight in
+			[false, true].map { italic in
+				Face(family: family, style: style, weight: weight, italic: italic)
 			}
 		}
 	}()
