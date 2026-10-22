@@ -33,6 +33,24 @@ enum ExtractedContentFormatter {
 		return "<p class=\"netNewsListSource\"><small>\(sourceLine)</small></p>\n\(contentHTML)"
 	}
 
+	/// The title without the site's name after it ("Spending your effort / claude.dev Blog"),
+	/// as page titles and Safari's shared titles usually carry it. Unchanged when the page
+	/// names no site or the title doesn't end with it.
+	static func storedTitle(_ title: String?, siteName: String?) -> String? {
+		guard let title, let siteName = siteName?.trimmingCharacters(in: .whitespacesAndNewlines), !siteName.isEmpty else {
+			return title
+		}
+		for separator in [" / ", " | ", " - ", " – ", " — ", " · ", " : ", " » "] {
+			if let range = title.range(of: separator + siteName, options: [.caseInsensitive, .anchored, .backwards]) {
+				let stripped = title[..<range.lowerBound].trimmingCharacters(in: .whitespaces)
+				if !stripped.isEmpty {
+					return stripped
+				}
+			}
+		}
+		return title
+	}
+
 	/// A body handed in by the sender. HTML is kept as is (stored content never runs
 	/// scripts); plain text becomes paragraphs. Nil when there is no text.
 	static func storedHTML(forSuppliedBody body: String?) -> String? {

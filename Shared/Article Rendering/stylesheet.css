@@ -293,6 +293,23 @@ figcaption {
 	line-height: 1.3em;
 }
 
+/* Marked by main.js: a heading the site typed in capitals, set in small capitals like the dateline. */
+.articleBody .nnw-capitals {
+	font-variant-caps: all-small-caps;
+	letter-spacing: 0.03em;
+}
+
+/* Marked by main.js: a code block's title bar ("CODE Shell"), set as a small label on the block. */
+.articleBody .nnw-code-label {
+	margin: 1em 0 0.3em;
+	font-family: -apple-system;
+	font-size: 0.75em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--article-date-color);
+}
+
 sup {
 	vertical-align: top;
 	position: relative;

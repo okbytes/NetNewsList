@@ -202,6 +202,64 @@ function sizeTailwindSVGs() {
 	});
 }
 
+// A chart drawn in SVG but coloured by the site's stylesheet, which isn't kept, has nothing
+// left to paint it but the default black, so its shapes become solid blocks. Hide it; the
+// text around it usually says what it showed.
+function hideUnpaintedSVGs() {
+	document.querySelectorAll("div.articleBody svg").forEach(svg => {
+		const shapes = svg.querySelectorAll("rect, circle, ellipse, path, polygon, polyline, line");
+		if (shapes.length >= 10 && !svg.matches("[fill], [stroke], [style]") && !svg.querySelector("[fill], [stroke], [style]")) {
+			svg.style.display = "none";
+		}
+	});
+}
+
+// A heading the site typed in capitals (and set small with its own styles) shouts at
+// heading size; stylesheet.css sets these in small capitals instead.
+function markCapitalHeadings() {
+	document.querySelectorAll("div.articleBody :is(h1, h2, h3, h4, h5, h6)").forEach(heading => {
+		const text = heading.textContent;
+		if (/\p{Lu}.*\p{Lu}/su.test(text) && text === text.toUpperCase()) {
+			heading.classList.add("nnw-capitals");
+		}
+	});
+}
+
+// Puts a space between two pieces of text that a site's stylesheet set apart, where the
+// first ends and the second starts with a letter or digit.
+function spaceApart(first, second) {
+	if (/[\p{L}\p{N}]$/u.test(first.textContent) && /^[\p{L}\p{N}]/u.test(second.textContent)) {
+		first.after(document.createTextNode(" "));
+	}
+}
+
+// A caption's leading label ("<b>FIG A</b><span>Terminal-Bench…") and a code block's title
+// bar ("<p>CODE<span>Shell</span></p>" alone with its <pre> in a <div>) run their words
+// together without the site's styles. The title bar would also read as a line of body text,
+// so it's marked for stylesheet.css to set as a small label.
+function separateLabels() {
+	document.querySelectorAll("div.articleBody figcaption > :is(b, strong):first-child").forEach(label => {
+		if (label.nextSibling) {
+			spaceApart(label, label.nextSibling);
+		}
+	});
+	document.querySelectorAll("div.articleBody div > p:first-child + pre:last-child").forEach(pre => {
+		const label = pre.previousElementSibling;
+		if (label.textContent.trim().length > 40 || label.querySelector("a, img")) {
+			return;
+		}
+		label.classList.add("nnw-code-label");
+		const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+		const pieces = [];
+		while (walker.nextNode()) {
+			pieces.push(walker.currentNode);
+		}
+		for (let i = 1; i < pieces.length; i++) {
+			spaceApart(pieces[i - 1], pieces[i]);
+		}
+	});
+}
+
 function removeWpSmiley() {
 	for (const img of document.querySelectorAll("img.wp-smiley[alt]")) {
 		 img.parentNode.replaceChild(document.createTextNode(img.alt), img);
@@ -220,6 +278,9 @@ function processPage() {
 	wrapTables();
 	inlineVideos();
 	sizeTailwindSVGs();
+	hideUnpaintedSVGs();
+	markCapitalHeadings();
+	separateLabels();
 	constrainBodyRelativeIframes();
 	convertImgSrc();
 	flattenPreElements();

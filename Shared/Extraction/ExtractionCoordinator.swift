@@ -339,7 +339,8 @@ private extension ExtractionCoordinator {
 			guard let page, hasContent else {
 				throw ExtractionError.noReadableContent
 			}
-			let content = ReadingListContent(title: article.title == nil ? page.title : nil,
+			let title = ExtractedContentFormatter.storedTitle(article.title ?? page.title, siteName: page.siteName)
+			let content = ReadingListContent(title: title == article.title ? nil : title,
 											 contentHTML: ExtractedContentFormatter.storedHTML(for: page),
 											 summary: page.excerpt,
 											 imageURL: page.leadImageURL,
