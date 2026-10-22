@@ -1,7 +1,7 @@
 #!/bin/sh
 # Regenerates Shared/ShareExtension/SafariExt.js, the share extensions' JavaScript
-# preprocessing file, from the Readability.js and DOMPurify copies the app uses
-# (Modules/Extraction/Sources/Extraction/JavaScript). Run it after updating those.
+# preprocessing file, from the Readability.js, DOMPurify and prepare.js copies the app
+# uses (Modules/Extraction/Sources/Extraction/JavaScript). Run it after changing those.
 set -eu
 cd "$(dirname "$0")/.."
 js=Modules/Extraction/Sources/Extraction/JavaScript
@@ -22,16 +22,19 @@ HEADER
 	cat "$js/Readability.js"
 	printf '\n\tvar ReadabilityClass = module.exports;\n\tmodule = { exports: {} };\n\texports = module.exports;\n'
 	cat "$js/purify.min.js"
+	printf '\n\tvar purify = module.exports;\n'
+	cat "$js/prepare.js"
 	cat <<'FOOTER'
 
-	var purify = module.exports;
 	var maximumBodyLength = 400000;
 	var minimumTextLength = 100;
 
 	return function () {
 		var result = { url: document.URL, title: document.title };
 		try {
-			var article = new ReadabilityClass(document.cloneNode(true)).parse();
+			var page = document.cloneNode(true);
+			netNewsListPrepareDocument(page);
+			var article = new ReadabilityClass(page).parse();
 			if (article && article.content && (article.length || 0) >= minimumTextLength) {
 				var body = purify.sanitize(article.content, {
 					FORBID_TAGS: ["style", "form", "input", "button", "textarea", "select", "dialog"],

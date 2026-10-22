@@ -205,7 +205,7 @@ private extension ReadabilityWebExtractor {
 	}
 
 	static let userScripts: [WKUserScript] = {
-		["Readability", "purify.min", "extract", "x"].compactMap { name in
+		["Readability", "purify.min", "prepare", "extract", "x"].compactMap { name in
 			guard let url = Bundle.module.url(forResource: name, withExtension: "js", subdirectory: "JavaScript"),
 				  let source = try? String(contentsOf: url, encoding: .utf8) else {
 				logger.fault("ReadabilityWebExtractor: missing script \(name, privacy: .public)")

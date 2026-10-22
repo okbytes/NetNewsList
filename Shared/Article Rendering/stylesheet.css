@@ -214,6 +214,7 @@ code {
 }
 
 pre code {
+	padding: 0;
 	letter-spacing: -.027em;
 	font-size: 0.9375em;
 }
@@ -299,14 +300,13 @@ figcaption {
 	letter-spacing: 0.03em;
 }
 
-/* Marked by main.js: a code block's title bar ("CODE Shell"), set as a small label on the block. */
+/* Marked by main.js: a code block's title bar ("CODE Shell", "lib/agent.ts"), set as a small label on the block. */
 .articleBody .nnw-code-label {
 	margin: 1em 0 0.3em;
 	font-family: -apple-system;
 	font-size: 0.75em;
 	font-weight: 600;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
+	letter-spacing: 0.02em;
 	color: var(--article-date-color);
 }
 
@@ -616,4 +616,18 @@ a.footnote:hover,
 		padding: 10px;
 	}
 
+}
+
+/* A link around whole blocks (a card pointing to another page) is a box, not a run of text:
+   underlined as text it showed only as stray dots where its blocks start and end. */
+.articleBody a:is(:link, :visited, :hover):has(div, p, h1, h2, h3, h4, h5, h6, ul, ol, figure, blockquote) {
+	display: block;
+	border-bottom: none;
+	border-radius: 0;
+	text-decoration: none;
+	background: none;
+}
+
+.articleBody a:hover:has(div, p, h1, h2, h3, h4, h5, h6, ul, ol, figure, blockquote) {
+	color: inherit;
 }

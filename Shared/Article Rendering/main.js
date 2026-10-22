@@ -215,8 +215,9 @@ function hideUnpaintedSVGs() {
 }
 
 // Headings often link to themselves so a reader can copy a link to the section: the whole
-// heading (<h2 id="yes"><a href="…#yes">Yes</a></h2>) or a mark beside it (#, ¶, § or an
-// icon). In a saved page these only look like links, so keep the words and drop the marks.
+// heading (<h2 id="yes"><a href="…#yes">Yes</a></h2>) or a mark beside it (#, ¶, §, or an
+// icon with words for screen readers, like "Copy link to heading"). In a saved page these
+// only look like links, so keep the heading's words and drop the marks.
 function unlinkHeadingAnchors() {
 	const page = new URL(document.baseURI);
 	const path = url => url.origin + url.pathname.replace(/\/$/, "");
@@ -231,10 +232,43 @@ function unlinkHeadingAnchors() {
 		if (path(target) !== path(page) && target.hash !== "#" + heading.id) {
 			return;
 		}
-		if (/^[\s#¶§🔗]*$/u.test(link.textContent)) {
+		const isMark = text => /^[\s\u200B#¶§🔗]*$/u.test(text);
+		if (isMark(link.textContent) || !isMark(heading.textContent.replace(link.textContent, ""))) {
 			link.remove();
 		} else {
 			link.replaceWith(...link.childNodes);
+		}
+	});
+}
+
+// Highlighters that put each line of code in a <div> came out of Readability with each line
+// in a paragraph too, so code was double-spaced. Make them plain lines again. Pages saved
+// since extraction learned this (prepare.js) arrive joined, with their blank lines.
+function joinCodeLines() {
+	document.querySelectorAll("div.articleBody pre").forEach(pre => {
+		const container = pre.querySelector(":scope > code") || pre;
+		const lines = [...container.children].filter(child => child.matches("div, p"));
+		if (lines.length === 0) {
+			return;
+		}
+		[...container.childNodes].forEach(node => {
+			if (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()) {
+				node.remove();
+			}
+		});
+		lines.forEach((line, index) => {
+			line.querySelectorAll("div, p").forEach(block => block.replaceWith(...block.childNodes));
+			// Some highlighters put a line break in empty lines already.
+			line.replaceWith(...line.childNodes, index < lines.length - 1 && !line.textContent.endsWith("\n") ? "\n" : "");
+		});
+	});
+}
+
+// A link left with nothing in it (its icon was a site style) shows only as a stray underline.
+function removeEmptyLinks() {
+	document.querySelectorAll("div.articleBody a[href]").forEach(link => {
+		if (!link.textContent.replace(/[\s\u200B]/g, "") && !link.querySelector("img, svg, picture, video, iframe")) {
+			link.remove();
 		}
 	});
 }
@@ -259,18 +293,31 @@ function spaceApart(first, second) {
 }
 
 // A caption's leading label ("<b>FIG A</b><span>Terminal-Bench…") and a code block's title
-// bar ("<p>CODE<span>Shell</span></p>" alone with its <pre> in a <div>) run their words
-// together without the site's styles. The title bar would also read as a line of body text,
-// so it's marked for stylesheet.css to set as a small label.
+// bar ("<p>CODE<span>Shell</span></p>" or a file name, alone with its <pre> in a <div>) run
+// their words together without the site's styles. The title bar would also read as a line of
+// body text, so it's marked for stylesheet.css to set as a small label.
 function separateLabels() {
 	document.querySelectorAll("div.articleBody figcaption > :is(b, strong):first-child").forEach(label => {
 		if (label.nextSibling) {
 			spaceApart(label, label.nextSibling);
 		}
 	});
-	document.querySelectorAll("div.articleBody div > p:first-child + pre:last-child").forEach(pre => {
-		const label = pre.previousElementSibling;
-		if (label.textContent.trim().length > 40 || label.querySelector("a, img")) {
+	document.querySelectorAll("div.articleBody pre").forEach(pre => {
+		// The block holding the <pre>, taking in any <div>s it fills alone, and the one
+		// element before it in their shared <div>, down to the paragraph holding its words.
+		let block = pre;
+		while (block.parentElement.matches("div:not(.articleBody)") && block.parentElement.children.length === 1) {
+			block = block.parentElement;
+		}
+		let label = block.previousElementSibling;
+		if (!label || label.previousElementSibling || block.nextElementSibling || !block.parentElement.matches("div")) {
+			return;
+		}
+		while (label.children.length === 1 && label.firstElementChild.matches("div, p") && label.textContent.trim() === label.firstElementChild.textContent.trim()) {
+			label = label.firstElementChild;
+		}
+		const text = label.textContent.trim();
+		if (!label.matches("div, p") || !text || text.length > 40 || /[.:!?]$/.test(text) || label.querySelector("a, img, pre")) {
 			return;
 		}
 		label.classList.add("nnw-code-label");
@@ -305,6 +352,8 @@ function processPage() {
 	sizeTailwindSVGs();
 	hideUnpaintedSVGs();
 	unlinkHeadingAnchors();
+	removeEmptyLinks();
+	joinCodeLines();
 	markCapitalHeadings();
 	separateLabels();
 	constrainBodyRelativeIframes();
