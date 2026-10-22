@@ -214,6 +214,31 @@ function hideUnpaintedSVGs() {
 	});
 }
 
+// Headings often link to themselves so a reader can copy a link to the section: the whole
+// heading (<h2 id="yes"><a href="…#yes">Yes</a></h2>) or a mark beside it (#, ¶, § or an
+// icon). In a saved page these only look like links, so keep the words and drop the marks.
+function unlinkHeadingAnchors() {
+	const page = new URL(document.baseURI);
+	const path = url => url.origin + url.pathname.replace(/\/$/, "");
+	document.querySelectorAll("div.articleBody :is(h1, h2, h3, h4, h5, h6) a[href*='#']").forEach(link => {
+		let target;
+		try {
+			target = new URL(link.href);
+		} catch (e) {
+			return;
+		}
+		const heading = link.closest("h1, h2, h3, h4, h5, h6");
+		if (path(target) !== path(page) && target.hash !== "#" + heading.id) {
+			return;
+		}
+		if (/^[\s#¶§🔗]*$/u.test(link.textContent)) {
+			link.remove();
+		} else {
+			link.replaceWith(...link.childNodes);
+		}
+	});
+}
+
 // A heading the site typed in capitals (and set small with its own styles) shouts at
 // heading size; stylesheet.css sets these in small capitals instead.
 function markCapitalHeadings() {
@@ -279,6 +304,7 @@ function processPage() {
 	inlineVideos();
 	sizeTailwindSVGs();
 	hideUnpaintedSVGs();
+	unlinkHeadingAnchors();
 	markCapitalHeadings();
 	separateLabels();
 	constrainBodyRelativeIframes();
