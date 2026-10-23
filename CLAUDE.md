@@ -9,7 +9,7 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 **Start here when picking the work up:**
 1. `Technotes/NetNewsList/ReadingList.md`: how saving, extraction, sync and offline images work, and the traps. Read it before changing sync, retention, account, extraction or ingress code.
 2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
-3. `TODO-Brett.md`: what only the user can do (device testing, CloudKit Console, the work-computer setup).
+3. `TODO-Brett.md`: what only the user can do (updating the work Mac, CloudKit Console, open decisions).
 
 **Branch:** NetNewsList work lands on `main` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). Upstream NetNewsWire is the `upstream` remote; to sync, merge `upstream/main` into `main` (the 2026-10-07 sync's Progress note in `Plan.md` says how its conflicts were resolved). GitHub lists the repository as a fork of Ranchero-Software/NetNewsWire, so pass `--repo okbytes/NetNewsList` to `gh pr create` or the PR goes upstream.
 
@@ -73,4 +73,4 @@ Don’t do force unwrapping of optionals.
 
 ## Things to Know
 
-Just because unit tests pass doesn’t mean a given bug is fixed. It may not have a test. It may not even be testable — it may require manual testing. Nothing in NetNewsList's UI has been run on a device by an agent; the user's checklist in `TODO-Brett.md` is the record of what has been verified by hand.
+Just because unit tests pass doesn’t mean a given bug is fixed. It may not have a test. It may not even be testable — it may require manual testing. Nothing in NetNewsList's UI has been run on a device by an agent; what the user still has to check by hand goes in `TODO-Brett.md`.
