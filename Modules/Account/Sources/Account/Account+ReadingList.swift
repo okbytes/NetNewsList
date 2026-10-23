@@ -223,7 +223,6 @@ private extension Account {
 						  datePublished: datePublished,
 						  dateModified: nil,
 						  authors: authors,
-						  tags: nil,
-						  attachments: nil)
+						  tags: nil)
 	}
 }

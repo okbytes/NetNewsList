@@ -63,10 +63,6 @@ import Articles
 		// externalID is coded as "subscriptionID" in the plist
 		row[.externalID] = feedDict["subscriptionID"] as? String
 
-		if let isNotify = feedDict["isNotifyAboutNewArticles"] as? Bool {
-			row[.newArticleNotificationsEnabled] = isNotify
-		}
-
 		// conditionalGetInfo is Codable-encoded as a dictionary with lastModified and etag
 		if let conditionalGetDict = feedDict["conditionalGetInfo"] as? [String: String] {
 			row[.conditionalGetInfoLastModified] = conditionalGetDict["lastModified"]

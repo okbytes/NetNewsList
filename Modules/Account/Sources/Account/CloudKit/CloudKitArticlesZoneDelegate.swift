@@ -190,8 +190,7 @@ nonisolated func makeParsedItem(_ articleRecord: CKRecord) -> ParsedItem? {
 								datePublished: articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.datePublished] as? Date,
 								dateModified: articleRecord[CloudKitArticlesZone.CloudKitArticle.Fields.dateModified] as? Date,
 								authors: parsedAuthors,
-								tags: nil,
-								attachments: nil)
+								tags: nil)
 
 	return parsedItem
 }

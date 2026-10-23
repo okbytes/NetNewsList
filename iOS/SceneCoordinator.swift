@@ -8,7 +8,6 @@
 
 import UIKit
 import os
-import UserNotifications
 import Account
 import Articles
 import RSCore
@@ -245,11 +244,6 @@ enum ShowFeedName {
 		case .restoration:
 			break
 		}
-	}
-
-	func handle(_ response: UNNotificationResponse) {
-		let userInfo = response.notification.request.content.userInfo
-		handleReadArticle(userInfo)
 	}
 
 	func resetFocus() {

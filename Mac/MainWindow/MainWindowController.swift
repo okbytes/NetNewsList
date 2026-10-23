@@ -8,7 +8,6 @@
 
 import AppKit
 import os
-import UserNotifications
 import Articles
 import Account
 import RSCore
@@ -58,14 +57,6 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	}
 
 	// MARK: - API
-
-	func handle(_ response: UNNotificationResponse) {
-		let userInfo = response.notification.request.content.userInfo
-		guard let articlePathUserInfo = userInfo[UserInfoKey.articlePath] as? [AnyHashable: Any] else {
-			return
-		}
-		revealArticle(for: articlePathUserInfo)
-	}
 
 	func handle(_ activity: NSUserActivity) {
 		guard let articlePathUserInfo = activity.userInfo?[UserInfoKey.articlePath] as? [AnyHashable: Any] else {

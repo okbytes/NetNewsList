@@ -14,10 +14,7 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 - [ ] CloudKit Console → the container → Tokens & Keys: create a **Production** API token (the current one only works for Development), put it in `local-config.json` with `"environment": "production"`, and rebuild the work copy.
 - [ ] Try the TestFlight build on the iPhone, the Mac and the work Mac before relying on it.
 
-## 2. Decisions (no rush)
+## 2. When you get to it
 
-- [ ] Backups (File > Show Backups in Finder) stay on this Mac, which has no Time Machine. Copy the folder somewhere else now and then, or ask Claude to have the app write them to a folder you choose (iCloud Drive, Google Drive). Keep `~/Downloads/matter_data_brett_1791749808` too: it's the original text of the 93 Matter pages.
-- [ ] Both apps ask for notification permission at launch, only to badge the app icon with the Queue count. Keep the badge, or drop it and the prompt?
-- [ ] The `mine.sh` scripts in verbatim, scanner-ios and browser-ios can't install on a phone that isn't registered with your team yet (they lack `-allowProvisioningDeviceRegistration`, which workout-ios and this repo pass). Want Claude to add it there?
-- [ ] Should pages that come back nearly empty (JavaScript-built sites) automatically retry with the live page? Today it's manual (Retry with Live Page) because the live page runs the site's own scripts.
-- [ ] Optional cleanups Claude left alone: removing the leftover feed-notifications setting, purging stale strings (best done from Xcode), deleting the unused RSS/Atom parsers (needs an audit), and removing the Account zone from iCloud (only after sync has been stable for a while).
+- [ ] After `scripts/install-mac.sh` and `scripts/mine.sh` with the 2026-10-22 cleanups (the apps stopped using the `Account` zone): save a page on the Mac and it shows up on the iPhone; archive it on the iPhone and it leaves the Mac's Queue. Tell Claude if either stalls or the Error Log shows an iCloud error.
+- [ ] Once the work Mac runs the next release (1.4 or later), delete the old `Account` zone: in CloudKit Console, open `iCloud.eitherslice.NetNewsList` (Development), act as your iCloud account, find the zones of the private database and delete `Account`. Since 2026-10-22 the apps neither read nor write it (it holds one feed record and one account record); an older build still running somewhere would just create it again, empty. Don't touch the `Articles` zone: that's your reading list.

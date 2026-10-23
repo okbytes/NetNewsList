@@ -99,7 +99,6 @@ import Articles
 		XCTAssertEqual(row?.feedID, "https://example.com/feed")
 		XCTAssertNil(row?.homePageURL)
 		XCTAssertNil(row?.editedName)
-		XCTAssertEqual(row?.newArticleNotificationsEnabled, false)
 		XCTAssertNil(row?.conditionalGetInfo)
 		XCTAssertNil(row?.conditionalGetInfoDate)
 		XCTAssertNil(row?.cacheControlInfo)
@@ -133,20 +132,6 @@ import Articles
 		XCTAssertEqual(row?.editedName, "My Custom Name")
 		XCTAssertEqual(row?.contentHash, "abc123hash")
 		XCTAssertEqual(row?.externalID, "ext-sub-99")
-	}
-
-	func testBoolFields() {
-		writePlist([
-			"https://example.com/feed": [
-				"isNotifyAboutNewArticles": true
-			] as [String: Any]
-		])
-
-		FeedSettingsImporter.importIfNeeded(dataFolder: tempDirectory, database: database)
-
-		let row = database.allRows()["https://example.com/feed"]
-		XCTAssertNotNil(row)
-		XCTAssertTrue(row?.newArticleNotificationsEnabled ?? false)
 	}
 
 	func testConditionalGetInfo() {

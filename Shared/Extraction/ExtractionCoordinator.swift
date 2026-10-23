@@ -308,7 +308,7 @@ private extension ExtractionCoordinator {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)
 			} else {
 				let fetchedPage = try await fetcher.fetch(url, userAgent: userAgent)
-				page = try await extractor.extract(html: fetchedPage.html, url: fetchedPage.url)
+				page = try await extractStaticOrLive(fetchedPage, url: url, userAgent: userAgent)
 			}
 			// A post can be a few words or only a photo, so X pages don't need the usual minimum of text.
 			let hasContent = xPage == nil ? page?.hasReadableContent == true : page?.contentHTML?.isEmpty == false
@@ -336,6 +336,26 @@ private extension ExtractionCoordinator {
 				try? await account.updateArticleContent(articleID: job.articleID, content: ReadingListContent(title: title))
 			}
 		}
+	}
+
+	/// The fetched page, or the page loaded live when the fetched one has almost no text (often a
+	/// page its own scripts build). When the live page fails or reads no better, the fetched
+	/// result stands, so the failure says there was no article text rather than why the live load failed.
+	func extractStaticOrLive(_ fetchedPage: FetchedPage, url: URL, userAgent: String) async throws -> ExtractedPage? {
+		var staticPage: ExtractedPage?
+		do {
+			staticPage = try await extractor.extract(html: fetchedPage.html, url: fetchedPage.url)
+		} catch ExtractionError.noReadableContent {
+			staticPage = nil
+		}
+		if let staticPage, staticPage.hasReadableContent {
+			return staticPage
+		}
+		Self.logger.info("Extraction: little text in the fetched page; loading it live")
+		if let livePage = try? await extractor.extractLivePage(url: url, userAgent: userAgent), livePage.textLength > staticPage?.textLength ?? 0 {
+			return livePage
+		}
+		return staticPage
 	}
 
 	func recordFailure(_ articleID: String, error: any Error) {

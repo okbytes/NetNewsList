@@ -8,7 +8,6 @@
 
 import AppKit
 import SwiftUI
-import UserNotifications
 import os
 import Articles
 import Account
@@ -27,7 +26,7 @@ let appName = "NetNewsList"
 @MainActor var appDelegate: AppDelegate!
 
 @main
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations, UNUserNotificationCenterDelegate, UnreadCountProvider {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations, UnreadCountProvider {
 
 	static private let logger = Logger(subsystem: Logger.nnwSubsystem, category: "AppDelegate")
 
@@ -50,10 +49,7 @@ let appName = "NetNewsList"
 	var unreadCount = 0 {
 		didSet {
 			if unreadCount != oldValue {
-//				MainActor.assumeIsolated {
-					CoalescingQueue.standard.add(self, #selector(updateDockBadge))
-					postUnreadCountDidChangeNotification()
-//				}
+				postUnreadCountDidChangeNotification()
 			}
 		}
 	}
@@ -214,11 +210,6 @@ let appName = "NetNewsList"
 
 		// Silent CloudKit pushes don’t need notification permission.
 		NSApplication.shared.registerForRemoteNotifications()
-
-		// Badging the Dock icon needs this permission — it’s not just for alerts.
-		UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { _, _ in }
-
-		UNUserNotificationCenter.current().delegate = self
 
 		#if DEBUG
 		ArticleStatusSyncTimer.shared.update()
@@ -426,45 +417,11 @@ let appName = "NetNewsList"
 		return true
 	}
 
-	// MARK: UNUserNotificationCenterDelegate
-
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .badge, .sound])
-    }
-
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-
-		// Wrapper to safely transfer non-Sendable values to MainActor
-		struct UnsafeSendable<T>: @unchecked Sendable {
-			let value: T
-		}
-
-		let wrappedResponse = UnsafeSendable(value: response)
-		let wrappedCompletionHandler = UnsafeSendable(value: completionHandler)
-
-		Task { @MainActor in
-			if wrappedResponse.value.notification.request.identifier == Self.iCloudSignInEndedNotificationID {
-				// Never the sign-out alert: an old notification can be clicked after signing in again.
-				if CloudKitWebSync.isEnabled && !CloudKitWebSync.shared.isSignedIn {
-					showICloudSignInWindow()
-				} else {
-					showMainWindow(nil)
-				}
-			} else {
-				mainWindowController?.handle(wrappedResponse.value)
-			}
-			wrappedCompletionHandler.value()
-		}
-    }
-
-	private static let iCloudSignInEndedNotificationID = "iCloudWebSignInEnded"
-
 	/// iCloud ended the web sign-in (it lasts at most two weeks, or web access was turned off).
 	/// Apple’s page may sign in again by itself; when it can’t, syncing has stopped, so say so
 	/// rather than let the Mac quietly fall behind.
 	@objc func iCloudWebSignInDidChange(_ note: Notification) {
 		guard !CloudKitWebSync.shared.isSignedIn else {
-			UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.iCloudSignInEndedNotificationID])
 			return
 		}
 		guard (note.userInfo?[CloudKitWebService.signInEndedByICloudKey] as? Bool) == true else {
@@ -481,12 +438,10 @@ let appName = "NetNewsList"
 		renewICloudSignIn(force: false)
 	}
 
-	/// Signs in again through Apple’s page out of sight; when the page needs the user, shows a
-	/// notification that opens the sign-in (the window itself, when the sign-in is already gone
-	/// and the app was just opened).
+	/// Signs in again through Apple’s page out of sight; when the page needs the user, shows the
+	/// sign-in window, and bounces the Dock icon once when the app is in the background.
 	func renewICloudSignIn(force: Bool) {
 		Task { @MainActor in
-			let wasSignedIn = CloudKitWebSync.shared.isSignedIn
 			switch await ICloudSignInRenewer.shared.renew(force: force) {
 			case .renewed, .skipped:
 				return
@@ -497,20 +452,12 @@ let appName = "NetNewsList"
 				guard !CloudKitWebSync.shared.isSignedIn else {
 					return
 				}
-				if !wasSignedIn && NSApp.isActive && iCloudSignInWindowController?.window?.isVisible != true {
-					showICloudSignInWindow()
-				} else {
-					postICloudSignInEndedNotification()
+				showICloudSignInWindow()
+				if !NSApp.isActive {
+					NSApp.requestUserAttention(.informationalRequest)
 				}
 			}
 		}
-	}
-
-	func postICloudSignInEndedNotification() {
-		let content = UNMutableNotificationContent()
-		content.title = NSLocalizedString("Sign in to iCloud again", comment: "Notification title")
-		content.body = NSLocalizedString("iCloud ended this Mac’s sign-in, so your reading list isn’t syncing. Click to sign in.", comment: "Notification body")
-		UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: Self.iCloudSignInEndedNotificationID, content: content, trigger: nil))
 	}
 
 	// MARK: Add Article
@@ -520,15 +467,6 @@ let appName = "NetNewsList"
 			return
 		}
 		showAddArticleSheetOnWindow(window, urlString: urlString, title: title)
-	}
-
-	// MARK: - Dock Badge
-
-	/// The number of articles in the Queue, or nothing when it is empty.
-	@objc func updateDockBadge() {
-		Task { @MainActor in
-			NSApplication.shared.dockTile.badgeLabel = unreadCount > 0 ? unreadCount.formatted() : ""
-		}
 	}
 
 	// MARK: - Actions

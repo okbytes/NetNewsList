@@ -10,7 +10,7 @@ import Foundation
 import Articles
 import RSCore
 
-public final class Folder: SidebarItem, Renamable, Container, Hashable {
+public final class Folder: SidebarItem, Container, Hashable {
 	nonisolated public let accountID: String
 	public weak var account: Account?
 
@@ -52,22 +52,6 @@ public final class Folder: SidebarItem, Renamable, Container, Hashable {
 		didSet {
 			if unreadCount != oldValue {
 				postUnreadCountDidChangeNotification()
-			}
-		}
-	}
-
-	// MARK: - Renamable
-
-	public func rename(to name: String, completion: @escaping (Result<Void, Error>) -> Void) {
-		guard let account else {
-			return
-		}
-		Task { @MainActor in
-			do {
-				try await account.renameFolder(self, to: name)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
 			}
 		}
 	}

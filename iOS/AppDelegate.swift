@@ -20,7 +20,7 @@ import Images
 @MainActor var appDelegate: AppDelegate!
 
 @main
-@MainActor final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, UnreadCountProvider {
+@MainActor final class AppDelegate: UIResponder, UIApplicationDelegate, UnreadCountProvider {
 
 	private let backgroundTaskDispatchQueue = DispatchQueue.init(label: "BGTaskScheduler")
 
@@ -38,7 +38,6 @@ import Images
 		didSet {
 			if unreadCount != oldValue {
 				postUnreadCountDidChangeNotification()
-				updateBadge()
 			}
 		}
 	}
@@ -76,16 +75,14 @@ import Images
 
 		DispatchQueue.main.async {
 			self.unreadCount = AccountManager.shared.unreadCount
-			// Force the badge to update on launch.
-			self.updateBadge()
 		}
 
-		// Silent CloudKit pushes don’t need notification permission. setBadgeCount does.
+		// Silent CloudKit pushes don’t need notification permission.
 		UIApplication.shared.registerForRemoteNotifications()
 
-		UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { _, _ in }
-
-		UNUserNotificationCenter.current().delegate = self
+		// Earlier builds badged the icon with the Queue count; clear what they left. Delete this
+		// once the iPhone has run it.
+		UNUserNotificationCenter.current().setBadgeCount(0)
 
 		NetworkMonitor.shared.start()
 
@@ -116,18 +113,8 @@ import Images
 		shuttingDown = true
 	}
 
-	func applicationDidEnterBackground(_ application: UIApplication) {
-		updateBadge()
-	}
-
 	func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
 		AppNotification.postLowMemory()
-	}
-
-	/// The badge is the number of articles in the Queue (none when it's empty).
-	private func updateBadge() {
-		assert(unreadCount == AccountManager.shared.unreadCount)
-		UNUserNotificationCenter.current().setBadgeCount(unreadCount)
 	}
 
 	// MARK: Notifications
@@ -154,8 +141,6 @@ import Images
 	}
 
 	func prepareAccountsForBackground() {
-		updateBadge()
-
 		SavedArticleRequestProcessor.shared.suspend()
 
 		ArticleStatusSyncTimer.shared.invalidate()
@@ -166,7 +151,6 @@ import Images
 	}
 
 	func prepareAccountsForForeground() {
-		updateBadge()
 		SavedArticleRequestProcessor.shared.resume()
 		ArticleStatusSyncTimer.shared.update()
 
@@ -174,35 +158,6 @@ import Images
 		// even if their push never arrived. With change tokens it's two small iCloud requests,
 		// and a status-only sync would be skipped during the quiet-period backoff.
 		AccountManager.shared.refreshAllWithoutWaiting(errorHandler: ErrorHandler.log)
-	}
-
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-		completionHandler([.list, .banner, .badge, .sound])
-    }
-
-	// Wrapper to safely transfer non-Sendable values to MainActor
-	private struct UnsafeSendable<T>: @unchecked Sendable {
-		let value: T
-	}
-
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-
-		let wrappedResponse = UnsafeSendable(value: response)
-		let wrappedCompletionHandler = UnsafeSendable(value: completionHandler)
-
-		Task { @MainActor in
-			handle(notificationResponse: wrappedResponse.value)
-			wrappedCompletionHandler.value()
-		}
-    }
-
-	private func handle(notificationResponse response: UNNotificationResponse) {
-		if let sceneDelegate = response.targetScene?.delegate as? SceneDelegate {
-			sceneDelegate.handle(response)
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
-				sceneDelegate.coordinator.dismissIfLaunchingFromExternalAction()
-			})
-		}
 	}
 }
 

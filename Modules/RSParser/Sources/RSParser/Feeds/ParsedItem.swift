@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import Tidemark
 
 public struct ParsedItem: Hashable, Sendable {
 	public let syncServiceID: String? // Nil when not syncing
@@ -27,7 +26,6 @@ public struct ParsedItem: Hashable, Sendable {
 	public let dateModified: Date?
 	public let authors: Set<ParsedAuthor>?
 	public let tags: Set<String>?
-	public let attachments: Set<ParsedAttachment>?
 
 	public init(syncServiceID: String?,
 	            uniqueID: String,
@@ -45,8 +43,7 @@ public struct ParsedItem: Hashable, Sendable {
 	            datePublished: Date?,
 	            dateModified: Date?,
 	            authors: Set<ParsedAuthor>?,
-	            tags: Set<String>?,
-	            attachments: Set<ParsedAttachment>?) {
+	            tags: Set<String>?) {
 		self.syncServiceID = syncServiceID
 		self.uniqueID = uniqueID
 		self.feedURL = feedURL
@@ -54,6 +51,7 @@ public struct ParsedItem: Hashable, Sendable {
 		self.externalURL = externalURL
 		self.title = title
 		self.language = language
+		self.contentHTML = contentHTML
 		self.contentText = contentText
 		self.markdown = markdown
 		self.summary = summary
@@ -63,15 +61,6 @@ public struct ParsedItem: Hashable, Sendable {
 		self.dateModified = dateModified
 		self.authors = authors
 		self.tags = tags
-		self.attachments = attachments
-
-		// Render Markdown when present, else use contentHTML
-		if let markdown {
-			let rendered = Tidemark.markdownToHTML(markdown)
-			self.contentHTML = rendered.isEmpty ? contentHTML : rendered
-		} else {
-			self.contentHTML = contentHTML
-		}
 	}
 
 	// MARK: - Hashable

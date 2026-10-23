@@ -21,7 +21,6 @@ final class FeedSettingsDatabase: Sendable {
 		case faviconURL
 		case editedName
 		case contentHash
-		case newArticleNotificationsEnabled
 		case authors
 		case conditionalGetInfoLastModified
 		case conditionalGetInfoEtag
@@ -41,7 +40,6 @@ final class FeedSettingsDatabase: Sendable {
 		let faviconURL: String?
 		let editedName: String?
 		let contentHash: String?
-		let newArticleNotificationsEnabled: Bool
 		let authors: Set<Author>?
 		let conditionalGetInfo: HTTPConditionalGetInfo?
 		let conditionalGetInfoDate: Date?
@@ -154,15 +152,6 @@ final class FeedSettingsDatabase: Sendable {
 		}
 	}
 
-	// MARK: - Bool
-
-	func setBool(_ value: Bool, for feedURL: String, column: Column) {
-		let name = column.rawValue
-		serialDispatchQueue.async {
-			self.database.executeUpdate("UPDATE feedSettings SET \(name) = ? WHERE feedURL = ?;", withArgumentsIn: [value, feedURL])
-		}
-	}
-
 	// MARK: - Int
 
 	func setInt(_ value: Int?, for feedURL: String, column: Column) {
@@ -234,14 +223,6 @@ final class FeedSettingsDatabase: Sendable {
 		}
 	}
 
-	// MARK: - Deletion
-
-	func deleteSettings(for feedURL: String) {
-		serialDispatchQueue.async {
-			self.database.executeUpdate("DELETE FROM feedSettings WHERE feedURL = ?;", withArgumentsIn: [feedURL])
-		}
-	}
-
 	// MARK: - Cleanup on launch
 
 	func deleteSettingsForFeedsNotIn(_ feedURLs: Set<String>) {
@@ -270,7 +251,7 @@ final class FeedSettingsDatabase: Sendable {
 private extension FeedSettingsDatabase {
 
 	static let tableCreationStatements = """
-	CREATE TABLE IF NOT EXISTS feedSettings (feedURL TEXT PRIMARY KEY, feedID TEXT NOT NULL DEFAULT '', homePageURL TEXT, iconURL TEXT, faviconURL TEXT, editedName TEXT, contentHash TEXT, newArticleNotificationsEnabled INTEGER NOT NULL DEFAULT 0, authors TEXT, conditionalGetInfoLastModified TEXT, conditionalGetInfoEtag TEXT, conditionalGetInfoDate REAL, cacheControlInfoDateCreated REAL, cacheControlInfoMaxAge REAL, externalID TEXT, folderRelationship TEXT, lastCheckDate REAL, lastResponseCode INTEGER);
+	CREATE TABLE IF NOT EXISTS feedSettings (feedURL TEXT PRIMARY KEY, feedID TEXT NOT NULL DEFAULT '', homePageURL TEXT, iconURL TEXT, faviconURL TEXT, editedName TEXT, contentHash TEXT, authors TEXT, conditionalGetInfoLastModified TEXT, conditionalGetInfoEtag TEXT, conditionalGetInfoDate REAL, cacheControlInfoDateCreated REAL, cacheControlInfoMaxAge REAL, externalID TEXT, folderRelationship TEXT, lastCheckDate REAL, lastResponseCode INTEGER);
 	"""
 
 	func row(from resultSet: FMResultSet) -> Row {
@@ -316,7 +297,6 @@ private extension FeedSettingsDatabase {
 			faviconURL: resultSet.swiftString(forColumn: Column.faviconURL.rawValue),
 			editedName: resultSet.swiftString(forColumn: Column.editedName.rawValue),
 			contentHash: resultSet.swiftString(forColumn: Column.contentHash.rawValue),
-			newArticleNotificationsEnabled: resultSet.bool(forColumn: Column.newArticleNotificationsEnabled.rawValue),
 			authors: authors,
 			conditionalGetInfo: HTTPConditionalGetInfo(lastModified: lastModified, etag: etag),
 			conditionalGetInfoDate: conditionalGetInfoDate,

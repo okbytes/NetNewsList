@@ -369,27 +369,6 @@ public enum FetchType {
 		try await delegate.syncArticleStatus()
 	}
 
-	// MARK: - OPML
-
-	public func importOPML(_ opmlFile: URL, completion: @escaping (Result<Void, Error>) -> Void) {
-		guard !delegate.isOPMLImportInProgress else {
-			completion(.failure(AccountError.opmlImportInProgress))
-			return
-		}
-
-		Task { @MainActor in
-			do {
-				try await delegate.importOPML(opmlFile: opmlFile)
-				// Reset the last fetch date to get the article history for the added feeds.
-				lastArticleFetchStartTime = nil
-				try? await delegate.refreshAll()
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
 	// MARK: - Suspend/Resume
 
 	public func suspendNetwork() {
@@ -533,32 +512,6 @@ public enum FetchType {
 		return feed
 	}
 
-	func addFeed(_ feed: Feed, container: Container) async throws {
-		try await delegate.addFeed(feed: feed, container: container)
-	}
-
-	public func addFeed(_ feed: Feed, to container: Container, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.addFeed(feed: feed, container: container)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	public func createFeed(url: String, name: String?, container: Container, validateFeed: Bool, completion: @escaping (Result<Feed, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				let feed = try await delegate.createFeed(url: url, name: name, container: container, validateFeed: validateFeed)
-				completion(.success(feed))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
 	func createFeed(with name: String?, url: String, feedID: String, homePageURL: String?) -> Feed {
 		let settings = feedSettings(feedURL: url, feedID: feedID)
 
@@ -573,87 +526,6 @@ public enum FetchType {
 		feed.name = name
 		feed.homePageURL = homePageURL
 		return feed
-	}
-
-	func clearFeedSettings(_ feed: Feed) {
-		// Call before permanently removing a feed so the next feed created at this URL
-		// doesn’t inherit a stale feedID/externalID from the cache or database.
-		feedSettingsCache[feed.url] = nil
-		feedSettingsDatabase.deleteSettings(for: feed.url)
-	}
-
-	public func removeFeed(_ feed: Feed, from container: Container, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.removeFeed(feed: feed, container: container)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	public func moveFeed(_ feed: Feed, from: Container, to: Container, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.moveFeed(feed: feed, sourceContainer: from, destinationContainer: to)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	public func renameFeed(_ feed: Feed, name: String) async throws {
-		try await delegate.renameFeed(with: feed, to: name)
-	}
-
-	public func restoreFeed(_ feed: Feed, container: Container, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.restoreFeed(feed: feed, container: container)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	@discardableResult
-	public func addFolder(_ name: String) async throws -> Folder {
-		try await delegate.createFolder(name: name)
-	}
-
-	public func removeFolder(_ folder: Folder, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.removeFolder(with: folder)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	public func renameFolder(_ folder: Folder, to name: String) async throws {
-		try await delegate.renameFolder(with: folder, to: name)
-	}
-
-	public func restoreFolder(_ folder: Folder, completion: @escaping (Result<Void, Error>) -> Void) {
-		Task { @MainActor in
-			do {
-				try await delegate.restoreFolder(folder: folder)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
-	func addFolderToTree(_ folder: Folder) {
-		folders!.insert(folder)
-		postChildrenDidChangeNotification()
-		structureDidChange()
 	}
 
 	public func updateUnreadCounts(feeds: Set<Feed>) {

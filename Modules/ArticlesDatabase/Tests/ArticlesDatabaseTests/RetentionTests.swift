@@ -70,6 +70,6 @@ import ArticlesDatabase
 private extension RetentionTests {
 
 	func parsedItem(_ uniqueID: String, datePublished: Date? = nil) -> ParsedItem {
-		ParsedItem(syncServiceID: nil, uniqueID: uniqueID, feedURL: feedID, url: "https://example.com/\(uniqueID)", externalURL: nil, title: uniqueID, language: nil, contentHTML: "<p>\(uniqueID)</p>", contentText: nil, markdown: nil, summary: nil, imageURL: nil, bannerImageURL: nil, datePublished: datePublished, dateModified: nil, authors: nil, tags: nil, attachments: nil)
+		ParsedItem(syncServiceID: nil, uniqueID: uniqueID, feedURL: feedID, url: "https://example.com/\(uniqueID)", externalURL: nil, title: uniqueID, language: nil, contentHTML: "<p>\(uniqueID)</p>", contentText: nil, markdown: nil, summary: nil, imageURL: nil, bannerImageURL: nil, datePublished: datePublished, dateModified: nil, authors: nil, tags: nil)
 	}
 }

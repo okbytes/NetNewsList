@@ -198,8 +198,7 @@ import Testing
 
 	@Test func gbkSimplifiedChinese() {
 		// GB2312 is a narrower charset that Foundation won't let us encode arbitrary
-		// Chinese into; it's covered end-to-end by RSSParserTests.feedWithGB2312Encoding.
-		// Here we cover the broader GBK path.
+		// Chinese into. Here we cover the broader GBK path.
 		assertRoundTrip(text: "简体中文", via: Self.cfEnc(.GBK_95), declaredAs: "gbk")
 	}
 }

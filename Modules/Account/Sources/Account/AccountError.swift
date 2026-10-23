@@ -11,13 +11,6 @@ import RSWeb
 
 public enum AccountError: LocalizedError {
 
-	case createErrorNotFound
-	case createErrorAlreadySubscribed
-	case opmlImportInProgress
-	case invalidParameter
-	case invalidResponse
-	case urlNotFound
-	case unknown
 	case wrappedError(error: Error, accountID: String, accountName: String, accountType: AccountType)
 
 	public var isCredentialsError: Bool {
@@ -42,20 +35,6 @@ public enum AccountError: LocalizedError {
 
 	public var errorDescription: String? {
 		switch self {
-		case .createErrorNotFound:
-			return NSLocalizedString("The feed couldn’t be found and can’t be added.", comment: "Not found")
-		case .createErrorAlreadySubscribed:
-			return NSLocalizedString("You are already subscribed to this feed and can’t add it again.", comment: "Already subscribed")
-		case .opmlImportInProgress:
-			return NSLocalizedString("An OPML import for this account is already running.", comment: "Import running")
-		case .invalidParameter:
-			return NSLocalizedString("Couldn’t fulfill the request due to an invalid parameter.", comment: "Invalid parameter")
-		case .invalidResponse:
-			return NSLocalizedString("There was an invalid response from the server.", comment: "Invalid response")
-		case .urlNotFound:
-			return NSLocalizedString("The URL request resulted in a not found error.", comment: "URL not found")
-		case .unknown:
-			return NSLocalizedString("Unknown error", comment: "Unknown error")
 		case .wrappedError(let error, _, let accountName, let accountType):
 			switch error {
 			case WebserviceError.httpError(let status, _):
@@ -73,10 +52,6 @@ public enum AccountError: LocalizedError {
 
 	public var recoverySuggestion: String? {
 		switch self {
-		case .createErrorNotFound:
-			return nil
-		case .createErrorAlreadySubscribed:
-			return nil
 		case .wrappedError(let error, _, _, _):
 			switch error {
 			case WebserviceError.httpError(let status, _):
@@ -88,8 +63,6 @@ public enum AccountError: LocalizedError {
 			default:
 				return NSLocalizedString("Please try again later.", comment: "Try later")
 			}
-		default:
-			return NSLocalizedString("Please try again later.", comment: "Try later")
 		}
 	}
 }

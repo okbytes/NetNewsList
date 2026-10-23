@@ -128,14 +128,6 @@ final class CloudKitArticlesZone: CloudKitZone {
 		try await save(records)
 	}
 
-	func deleteArticles(_ feedExternalID: String, owner: ActivityOwner) async throws {
-		let predicate = NSPredicate(format: "webFeedExternalID = %@", feedExternalID)
-		let ckQuery = CKQuery(recordType: CloudKitArticleStatus.recordType, predicate: predicate)
-		try await delete(ckQuery: ckQuery) { pageRecords in
-			logCloudKitSubActivity(owner: owner, kind: .removeFeed, message: "\(pageRecords.count) records")
-		}
-	}
-
 	/// The records one batch of status updates turns into. Kept pure so the rules that
 	/// protect article content can be tested without CloudKit.
 	struct ArticleRecordPlan {

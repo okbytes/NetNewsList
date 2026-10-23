@@ -1,17 +1,8 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Adding feed" : {
-      "comment" : "Activity kind"
-    },
     "Avatars" : {
       "comment" : "Activity owner name"
-    },
-    "Cleaning up iCloud records" : {
-      "comment" : "Activity kind"
-    },
-    "Creating folder" : {
-      "comment" : "Activity kind"
     },
     "Downloading avatar %@" : {
       "comment" : "Activity kind — downloading an author avatar — %@ is the URL"
@@ -25,9 +16,6 @@
     "Downloading metadata %@" : {
       "comment" : "Activity kind — downloading HTML metadata — %@ is the URL"
     },
-    "Exporting OPML" : {
-      "comment" : "Activity kind"
-    },
     "Favicons" : {
       "comment" : "Activity owner name"
     },
@@ -37,29 +25,14 @@
     "Feed Images" : {
       "comment" : "Activity owner name"
     },
-    "Feed redirect" : {
-      "comment" : "Activity kind"
-    },
     "Fetching %@" : {
       "comment" : "Activity kind — fetching a candidate URL during feed finding"
-    },
-    "Fetching article IDs" : {
-      "comment" : "Activity kind"
-    },
-    "Fetching iCloud stats" : {
-      "comment" : "Activity kind"
     },
     "Finding feed %@" : {
       "comment" : "Activity kind — finding a feed at %@ URL"
     },
     "HTML Metadata" : {
       "comment" : "Activity owner name"
-    },
-    "Importing OPML" : {
-      "comment" : "Activity kind"
-    },
-    "Moving feed" : {
-      "comment" : "Activity kind"
     },
     "Receiving sync notification" : {
       "comment" : "Activity kind"
@@ -76,49 +49,16 @@
     "Refreshing feed: %@" : {
       "comment" : "Activity kind — refreshing a feed — %@ is the feed name or URL"
     },
-    "Refreshing missing articles" : {
-      "comment" : "Activity kind"
-    },
     "Refreshing statuses" : {
       "comment" : "Activity kind"
     },
-    "Removing feed" : {
-      "comment" : "Activity kind"
-    },
-    "Removing folder" : {
-      "comment" : "Activity kind"
-    },
-    "Renaming feed" : {
-      "comment" : "Activity kind"
-    },
-    "Renaming folder" : {
-      "comment" : "Activity kind"
-    },
-    "Restoring feed" : {
-      "comment" : "Activity kind"
-    },
-    "Restoring folder" : {
-      "comment" : "Activity kind"
-    },
-    "Scanning iCloud article records" : {
-      "comment" : "Activity kind"
-    },
-    "Scanning iCloud status records" : {
-      "comment" : "Activity kind"
-    },
     "Sending statuses" : {
-      "comment" : "Activity kind"
-    },
-    "Subscribing to feed" : {
       "comment" : "Activity kind"
     },
     "Subscribing to zone changes" : {
       "comment" : "Activity kind"
     },
     "Vacuuming database" : {
-      "comment" : "Activity kind"
-    },
-    "Validating credentials" : {
       "comment" : "Activity kind"
     }
   },

@@ -69,15 +69,6 @@ import Articles
 		}
 	}
 
-	var newArticleNotificationsEnabled = false {
-		didSet {
-			if newArticleNotificationsEnabled != oldValue {
-				database.setBool(newArticleNotificationsEnabled, for: feedURL, column: .newArticleNotificationsEnabled)
-				postSettingDidChange(.newArticleNotificationsEnabled)
-			}
-		}
-	}
-
 	var authors: Set<Author>? {
 		didSet {
 			if authors != oldValue {
@@ -169,7 +160,6 @@ import Articles
 		self.faviconURL = row.faviconURL
 		self.editedName = row.editedName
 		self.contentHash = row.contentHash
-		self.newArticleNotificationsEnabled = row.newArticleNotificationsEnabled
 		self.authors = row.authors
 		self.conditionalGetInfo = row.conditionalGetInfo
 		self.conditionalGetInfoDate = row.conditionalGetInfoDate

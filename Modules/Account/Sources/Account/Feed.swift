@@ -11,7 +11,7 @@ import RSCore
 import RSWeb
 import Articles
 
-@MainActor public final class Feed: SidebarItem, Renamable, Hashable {
+@MainActor public final class Feed: SidebarItem, Hashable {
 	nonisolated public let feedID: String
 	nonisolated public let accountID: String
 	nonisolated public let url: String
@@ -135,15 +135,6 @@ import Articles
 		}
 	}
 
-	public var newArticleNotificationsEnabled: Bool {
-		get {
-			settings.newArticleNotificationsEnabled
-		}
-		set {
-			settings.newArticleNotificationsEnabled = newValue
-		}
-	}
-
 	public var externalID: String? {
 		get {
 			settings.externalID
@@ -196,22 +187,6 @@ import Articles
 		return NSLocalizedString("Untitled", comment: "Feed name")
 	}
 
-	// MARK: - Renamable
-
-	public func rename(to newName: String, completion: @escaping (Result<Void, Error>) -> Void) {
-		guard let account else {
-			return
-		}
-		Task { @MainActor in
-			do {
-				try await account.renameFeed(self, name: newName)
-				completion(.success(()))
-			} catch {
-				completion(.failure(error))
-			}
-		}
-	}
-
 	// MARK: - UnreadCountProvider
 
 	public var unreadCount: Int {
@@ -226,23 +201,6 @@ import Articles
 			postUnreadCountDidChangeNotification()
 		}
 	}
-
-    // MARK: - NotificationDisplayName
-    public var notificationDisplayName: String {
-        #if os(macOS)
-        if self.url.contains("www.reddit.com") {
-            return NSLocalizedString("Show notifications for new posts", comment: "notifyNameDisplay / Reddit")
-        } else {
-            return NSLocalizedString("Show notifications for new articles", comment: "Show notifications for new articles")
-        }
-        #else
-        if self.url.contains("www.reddit.com") {
-            return NSLocalizedString("Notify about new posts", comment: "notifyNameDisplay / Reddit")
-        } else {
-            return NSLocalizedString("Notify about new articles", comment: "notifyNameDisplay / Default")
-        }
-        #endif
-    }
 
 	var settings: FeedSettings
 

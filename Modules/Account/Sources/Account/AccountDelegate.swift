@@ -20,8 +20,6 @@ import Articles
 
 	var behaviors: AccountBehaviors { get }
 
-	var isOPMLImportInProgress: Bool { get }
-
 	var accountSettings: AccountSettings? { get set }
 
 	func receiveRemoteNotification(userInfo: [AnyHashable: Any]) async
@@ -32,21 +30,6 @@ import Articles
 	func syncArticleStatus() async throws -> Bool
 	func sendArticleStatus() async throws
 	func refreshArticleStatus() async throws
-
-	func importOPML(opmlFile: URL) async throws
-
-	func createFolder(name: String) async throws -> Folder
-	func renameFolder(with folder: Folder, to name: String) async throws
-	func removeFolder(with folder: Folder) async throws
-
-	func createFeed(url: String, name: String?, container: Container, validateFeed: Bool) async throws -> Feed
-	func renameFeed(with feed: Feed, to name: String) async throws
-	func addFeed(feed: Feed, container: Container) async throws
-	func removeFeed(feed: Feed, container: Container) async throws
-	func moveFeed(feed: Feed, sourceContainer: Container, destinationContainer: Container) async throws
-
-	func restoreFeed(feed: Feed, container: Container) async throws
-	func restoreFolder(folder: Folder) async throws
 
 	func markArticles(articleIDs: Set<String>, statusKey: ArticleStatus.Key, flag: Bool) async throws
 

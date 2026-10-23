@@ -17,39 +17,16 @@ public enum ActivityKind: Sendable, Hashable {
 	case refreshArticleStatuses
 	case refreshFeedList
 	case refreshFeedContent(feedURL: String) // per-feed
-	case followFeedRedirect
 	case refreshArticles
-	case fetchArticleIDs
-	case refreshMissingArticles
-	case importOPML
-
-	// CloudKit user-action edits
-
-	case subscribeFeed
-	case renameFeed
-	case removeFeed
-	case moveFeed
-	case addFeed
-	case restoreFeed
-	case createFolder
-	case renameFolder
-	case removeFolder
-	case restoreFolder
 
 	// CloudKit background work
 
-	case cleanUpCloudKitRecords
 	case subscribeToCloudKitZone
-	case fetchCloudKitStats
-	case scanCloudKitStatusRecords
-	case scanCloudKitArticleRecords
 	case receiveCloudKitNotification
 
 	// Maintenance and lifecycle
 
 	case vacuumDatabase
-	case validateCredentials
-	case exportOPML
 
 	// App-level
 
@@ -76,54 +53,14 @@ public enum ActivityKind: Sendable, Hashable {
 			return NSLocalizedString("Refreshing statuses", bundle: .module, comment: "Activity kind")
 		case .refreshFeedList:
 			return NSLocalizedString("Refreshing feed list", bundle: .module, comment: "Activity kind")
-		case .followFeedRedirect:
-			return NSLocalizedString("Feed redirect", bundle: .module, comment: "Activity kind")
 		case .refreshArticles:
 			return NSLocalizedString("Refreshing articles", bundle: .module, comment: "Activity kind")
-		case .fetchArticleIDs:
-			return NSLocalizedString("Fetching article IDs", bundle: .module, comment: "Activity kind")
-		case .refreshMissingArticles:
-			return NSLocalizedString("Refreshing missing articles", bundle: .module, comment: "Activity kind")
-		case .importOPML:
-			return NSLocalizedString("Importing OPML", bundle: .module, comment: "Activity kind")
-		case .subscribeFeed:
-			return NSLocalizedString("Subscribing to feed", bundle: .module, comment: "Activity kind")
-		case .renameFeed:
-			return NSLocalizedString("Renaming feed", bundle: .module, comment: "Activity kind")
-		case .removeFeed:
-			return NSLocalizedString("Removing feed", bundle: .module, comment: "Activity kind")
-		case .moveFeed:
-			return NSLocalizedString("Moving feed", bundle: .module, comment: "Activity kind")
-		case .addFeed:
-			return NSLocalizedString("Adding feed", bundle: .module, comment: "Activity kind")
-		case .restoreFeed:
-			return NSLocalizedString("Restoring feed", bundle: .module, comment: "Activity kind")
-		case .createFolder:
-			return NSLocalizedString("Creating folder", bundle: .module, comment: "Activity kind")
-		case .renameFolder:
-			return NSLocalizedString("Renaming folder", bundle: .module, comment: "Activity kind")
-		case .removeFolder:
-			return NSLocalizedString("Removing folder", bundle: .module, comment: "Activity kind")
-		case .restoreFolder:
-			return NSLocalizedString("Restoring folder", bundle: .module, comment: "Activity kind")
-		case .cleanUpCloudKitRecords:
-			return NSLocalizedString("Cleaning up iCloud records", bundle: .module, comment: "Activity kind")
-		case .fetchCloudKitStats:
-			return NSLocalizedString("Fetching iCloud stats", bundle: .module, comment: "Activity kind")
-		case .scanCloudKitStatusRecords:
-			return NSLocalizedString("Scanning iCloud status records", bundle: .module, comment: "Activity kind")
-		case .scanCloudKitArticleRecords:
-			return NSLocalizedString("Scanning iCloud article records", bundle: .module, comment: "Activity kind")
 		case .receiveCloudKitNotification:
 			return NSLocalizedString("Receiving sync notification", bundle: .module, comment: "Activity kind")
 		case .subscribeToCloudKitZone:
 			return NSLocalizedString("Subscribing to zone changes", bundle: .module, comment: "Activity kind")
 		case .vacuumDatabase:
 			return NSLocalizedString("Vacuuming database", bundle: .module, comment: "Activity kind")
-		case .validateCredentials:
-			return NSLocalizedString("Validating credentials", bundle: .module, comment: "Activity kind")
-		case .exportOPML:
-			return NSLocalizedString("Exporting OPML", bundle: .module, comment: "Activity kind")
 		case .refreshFeedContent, .findFeed, .fetchFeedCandidate, .downloadFeedImage, .downloadFavicon, .downloadAvatar, .downloadHTMLMetadata:
 			return nil
 		}
