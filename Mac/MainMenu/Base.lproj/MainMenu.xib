@@ -36,12 +36,6 @@
                                     <action selector="signInOrOutOfICloud:" target="-1" id="iCS-ac-01b"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Sign In to X…" id="xSi-mn-01a">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="signInOrOutOfX:" target="-1" id="xSi-ac-01b"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Reset iCloud Sync…" id="rIS-mn-01a">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

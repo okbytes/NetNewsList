@@ -6,7 +6,7 @@ import Extraction
 // Prints one line per URL: OK (readable), THIN (too little text) or FAIL, with timing and metadata.
 // --live loads the page with its JavaScript on first (the app's "Retry with Live Page").
 // --html also prints the extracted HTML.
-// Links to X posts and Articles go through the app's X extractor, signed out.
+// Links to X posts and Articles go through the app's X extractor.
 
 let arguments = CommandLine.arguments.dropFirst()
 let urls = arguments.filter { !$0.hasPrefix("--") }
@@ -31,7 +31,7 @@ let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605
 				&& (url.path.contains("/status/") || url.path.contains("/article/"))
 			if isXPage {
 				let statusID = url.path.firstMatch(of: #/\/status\/(\d+)/#).map { String($0.1) }
-				page = try await extractor.extractXPage(url: url, statusID: statusID, userAgent: userAgent, websiteDataStore: .nonPersistent())
+				page = try await extractor.extractXPage(url: url, statusID: statusID)
 			} else if usesLivePage {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)
 			} else {

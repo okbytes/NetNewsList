@@ -84,7 +84,7 @@ public enum ExtractionError: LocalizedError, Sendable, Equatable {
 		case .busy:
 			return NSLocalizedString("Another page is being read.", comment: "Extraction error")
 		case .signInRequired:
-			return NSLocalizedString("X shows this post only to people who are signed in. Sign in to X, then retry.", comment: "Extraction error: X asked to sign in")
+			return NSLocalizedString("X shows this post only to people who are signed in to X.", comment: "Extraction error: X asked to sign in")
 		}
 	}
 }

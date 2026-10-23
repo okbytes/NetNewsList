@@ -79,7 +79,6 @@ let appName = "NetNewsList"
 	private var activityWindowController: CurrentActivityWindowController?
 	private var activityLogWindowController: ActivityLogWindowController?
 	private var errorLogWindowController: ErrorLogWindowController?
-	private var xSignInWindowController: XSignInWindowController?
 	private var iCloudSignInWindowController: ICloudSignInWindowController?
 	private var iCloudRenewalTimer: Timer?
 	private let appMovementMonitor: RSAppMovementMonitor
@@ -349,7 +348,6 @@ let appName = "NetNewsList"
 		Task { @MainActor in
 			ArticleStatusSyncTimer.shared.fireOldTimer()
 			renewICloudSignInIfDue()
-			await XAccount.shared.updateSignInState()
 		}
 	}
 
@@ -423,14 +421,6 @@ let appName = "NetNewsList"
 			menuItem.isHidden = !CloudKitWebSync.isEnabled
 			menuItem.title = CloudKitWebSync.isEnabled && CloudKitWebSync.shared.isSignedIn ? NSLocalizedString("Sign Out of iCloud…", comment: "Menu item") : NSLocalizedString("Sign In to iCloud…", comment: "Menu item")
 			return CloudKitWebSync.isEnabled
-		}
-
-		if item.action == #selector(signInOrOutOfX(_:)), let menuItem = item as? NSMenuItem {
-			menuItem.title = XAccount.shared.isSignedIn ? NSLocalizedString("Sign Out of X…", comment: "Menu item") : NSLocalizedString("Sign In to X…", comment: "Menu item")
-			// Look again, in case the cookie store’s answer at launch was wrong; the title follows.
-			Task { @MainActor in
-				await XAccount.shared.updateSignInState()
-			}
 		}
 
 		return true
@@ -550,29 +540,6 @@ let appName = "NetNewsList"
 	@IBAction func showMainWindow(_ sender: Any?) {
 		let windowController = createAndShowMainWindowIfNecessary()
 		windowController.window?.makeKey()
-	}
-
-	/// Signed out, shows X's sign-in page; signed in, offers to sign out. X shows some posts only to signed-in people.
-	@IBAction func signInOrOutOfX(_ sender: Any?) {
-		guard XAccount.shared.isSignedIn else {
-			if xSignInWindowController == nil {
-				xSignInWindowController = XSignInWindowController()
-			}
-			xSignInWindowController?.showWindow(self)
-			return
-		}
-		let alert = NSAlert()
-		alert.messageText = NSLocalizedString("Sign Out of X?", comment: "Sign out of X alert title")
-		alert.informativeText = NSLocalizedString("Posts that X shows only to signed-in people won’t be saved from this Mac until you sign in again.", comment: "Sign out of X alert message")
-		alert.addButton(withTitle: NSLocalizedString("Sign Out", comment: "Sign Out button"))
-		alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-		guard alert.runModal() == .alertFirstButtonReturn else {
-			return
-		}
-		xSignInWindowController = nil
-		Task {
-			await XAccount.shared.signOut()
-		}
 	}
 
 	@IBAction func signInOrOutOfICloud(_ sender: Any?) {

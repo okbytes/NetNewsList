@@ -12,6 +12,7 @@
 
 import Foundation
 import os
+import Security
 import WebKit
 #if os(macOS)
 import AppKit
@@ -90,11 +91,9 @@ extension Notification {
 		extractor.webViewHost = { webView in
 			Self.host(webView)
 		}
-		// Reads the X sign-in state now, so menus and Settings show it.
-		_ = XAccount.shared
+		Self.removeXSignInLeftovers()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 #if os(macOS)
 		NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive(_:)), name: NSApplication.didBecomeActiveNotification, object: nil)
 #else
@@ -193,32 +192,10 @@ private extension ExtractionCoordinator {
 		scheduleDrain()
 	}
 
-	/// After signing in to X, tries again the X pages still waiting for their content.
-	@objc func xAccountSignInStateDidChange(_ note: Notification) {
-		guard XAccount.shared.isSignedIn else {
-			return
-		}
-		Task { @MainActor in
-			let pendingArticleIDs = await account.pendingExtractionArticleIDs()
-			let articles = await account.fetchArticlesAsync(.articleIDs(pendingArticleIDs))
-			let xArticleIDs = articles.filter { article in
-				guard let link = article.rawExternalLink ?? article.rawLink else {
-					return false
-				}
-				return URLCanonicalizer.xPage(for: link) != nil
-			}.map(\.articleID)
-			retry(articleIDs: Set(xArticleIDs), usesLivePage: false)
-		}
-	}
-
 	@objc func appDidBecomeActive(_ note: Notification) {
 		isSuspended = false
 		scheduleDrain()
 		runNextJobIfIdle()
-		// The X sign-in state is read from the cookie store, which isn’t always right at launch.
-		Task { @MainActor in
-			await XAccount.shared.updateSignInState()
-		}
 	}
 
 	/// WebKit stops running JavaScript in the background, so put the current job back and wait.
@@ -317,17 +294,16 @@ private extension ExtractionCoordinator {
 		var page: ExtractedPage?
 		do {
 			if let xPage {
-				// X's static page is a sign-in wall for everyone, so X pages are always read live.
-				// A post loads fastest at its canonical address, which skips X's redirects
-				// from twitter.com and from an outdated screen name.
+				// X's static page is a sign-in wall, so X pages are always read live, signed out,
+				// as anyone on the web sees them. A post loads fastest at its canonical address,
+				// which skips X's redirects from twitter.com and from an outdated screen name.
 				var statusID: String?
 				var xURL = url
 				if case .post(let id) = xPage {
 					statusID = id
 					xURL = URL(string: "https://x.com/i/status/\(id)") ?? url
 				}
-				await XAccount.shared.updateSignInState()
-				page = try await extractor.extractXPage(url: xURL, statusID: statusID, userAgent: userAgent, websiteDataStore: XAccount.shared.websiteDataStore)
+				page = try await extractor.extractXPage(url: xURL, statusID: statusID)
 			} else if job.usesLivePage {
 				page = try await extractor.extractLivePage(url: url, userAgent: userAgent)
 			} else {
@@ -381,6 +357,23 @@ private extension ExtractionCoordinator {
 
 	func postStateChange(_ articleID: String) {
 		NotificationCenter.default.post(name: .ExtractionStateDidChange, object: self, userInfo: [Account.UserInfoKey.articleIDs: Set([articleID])])
+	}
+
+	/// The X sign-in is gone (2026-10-22). Removes what it left on this device: X's cookies,
+	/// in a website data store of their own and copied to the keychain. Delete this once
+	/// every device has launched with it.
+	static func removeXSignInLeftovers() {
+		let keychainItem: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+										   kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "NetNewsList") + ".XSessionCookies",
+										   kSecAttrAccount as String: "cookies"]
+		SecItemDelete(keychainItem as CFDictionary)
+		guard let dataStoreIdentifier = UUID(uuidString: "9FD79583-BD06-4427-819C-A38EA208E264") else {
+			return
+		}
+		Task { @MainActor in
+			// Throws when the store doesn’t exist, which is the usual case after the first launch.
+			try? await WKWebsiteDataStore.remove(forIdentifier: dataStoreIdentifier)
+		}
 	}
 
 	/// WebKit may throttle a web view outside a window. On iOS, keep it in the

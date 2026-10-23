@@ -18,8 +18,7 @@ final class SettingsViewController: UITableViewController {
 	// The Timeline section holds only the Sort Oldest to Newest switch.
 	private enum Section: Int {
 		case timeline = 0
-		case articles = 1
-		case troubleshooting = 2
+		case troubleshooting = 1
 	}
 
 	private enum TroubleshootingRow: Int {
@@ -28,12 +27,7 @@ final class SettingsViewController: UITableViewController {
 		case resetiCloudSync = 2
 	}
 
-	private enum ArticlesRow: Int {
-		case xAccount = 0
-	}
-
 	@IBOutlet var timelineSortOrderSwitch: UISwitch!
-	@IBOutlet var xAccountDetailLabel: UILabel!
 
 	weak var presentingParentController: UIViewController?
 
@@ -41,8 +35,6 @@ final class SettingsViewController: UITableViewController {
 		// This hack mostly works around a bug in static tables with dynamic type.  See: https://spin.atomicobject.com/2018/10/15/dynamic-type-static-uitableview/
 		NotificationCenter.default.removeObserver(tableView!, name: UIContentSizeCategory.didChangeNotification, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange), name: UIContentSizeCategory.didChangeNotification, object: nil)
-
-		NotificationCenter.default.addObserver(self, selector: #selector(xAccountSignInStateDidChange(_:)), name: .XAccountSignInStateDidChange, object: nil)
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
@@ -56,8 +48,6 @@ final class SettingsViewController: UITableViewController {
 		} else {
 			timelineSortOrderSwitch.isOn = false
 		}
-
-		updateXAccountDetailLabel()
 
 		let buildLabel = NonIntrinsicLabel(frame: CGRect(x: 32.0, y: 0.0, width: 0.0, height: 0.0))
 		buildLabel.font = UIFont.systemFont(ofSize: 11.0)
@@ -83,14 +73,6 @@ final class SettingsViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 
 		switch Section(rawValue: indexPath.section) {
-		case .articles:
-			switch ArticlesRow(rawValue: indexPath.row) {
-			case .xAccount:
-				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
-				signInOrOutOfX()
-			default:
-				break
-			}
 		case .troubleshooting:
 			if TroubleshootingRow(rawValue: indexPath.row) == .resetiCloudSync {
 				tableView.selectRow(at: nil, animated: true, scrollPosition: .none)
@@ -172,32 +154,5 @@ private extension SettingsViewController {
 			}
 		})
 		present(alertController, animated: true)
-	}
-
-	/// Signed out, shows X's sign-in page; signed in, offers to sign out. X shows some posts only to signed-in people.
-	func signInOrOutOfX() {
-		guard XAccount.shared.isSignedIn else {
-			let navigationController = UINavigationController(rootViewController: XSignInViewController())
-			present(navigationController, animated: true)
-			return
-		}
-		let title = NSLocalizedString("Sign Out of X?", comment: "Sign out of X alert title")
-		let message = NSLocalizedString("Posts that X shows only to signed-in people won’t be saved from this device until you sign in again.", comment: "Sign out of X alert message")
-		let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
-		alertController.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel button"), style: .cancel))
-		alertController.addAction(UIAlertAction(title: NSLocalizedString("Sign Out", comment: "Sign Out button"), style: .destructive) { _ in
-			Task { @MainActor in
-				await XAccount.shared.signOut()
-			}
-		})
-		present(alertController, animated: true)
-	}
-
-	func updateXAccountDetailLabel() {
-		xAccountDetailLabel.text = XAccount.shared.isSignedIn ? NSLocalizedString("Signed In", comment: "X account state") : NSLocalizedString("Not Signed In", comment: "X account state")
-	}
-
-	@objc func xAccountSignInStateDidChange(_ note: Notification) {
-		updateXAccountDetailLabel()
 	}
 }

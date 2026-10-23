@@ -78,23 +78,27 @@ import RSCore
 	/// How long an X page gets: X's own scripts render it, which takes longer than a static page.
 	static let xTimeout: Duration = .seconds(30)
 
+	/// What X pages are loaded as, on the iPhone too: X sends an iPhone web view to its app's
+	/// URL scheme, and Mobile Safari to a phone layout that `x.js` doesn't read.
+	static let xUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
+
 	/// How long to wait, at most, for X to stop adding to the page once the post has rendered.
 	static let xSettleLimit: Duration = .seconds(6)
 
 	/// Loads an X page with X's own scripts and reads it from the rendered page: the post
 	/// with `statusID` and the author's posts around it (a thread), photos and quoted posts,
-	/// or the X Article it carries. Without a `statusID`, the page's Article.
-	/// `websiteDataStore` holds the user's X sign-in, if any.
-	public func extractXPage(url: URL, statusID: String?, userAgent: String?, websiteDataStore: WKWebsiteDataStore) async throws -> ExtractedPage {
+	/// or the X Article it carries. Without a `statusID`, the page's Article. The page is
+	/// loaded signed out, in a store of its own that's discarded afterwards.
+	public func extractXPage(url: URL, statusID: String?) async throws -> ExtractedPage {
 		try await exclusively {
 			defer {
 				self.discardLiveWebView()
 			}
 			return try await self.withTimeout(Self.xTimeout) {
-				let webView = self.makeWebView(allowsPageJavaScript: true, websiteDataStore: websiteDataStore)
+				let webView = self.makeWebView(allowsPageJavaScript: true)
 				// Tall, so X renders more of a conversation and an Article's embedded posts, which it loads as they come into view.
 				webView.frame = CGRect(x: 0, y: 0, width: 1024, height: 4000)
-				webView.customUserAgent = userAgent
+				webView.customUserAgent = Self.xUserAgent
 				self.liveWebView = webView
 				// Read the page as soon as the post is there, not when every image has loaded;
 				// a failed load still ends the wait.
@@ -266,9 +270,9 @@ private extension ReadabilityWebExtractor {
 		}
 	}
 
-	func makeWebView(allowsPageJavaScript: Bool, websiteDataStore: WKWebsiteDataStore = .nonPersistent()) -> WKWebView {
+	func makeWebView(allowsPageJavaScript: Bool) -> WKWebView {
 		let configuration = WKWebViewConfiguration()
-		configuration.websiteDataStore = websiteDataStore
+		configuration.websiteDataStore = .nonPersistent()
 		configuration.defaultWebpagePreferences.allowsContentJavaScript = allowsPageJavaScript
 		configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 		configuration.mediaTypesRequiringUserActionForPlayback = .all
@@ -294,9 +298,9 @@ private extension ReadabilityWebExtractor {
 		return webView
 	}
 
-	/// Waits until X has rendered the post (or Article) and stopped adding to the page (signed
-	/// in, X loads the conversation and an Article's embedded posts after the post), or throws
-	/// when X shows only its sign-in wall.
+	/// Waits until X has rendered the post (or Article) and stopped adding to the page (X can
+	/// add the conversation and an Article's embedded posts after the post), or throws when X
+	/// shows only its sign-in wall.
 	func waitForXPage(statusID: String?, in webView: WKWebView, loadFailure: LoadFailure) async throws {
 		let arguments: [String: Any] = ["statusID": statusID ?? NSNull()]
 		while true {

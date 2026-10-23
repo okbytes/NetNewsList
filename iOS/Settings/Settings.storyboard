@@ -55,42 +55,6 @@
                                     </tableViewCell>
                                 </cells>
                             </tableViewSection>
-                            <tableViewSection headerTitle="Articles" id="TRr-Ew-IvU">
-                                <cells>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" id="xAc-cl-01a" customClass="VibrantBasicTableViewCell" customModule="NetNewsWire" customModuleProvider="target">
-                                        <rect key="frame" x="20" y="894" width="374" height="51"/>
-                                        <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="xAc-cl-01a" id="xAc-cv-01b">
-                                            <rect key="frame" x="0.0" y="0.0" width="374" height="51"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="X Account" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xAc-lb-01c">
-                                                    <rect key="frame" x="20" y="15.5" width="80" height="20.5"/>
-                                                    <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Not Signed In" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xAc-dt-01d">
-                                                    <rect key="frame" x="250" y="15.5" width="104" height="20.5"/>
-                                                    <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                            </subviews>
-                                            <constraints>
-                                                <constraint firstItem="xAc-dt-01d" firstAttribute="centerY" secondItem="xAc-cv-01b" secondAttribute="centerY" id="xAc-c1-01e"/>
-                                                <constraint firstItem="xAc-lb-01c" firstAttribute="leading" secondItem="xAc-cv-01b" secondAttribute="leadingMargin" id="xAc-c2-01f"/>
-                                                <constraint firstItem="xAc-dt-01d" firstAttribute="trailing" secondItem="xAc-cv-01b" secondAttribute="trailingMargin" id="xAc-c3-01g"/>
-                                                <constraint firstItem="xAc-lb-01c" firstAttribute="centerY" secondItem="xAc-cv-01b" secondAttribute="centerY" id="xAc-c4-01h"/>
-                                            </constraints>
-                                        </tableViewCellContentView>
-                                        <connections>
-                                            <outlet property="detail" destination="xAc-dt-01d" id="xAc-o1-01i"/>
-                                            <outlet property="label" destination="xAc-lb-01c" id="xAc-o2-01j"/>
-                                        </connections>
-                                    </tableViewCell>
-                                </cells>
-                            </tableViewSection>
                             <tableViewSection headerTitle="Troubleshooting" id="Trb-eL-9xZ">
                                 <cells>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" accessoryType="disclosureIndicator" indentationWidth="10" textLabel="eRl-vQ-3kP" style="IBUITableViewCellStyleDefault" id="qLw-mN-7rY" customClass="VibrantTableViewCell" customModule="NetNewsWire" customModuleProvider="target">
@@ -161,7 +125,6 @@
                     </navigationItem>
                     <connections>
                         <outlet property="timelineSortOrderSwitch" destination="Keq-Np-l9O" id="Zm7-HG-r5h"/>
-                        <outlet property="xAccountDetailLabel" destination="xAc-dt-01d" id="xAc-o3-01k"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="GZq-IX-Qod" userLabel="First Responder" sceneMemberID="firstResponder"/>
