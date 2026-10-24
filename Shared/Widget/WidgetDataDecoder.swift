@@ -11,21 +11,24 @@ import Foundation
 struct WidgetDataDecoder {
 
 	static func decodeWidgetData() throws -> WidgetData {
-		let appGroup = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as! String
-		let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-		let dataURL = containerURL?.appendingPathComponent("widget-data.json")
-		if FileManager.default.fileExists(atPath: dataURL!.path) {
-			let decodedWidgetData = try JSONDecoder().decode(WidgetData.self, from: Data(contentsOf: dataURL!))
-			return decodedWidgetData
-		} else {
+		// An unsigned build (the simulator, tests) has no app group container.
+		guard let appGroup = Bundle.main.object(forInfoDictionaryKey: "AppGroup") as? String,
+			  let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
 			return WidgetData(queueCount: 0, queueArticles: [], lastUpdateTime: Date())
 		}
+		let dataURL = containerURL.appendingPathComponent("widget-data.json")
+		guard FileManager.default.fileExists(atPath: dataURL.path) else {
+			return WidgetData(queueCount: 0, queueArticles: [], lastUpdateTime: Date())
+		}
+		return try JSONDecoder().decode(WidgetData.self, from: Data(contentsOf: dataURL))
 	}
 
 	static func sampleData() -> WidgetData {
-		let pathToSample = Bundle.main.url(forResource: "widget-sample", withExtension: "json")
+		guard let pathToSample = Bundle.main.url(forResource: "widget-sample", withExtension: "json") else {
+			return WidgetData(queueCount: 0, queueArticles: [], lastUpdateTime: Date())
+		}
 		do {
-			let data = try Data(contentsOf: pathToSample!)
+			let data = try Data(contentsOf: pathToSample)
 			let decoded = try JSONDecoder().decode(WidgetData.self, from: data)
 			return decoded
 		} catch {

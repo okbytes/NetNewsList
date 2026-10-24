@@ -28,9 +28,10 @@ struct CloudKitArticleStatusUpdate {
 		self.statuses = statuses
 		self.article = article
 
-		let rec = record
-		// This is an invalid status update.  The article is required for new and all
-		if article == nil && (rec == .all || rec == .new) {
+		// Only a delete goes without the article. An article is missing here only because it was
+		// deleted, and a status sent for it would put back a status record, read, that every
+		// device keeps: saving the page again anywhere would then put it in the Archive.
+		if article == nil && record != .delete {
 			return nil
 		}
 	}

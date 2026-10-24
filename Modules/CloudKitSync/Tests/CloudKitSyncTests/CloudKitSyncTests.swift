@@ -3,8 +3,8 @@ import Foundation
 @testable import CloudKitSync
 
 /// The web auth token handling of `CloudKitWebService` against canned answers: every answer
-/// replaces the token, and a refusal of the token ends the sign-in only when a second try
-/// (the token the refusal carried, the token before the refused one, or the same one again) fails too.
+/// replaces the token, and a refusal of the token ends the sign-in only when the tries after it
+/// (the token the refusal carried or the same one again, then the token before it) fail too.
 final class CloudKitWebServiceTokenTests: XCTestCase {
 
 	private var store: MemoryTokenStore!
@@ -34,16 +34,31 @@ final class CloudKitWebServiceTokenTests: XCTestCase {
 		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2"])
 	}
 
+	func testMomentaryRefusalKeepsTheToken() async throws {
+		await service.adoptSignIn(CloudKitWebSignIn(userRecordName: "u", webAuthToken: "t1"))
+		StubURLProtocol.answers = [.ok(token: "t2")]
+		_ = try await service.send(path: "users/current", body: nil)
+
+		// iCloud refuses t2 once, then takes it.
+		StubURLProtocol.answers = [.authenticationRequired(token: nil), .ok(token: "t3")]
+		_ = try await service.send(path: "users/current", body: nil)
+
+		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2", "t2"])
+		XCTAssertEqual(store.loadWebAuthToken(), "t3")
+		let isSignedIn = await service.isSignedIn
+		XCTAssertTrue(isSignedIn)
+	}
+
 	func testRefusedTokenIsRetriedWithThePreviousOneAndTheSignInStays() async throws {
 		await service.adoptSignIn(CloudKitWebSignIn(userRecordName: "u", webAuthToken: "t1"))
 		StubURLProtocol.answers = [.ok(token: "t2")]
 		_ = try await service.send(path: "users/current", body: nil)
 
-		// The answer that carried t3 was lost: iCloud refuses t2, and t1 is tried.
-		StubURLProtocol.answers = [.authenticationRequired(token: nil), .ok(token: "t4")]
+		// The answer that carried t3 was lost: iCloud refuses t2 twice, and t1 is tried.
+		StubURLProtocol.answers = [.authenticationRequired(token: nil), .authenticationRequired(token: nil), .ok(token: "t4")]
 		_ = try await service.send(path: "users/current", body: nil)
 
-		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2", "t1"])
+		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2", "t2", "t1"])
 		XCTAssertEqual(store.loadWebAuthToken(), "t4")
 		XCTAssertEqual(store.loadPreviousWebAuthToken(), "t1", "the fallback token, once accepted, is the one before the current token")
 		let isSignedIn = await service.isSignedIn
@@ -60,11 +75,11 @@ final class CloudKitWebServiceTokenTests: XCTestCase {
 		XCTAssertEqual(store.loadWebAuthToken(), "t3")
 	}
 
-	func testSecondRefusalEndsTheSignIn() async throws {
+	func testThirdRefusalEndsTheSignIn() async throws {
 		await service.adoptSignIn(CloudKitWebSignIn(userRecordName: "u", webAuthToken: "t1"))
 		StubURLProtocol.answers = [.ok(token: "t2")]
 		_ = try await service.send(path: "users/current", body: nil)
-		StubURLProtocol.answers = [.authenticationRequired(token: nil), .authenticationRequired(token: nil)]
+		StubURLProtocol.answers = [.authenticationRequired(token: nil), .authenticationRequired(token: nil), .authenticationRequired(token: nil)]
 
 		do {
 			_ = try await service.send(path: "users/current", body: nil)
@@ -72,7 +87,7 @@ final class CloudKitWebServiceTokenTests: XCTestCase {
 		} catch CloudKitWebServiceError.signInRequired {
 		}
 
-		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2", "t1"])
+		XCTAssertEqual(StubURLProtocol.tokensSent, ["t1", "t2", "t2", "t1"])
 		XCTAssertNil(store.loadWebAuthToken())
 		XCTAssertNil(store.loadPreviousWebAuthToken())
 		let isSignedIn = await service.isSignedIn

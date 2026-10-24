@@ -75,7 +75,9 @@ private extension SharedPageResolver {
 
 	/// Text shared from another app may wrap the link in other words.
 	static func firstWebURL(in text: String) -> URL? {
-		if let url = webURL(text) {
+		// URL(string:) would take text with spaces in it as one address, percent-encoding them.
+		let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+		if !trimmed.contains(where: \.isWhitespace), let url = webURL(trimmed) {
 			return url
 		}
 		guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {

@@ -110,19 +110,35 @@ extension Account: ReadingListStore {
 			throw ReadingListError.articleNotFound
 		}
 		Self.readingListLogger.info("ReadingList: saved \(canonical, privacy: .public)")
+		// A status that reached this device without its page (archived elsewhere before a delete
+		// was seen) is kept for the new article; saving puts it in the Queue, here and in iCloud.
+		let arrivedRead = article.status.read
+		if arrivedRead {
+			try await markArticles(articleIDs: [articleID], statusKey: .read, flag: false)
+		}
 		await cloudKitDelegate?.storeAndSendArticleChanges(new: [article], updated: nil, deleted: nil)
-		return article
+		guard arrivedRead else {
+			return article
+		}
+		return await fetchArticlesAsync(.articleIDs([articleID])).first ?? article
 	}
 
 	/// Stores extracted content for a saved article and uploads it. The saved date (its
-	/// `datePublished`) is kept.
+	/// `datePublished`) is kept. Content without a body (the title of a page that failed to
+	/// extract) only names an article that has neither title nor body: it never replaces a body,
+	/// including one that arrives from iCloud while the page is being extracted.
 	public func updateArticleContent(articleID: String, content: ReadingListContent) async throws {
 		guard let article = await fetchArticlesAsync(.articleIDs([articleID])).first,
 			  let feed = readingListFeed else {
 			throw ReadingListError.articleNotFound
 		}
+		let isTitleOnly = content.contentHTML == nil
+		if isTitleOnly && (article.title != nil || article.contentHTML != nil) {
+			return
+		}
 		let item = parsedItem(uniqueID: article.uniqueID, feed: feed, externalURL: article.rawExternalLink, title: content.title ?? article.title, content: content, datePublished: article.datePublished)
-		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item])
+		// Stored only: an article deleted meanwhile stays deleted.
+		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item], keepingContentOf: isTitleOnly ? [articleID] : Set<String>(), updatingStoredOnly: true)
 		guard let updated = changes.updated, !updated.isEmpty else {
 			return
 		}

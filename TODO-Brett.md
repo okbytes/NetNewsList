@@ -16,5 +16,11 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 
 ## 2. When you get to it
 
-- [ ] After `scripts/install-mac.sh` and `scripts/mine.sh` with the 2026-10-22 cleanups (the apps stopped using the `Account` zone): save a page on the Mac and it shows up on the iPhone; archive it on the iPhone and it leaves the Mac's Queue. Tell Claude if either stalls or the Error Log shows an iCloud error.
+- [ ] Install the 2026-10-24 stability pass: `scripts/install-mac.sh`, `scripts/mine.sh`, and the next work-Mac release (above). Then:
+  - Save a page on the Mac and it shows up on the iPhone; archive it on the iPhone and it leaves the Mac's Queue (the 2026-10-22 cleanups stopped using the `Account` zone).
+  - iPhone, app closed: share a link from an app other than Safari, leave the phone a few hours, then open the app. The page saves rather than showing "Couldn't save the page".
+  - iPhone: save a page in Airplane Mode, open the app a few times over 15 minutes, then turn Airplane Mode off and open it again. The page saves.
+  - Mac: select two lines of links in Notes and choose Save to NetNewsList from the Services menu. Both are saved.
+  - Work Mac: quit while it syncs on a slow or missing network. It quits within about 12 seconds, and the next launch is still signed in (or signs in again by itself).
+  - Tell Claude if anything stalls or the Error Log shows an iCloud error.
 - [ ] Once the work Mac runs the next release (1.4 or later), delete the old `Account` zone: in CloudKit Console, open `iCloud.eitherslice.NetNewsList` (Development), act as your iCloud account, find the zones of the private database and delete `Account`. Since 2026-10-22 the apps neither read nor write it (it holds one feed record and one account record); an older build still running somewhere would just create it again, empty. Don't touch the `Articles` zone: that's your reading list.

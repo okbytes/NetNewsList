@@ -21,6 +21,10 @@ import RSCore
 	/// How long a live page gets to finish rendering after it loads.
 	static let liveSettleDelay: Duration = .milliseconds(1500)
 
+	/// How long a live page that sends the browser on (a link shortener’s) gets to load where it
+	/// goes, within `timeout`.
+	static let liveRedirectLimit: Duration = .seconds(5)
+
 	private static let logger = Logger(subsystem: Logger.nnwSubsystem, category: "ReadabilityWebExtractor")
 	private static let contentWorld = WKContentWorld.world(name: "NetNewsListExtraction")
 	private static let blankPage = "<!doctype html><html><head></head><body></body></html>"
@@ -32,6 +36,9 @@ import RSCore
 	private var staticWebView: WKWebView?
 	private var isStaticWebViewReady = false
 	private var liveWebView: WKWebView?
+	/// How the live web view's last navigation without a waiter ended: one the page started
+	/// itself (a redirect) after the first load.
+	private var liveNavigationError: (any Error)?
 	private var navigationWaiters = [ObjectIdentifier: NavigationWaiter]()
 	private var isBusy = false
 
@@ -60,10 +67,31 @@ import RSCore
 				let webView = self.makeWebView(allowsPageJavaScript: true)
 				webView.customUserAgent = userAgent
 				self.liveWebView = webView
-				try await self.load(webView) {
-					webView.load(URLRequest(url: url, timeoutInterval: PageFetcher.timeout))
+				do {
+					try await self.load(webView) {
+						webView.load(URLRequest(url: url, timeoutInterval: PageFetcher.timeout))
+					}
+				} catch let error as NSError where Self.isSuperseded(error) {
+					// The page sent the browser on before it finished loading; the wait below follows it.
 				}
 				try await Task.sleep(for: Self.liveSettleDelay)
+				// A page that moves on with a script or a meta refresh can still be loading its
+				// destination: wait for it, then let it render too.
+				if webView.isLoading {
+					let deadline = ContinuousClock.now + Self.liveRedirectLimit
+					while webView.isLoading, ContinuousClock.now < deadline {
+						try await Task.sleep(for: .milliseconds(250))
+					}
+					try await Task.sleep(for: Self.liveSettleDelay)
+				}
+				// A reset meanwhile stopped the page, so what it shows is cut short.
+				guard self.liveWebView === webView else {
+					throw CancellationError()
+				}
+				// Where the page sent the browser didn’t load; what's left is the page that sent it.
+				if let error = self.liveNavigationError {
+					throw error
+				}
 				let finalURL = webView.url ?? url
 				let result = try await webView.callAsyncJavaScript("return document.documentElement.outerHTML;", arguments: [:], in: nil, contentWorld: Self.contentWorld)
 				guard let html = result as? String else {
@@ -161,6 +189,7 @@ extension ReadabilityWebExtractor: WKNavigationDelegate {
 	public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
 		Self.logger.error("ReadabilityWebExtractor: web content process terminated")
 		if webView === staticWebView {
+			webView.removeFromSuperview()
 			staticWebView = nil
 			isStaticWebViewReady = false
 		}
@@ -201,6 +230,12 @@ private extension ReadabilityWebExtractor {
 
 	@MainActor final class Once {
 		var isDone = false
+	}
+
+	/// A navigation another one replaced (a script or meta-refresh redirect) reports itself
+	/// cancelled, or interrupted.
+	static func isSuperseded(_ error: NSError) -> Bool {
+		(error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled) || (error.domain == "WebKitErrorDomain" && error.code == 102)
 	}
 
 	/// Set when a page load fails, for code waiting on the page rather than the load.
@@ -289,6 +324,7 @@ private extension ReadabilityWebExtractor {
 		if let staticWebView, isStaticWebViewReady {
 			return staticWebView
 		}
+		staticWebView?.removeFromSuperview()
 		let webView = makeWebView(allowsPageJavaScript: false)
 		staticWebView = webView
 		try await load(webView) {
@@ -348,7 +384,11 @@ private extension ReadabilityWebExtractor {
 	}
 
 	func finishNavigation(for webView: WKWebView, error: (any Error)?) {
-		navigationWaiters[ObjectIdentifier(webView)]?.finish(error)
+		if let waiter = navigationWaiters[ObjectIdentifier(webView)] {
+			waiter.finish(error)
+		} else if webView === liveWebView {
+			liveNavigationError = error.flatMap { Self.isSuperseded($0 as NSError) ? nil : $0 }
+		}
 	}
 
 	func runExtraction(in webView: WKWebView, html: String, url: URL) async throws -> ExtractedPage {
@@ -393,5 +433,6 @@ private extension ReadabilityWebExtractor {
 			finishNavigation(for: liveWebView, error: CancellationError())
 		}
 		liveWebView = nil
+		liveNavigationError = nil
 	}
 }

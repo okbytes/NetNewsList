@@ -108,6 +108,7 @@ public actor CloudKitWebService {
 	private static let longestRetryWait: TimeInterval = 60
 
 	private var isSending = false
+	private var isStopped = false
 	private var waitingToSend = [CheckedContinuation<Void, Never>]()
 	/// How long a refused token waits before the same request goes once more with it.
 	private static let refusalRetryDelay: Duration = .seconds(5)
@@ -140,6 +141,12 @@ public actor CloudKitWebService {
 	}
 
 	/// Waits until no request is out, or until `timeout` passes.
+	/// For quitting: the request that’s out may finish, but no other starts, since one cut off by
+	/// the quit would leave a spent token.
+	public func stopSending() {
+		isStopped = true
+	}
+
 	public func waitUntilIdle(timeout: TimeInterval) async {
 		let deadline = Date().addingTimeInterval(timeout)
 		while isSending && Date() < deadline {
@@ -279,11 +286,15 @@ private extension CloudKitWebService {
 	/// One request. Only called while holding the send slot, so the token it uses is the latest.
 	/// With `signInToken`, the request uses that token instead of the stored one, and leaves the
 	/// stored one alone; the token that replaces it goes to `verifiedReplacementToken`.
-	/// `isRetry` marks the second try after iCloud refused the stored token; a second refusal ends
+	/// `refusals` counts iCloud’s refusals of the stored token for this request; the third ends
 	/// the sign-in.
-	func perform(path: String, body: Data?, authenticated: Bool, signInToken: String? = nil, isRetry: Bool = false) async throws -> [String: Any] {
+	func perform(path: String, body: Data?, authenticated: Bool, signInToken: String? = nil, refusals: Int = 0) async throws -> [String: Any] {
 		guard !configuration.apiToken.isEmpty else {
 			throw CloudKitWebServiceError.notConfigured
+		}
+		// Quitting: a request already out may finish, but none starts, a retry included.
+		guard !isStopped else {
+			throw CancellationError()
 		}
 		// A wait iCloud asked for holds off syncing, not signing in: the sign-in page and its check go.
 		if authenticated, signInToken == nil, let throttledUntil, throttledUntil > Date() {
@@ -317,28 +328,32 @@ private extension CloudKitWebService {
 		if serverErrorCode == "AUTHENTICATION_REQUIRED" || serverErrorCode == "AUTHENTICATION_FAILED" {
 			let code = serverErrorCode ?? ""
 			if authenticated && signInToken == nil && tokenStore.loadWebAuthToken() == token {
-				// A refusal isn’t final the first time. The answer may carry the next token (seen in
-				// 2026); the token before this one may still be good when this one’s response was
-				// lost; and Apple has refused good tokens for a moment. One more try, then the end.
-				if !isRetry {
-					if let renewed = Self.replacementToken(in: httpResponse), renewed != token {
-						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)) and sent another; trying it")
-						storeToken(renewed)
-					} else if let previous = tokenStore.loadPreviousWebAuthToken(), previous != token {
-						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)); trying the one before it")
-						tokenStore.savePreviousWebAuthToken(nil)
-						storeToken(previous)
-					} else {
-						Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)); trying once more in a moment")
-						try? await Task.sleep(for: Self.refusalRetryDelay)
+				// A refusal isn’t final at once. The answer may carry the next token (seen in 2026),
+				// and Apple has refused good tokens for a moment, so first that token, or this one again
+				// in a moment. Then the token before this one, which may still be good when this one’s
+				// response was lost; it goes second because trying it drops this one. Then the end.
+				let previous = tokenStore.loadPreviousWebAuthToken()
+				if refusals == 0, let renewed = Self.replacementToken(in: httpResponse), renewed != token {
+					Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)) and sent another; trying it")
+					storeToken(renewed)
+				} else if refusals == 0 {
+					Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token (\(code, privacy: .public)); trying once more in a moment")
+					try? await Task.sleep(for: Self.refusalRetryDelay)
+					// A sign-in made meanwhile isn’t the refused one: its refusals start their own count.
+					if let current = tokenStore.loadWebAuthToken(), current != token {
+						return try await perform(path: path, body: body, authenticated: authenticated)
 					}
-					if tokenStore.loadWebAuthToken() != nil {
-						return try await perform(path: path, body: body, authenticated: authenticated, isRetry: true)
-					}
+				} else if refusals == 1, let previous, previous != token {
+					Self.logger.notice("CloudKitWebService: iCloud refused the sign-in token again (\(code, privacy: .public)); trying the one before it")
+					tokenStore.savePreviousWebAuthToken(nil)
+					storeToken(previous)
 				} else {
 					Self.logger.error("CloudKitWebService: iCloud refused the sign-in token again (\(code, privacy: .public)); the sign-in has ended")
 					tokenStore.savePreviousWebAuthToken(nil)
 					storeToken(nil, endedByICloud: true)
+				}
+				if tokenStore.loadWebAuthToken() != nil {
+					return try await perform(path: path, body: body, authenticated: authenticated, refusals: refusals + 1)
 				}
 			}
 			let redirectURL = (json?["redirectURL"] as? String).flatMap { URL(string: $0) }

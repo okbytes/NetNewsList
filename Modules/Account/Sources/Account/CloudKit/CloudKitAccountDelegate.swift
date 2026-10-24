@@ -255,10 +255,6 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 			}
 			mainThreadOperationQueue.add(op)
 		}
-		// Other fetch failures are logged and tried again at the next sync; this one ends syncing.
-		if let error = op.error, case CloudKitZoneError.userDeletedZone = error {
-			throw error
-		}
 		// Every sync path fetches here: the Mac's timer sync as well as a full refresh.
 		if op.didFetchChanges {
 			await settleSavedDatesIfNeeded(account: account)
@@ -314,6 +310,13 @@ enum CloudKitAccountDelegateError: LocalizedError, Sendable {
 		account.ensureReadingListFeed()
 
 		articlesZone.delegate = CloudKitArticlesZoneDelegate(account: account, database: syncDatabase, syncErrorHandler: syncErrorHandler)
+		articlesZone.zoneWasRecreated = { [weak self, weak account] in
+			guard let self, let account else {
+				return
+			}
+			UserDefaults.standard.removeObject(forKey: Self.didSubscribeToZonesKey)
+			self.subscribeToZoneChangesIfNeeded(account: account)
+		}
 
 		let accountID = account.accountID
 		let accountDisplayName = account.nameForDisplay
@@ -569,13 +572,6 @@ private extension CloudKitAccountDelegate {
 		do {
 			try await refreshArticleStatus()
 		} catch {
-			if case CloudKitZoneError.userDeletedZone = error {
-				// The app’s iCloud data was deleted (for instance from iCloud settings). Keep
-				// everything on this device; Reset iCloud Sync uploads it again if wanted.
-				articlesZone.resetChangeToken()
-				account.externalID = nil
-				UserDefaults.standard.removeObject(forKey: Self.didSubscribeToZonesKey)
-			}
 			account.postSyncError(error, operation: "Refreshing article status")
 			iCloudError = error
 		}

@@ -32,6 +32,9 @@ final class CloudKitArticlesZone: CloudKitZone {
 	let webDatabase: CloudKitWebDatabase?
 	var delegate: CloudKitZoneDelegate?
 	var fetchChangesPageHandler: CloudKitZoneFetchPageHandler?
+	/// Called when the zone was deleted from iCloud and has been created again. Its change pushes
+	/// went with the old zone.
+	var zoneWasRecreated: (@MainActor () -> Void)?
 
 	struct CloudKitArticle: Sendable {
 		static let recordType = "Article"
@@ -97,35 +100,14 @@ final class CloudKitArticlesZone: CloudKitZone {
 		articlesDelegate?.resetAccumulation()
 		do {
 			try await fetchChangesInZone()
-		} catch {
-			if case CloudKitZoneError.userDeletedZone = error {
-				try await createZoneRecord()
-				return try await refreshArticles()
-			}
-			throw error
+		} catch CloudKitZoneError.userDeletedZone {
+			try await recreateDeletedZone()
+			try await fetchChangesInZone()
 		}
 		return (
 			changed: articlesDelegate?.accumulatedChangedCount ?? 0,
 			deleted: articlesDelegate?.accumulatedDeletedCount ?? 0
 		)
-	}
-
-	@MainActor func saveNewArticles(_ articles: Set<Article>) async throws {
-		guard !articles.isEmpty else {
-			return
-		}
-
-		// Every saved article keeps its content in iCloud, read or not, starred or not.
-		var records = [CKRecord]()
-		for article in articles {
-			records.append(makeStatusRecord(article))
-			records.append(makeArticleRecord(article))
-		}
-
-		await Task.detached(priority: .userInitiated) {
-			self.compressArticleRecords(records)
-		}.value
-		try await save(records)
 	}
 
 	/// The records one batch of status updates turns into. Kept pure so the rules that
@@ -385,10 +367,20 @@ private extension CloudKitArticlesZone {
 
 	func handleModifyArticlesError(_ error: Error, statusUpdates: [CloudKitArticleStatusUpdate]) async throws -> ModifyArticlesResult {
 		if case CloudKitZoneError.userDeletedZone = error {
-			try await createZoneRecord()
+			try await recreateDeletedZone()
 			return try await modifyArticles(statusUpdates)
 		}
 		throw error
+	}
+
+	/// The app’s iCloud data was deleted (from iCloud settings, say): an empty zone again, fetched
+	/// from the start, since the change token belongs to the old zone. Everything on this device is
+	/// kept; Reset iCloud Sync uploads it again if wanted.
+	@MainActor func recreateDeletedZone() async throws {
+		Self.logger.error("CloudKitArticlesZone: the Articles zone was deleted from iCloud; creating it again")
+		try await createZoneRecord()
+		resetChangeToken()
+		zoneWasRecreated?()
 	}
 
 	nonisolated static func statusRecordName(_ articleID: String) -> String {
@@ -397,17 +389,6 @@ private extension CloudKitArticlesZone {
 
 	nonisolated static func articleRecordName(_ articleID: String) -> String {
 		return "a|\(articleID)"
-	}
-
-	@MainActor func makeStatusRecord(_ article: Article) -> CKRecord {
-		let recordID = CKRecord.ID(recordName: Self.statusRecordName(article.articleID), zoneID: zoneID)
-		let record = CKRecord(recordType: CloudKitArticleStatus.recordType, recordID: recordID)
-		if let feedExternalID = article.feed?.externalID {
-			record[CloudKitArticleStatus.Fields.feedExternalID] = feedExternalID
-		}
-		record[CloudKitArticleStatus.Fields.read] = article.status.read ? "1" : "0"
-		record[CloudKitArticleStatus.Fields.starred] = article.status.starred ? "1" : "0"
-		return record
 	}
 
 	@MainActor func makeStatusRecord(_ statusUpdate: CloudKitArticleStatusUpdate) -> CKRecord {

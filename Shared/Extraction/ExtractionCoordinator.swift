@@ -71,7 +71,14 @@ extension Notification {
 	private var currentJob: Job?
 	private var currentTask: Task<Void, Never>?
 	private var isStarted = false
+#if os(macOS)
 	private var isSuspended = false
+#else
+	/// iOS also launches the app in the background (a refresh, a silent push, a Shortcut), where
+	/// WebKit can’t be relied on and a job cut short would count as a failure. Extraction waits
+	/// until the app first becomes active.
+	private var isSuspended = true
+#endif
 	private var isDrainScheduled = false
 
 	private var account: Account {
@@ -321,12 +328,22 @@ private extension ExtractionCoordinator {
 											 summary: page.excerpt,
 											 imageURL: page.leadImageURL,
 											 byline: page.byline)
+			// Paused for the background meanwhile: a live page stopped then is half loaded, and the
+			// job runs again when the app is back.
+			guard !Task.isCancelled else {
+				return
+			}
 			try await account.updateArticleContent(articleID: job.articleID, content: content)
 			ledger.remove(job.articleID)
 			saveLedger()
 			Self.logger.info("Extraction: saved \(job.articleID, privacy: .public) (\(page.textLength) characters)")
 		} catch {
 			guard !Task.isCancelled else {
+				return
+			}
+			// Offline says nothing about the page, so it stays pending without using up an attempt.
+			if !job.isManual, Self.isOffline(error) {
+				Self.logger.info("Extraction: offline; \(job.articleID, privacy: .public) stays pending")
 				return
 			}
 			recordFailure(job.articleID, error: error)
@@ -351,11 +368,28 @@ private extension ExtractionCoordinator {
 		if let staticPage, staticPage.hasReadableContent {
 			return staticPage
 		}
+		// Paused for the background, where the live page couldn’t load anyway.
+		try Task.checkCancellation()
 		Self.logger.info("Extraction: little text in the fetched page; loading it live")
-		if let livePage = try? await extractor.extractLivePage(url: url, userAgent: userAgent), livePage.textLength > staticPage?.textLength ?? 0 {
-			return livePage
+		do {
+			let livePage = try await extractor.extractLivePage(url: url, userAgent: userAgent)
+			if livePage.textLength > staticPage?.textLength ?? 0 {
+				return livePage
+			}
+		} catch {
+			// Going offline in between says nothing about the page, so it isn’t a failure of it.
+			if error is CancellationError || Self.isOffline(error) {
+				throw error
+			}
 		}
 		return staticPage
+	}
+
+	static func isOffline(_ error: any Error) -> Bool {
+		guard let urlError = error as? URLError else {
+			return false
+		}
+		return [.notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff].contains(urlError.code)
 	}
 
 	func recordFailure(_ articleID: String, error: any Error) {

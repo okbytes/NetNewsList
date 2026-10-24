@@ -67,6 +67,10 @@ import RSParser
 
 	@Test func contentUpdateWithoutArticleIsDropped() {
 		#expect(CloudKitArticleStatusUpdate(articleID: "a", statuses: [syncStatus(.content)], article: nil) == nil)
+		// Deleted from iCloud before an archive here went: sending it would put back a status record,
+		// read, that every device keeps, so saving the page again would put it in the Archive.
+		#expect(CloudKitArticleStatusUpdate(articleID: "a", statuses: [syncStatus(.read)], article: nil) == nil)
+		#expect(CloudKitArticleStatusUpdate(articleID: "a", statuses: [syncStatus(.starred)], article: nil) == nil)
 	}
 
 	@Test func planNeverDeletesContentForStatusChanges() throws {

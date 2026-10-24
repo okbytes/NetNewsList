@@ -43,6 +43,7 @@ let appName = "NetNewsList"
 	}
 
 	private var isShutDownSyncDone = false
+	private var isShutDownSendDone = false
 
 	@IBOutlet var debugMenuItem: NSMenuItem!
 
@@ -283,16 +284,17 @@ let appName = "NetNewsList"
 		}
 		shuttingDown = true
 		Task { @MainActor in
-			await withTaskGroup(of: Void.self) { group in
-				group.addTask {
-					await AccountManager.shared.sendArticleStatusAll()
-				}
-				group.addTask {
-					try? await Task.sleep(for: .seconds(8))
-				}
-				await group.next()
-				group.cancelAll()
+			// The send waits on a sync operation that ignores cancellation, so it isn't awaited:
+			// after 8 s the app stops waiting for it rather than holding up the quit.
+			Task { @MainActor in
+				await AccountManager.shared.sendArticleStatusAll()
+				isShutDownSendDone = true
 			}
+			let deadline = Date().addingTimeInterval(8)
+			while !isShutDownSendDone && Date() < deadline {
+				try? await Task.sleep(for: .milliseconds(100))
+			}
+			await service.stopSending()
 			await service.waitUntilIdle(timeout: 4)
 			isShutDownSyncDone = true
 			NSApp.reply(toApplicationShouldTerminate: true)

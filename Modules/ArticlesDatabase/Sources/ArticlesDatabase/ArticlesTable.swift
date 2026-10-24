@@ -226,7 +226,7 @@ final class ArticlesTable: DatabaseTable, Sendable {
 
 		// 1. Ensure statuses for all the incoming articles. New articles are unread, whatever their age.
 		// 2. Create incoming articles with parsedItems.
-		// 3. Fetch all articles for the feed, and keep the stored body of articles in keptArticleIDs.
+		// 3. Fetch the stored copies of the incoming articles, and keep the stored body of articles in keptArticleIDs.
 		// 4. Create array of Articles not in database and save them.
 		// 5. Create array of updated Articles and save what’s changed.
 		// 6. Call back with new and updated Articles.
@@ -237,7 +237,7 @@ final class ArticlesTable: DatabaseTable, Sendable {
 			var parsedItems = parsedItems
 			var storedArticles: Set<Article>?
 			if updatingStoredOnly {
-				let stored = self.fetchArticlesForFeedID(feedID, database)
+				let stored = self.fetchArticles(articleIDs: parsedItems.articleIDs(), database)
 				let storedArticleIDs = Set(stored.map(\.articleID))
 				parsedItems = parsedItems.filter { storedArticleIDs.contains($0.articleID) }
 				if parsedItems.isEmpty {
@@ -258,7 +258,8 @@ final class ArticlesTable: DatabaseTable, Sendable {
 				return
 			}
 
-			let fetchedArticles = storedArticles ?? self.fetchArticlesForFeedID(feedID, database) // 3
+			// Only the incoming articles: the reading list is one feed, so the whole feed is every article.
+			let fetchedArticles = storedArticles ?? self.fetchArticles(articleIDs: articleIDs, database) // 3
 			let fetchedArticlesDictionary = fetchedArticles.dictionary()
 			let incomingArticles = parsedArticles.keepingContent(of: keptArticleIDs, fetchedArticlesDictionary).keepingDates(fetchedArticlesDictionary)
 

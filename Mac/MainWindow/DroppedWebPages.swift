@@ -15,17 +15,30 @@ import AppKit
 	/// The link title browsers attach to a dragged link.
 	private static let urlNameType = NSPasteboard.PasteboardType("public.url-name")
 
+	/// Each item’s link or address, with the title a browser gives a dragged link. Text with other
+	/// words in it gives the addresses it holds when no link comes with it, or when the link is
+	/// the first of them (lines of links, which come with only the first as a link). A dragged
+	/// article or a named link is the link alone, whatever addresses its text holds.
 	static func pages(on pasteboard: NSPasteboard) -> [SavedArticleRequest] {
-		(pasteboard.pasteboardItems ?? []).compactMap { item in
-			guard let string = item.string(forType: .URL) ?? item.string(forType: .string) else {
-				return nil
+		(pasteboard.pasteboardItems ?? []).flatMap { item -> [SavedArticleRequest] in
+			let link = item.string(forType: .URL)
+			let isNamed = item.types.contains(urlNameType) || item.types.contains(ArticlePasteboardWriter.articleUTIType)
+			if !isNamed, let text = item.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), text.contains(where: \.isWhitespace) {
+				let addresses = SavePageService.webAddresses(in: text)
+				if link == nil || addresses.first == link {
+					return addresses.map { SavedArticleRequest(url: $0, title: nil) }
+				}
 			}
+			guard let string = link ?? item.string(forType: .string) else {
+				return []
+			}
+			// URL(string:) would take text with spaces in it as one address, percent-encoding them.
 			let urlString = string.trimmingCharacters(in: .whitespacesAndNewlines)
-			guard let url = URL(string: urlString), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
-				return nil
+			guard !urlString.contains(where: \.isWhitespace), let url = URL(string: urlString), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+				return []
 			}
 			let title = item.string(forType: urlNameType)?.trimmingCharacters(in: .whitespacesAndNewlines)
-			return SavedArticleRequest(url: urlString, title: (title?.isEmpty ?? true) ? nil : title)
+			return [SavedArticleRequest(url: urlString, title: (title?.isEmpty ?? true) ? nil : title)]
 		}
 	}
 

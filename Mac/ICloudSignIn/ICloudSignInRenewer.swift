@@ -42,6 +42,8 @@ import CloudKitSync
 	private var webView: WKWebView?
 	private var messageProxy: ICloudSignInMessageProxy?
 	private var continuation: CheckedContinuation<Outcome, Never>?
+	/// Set while the page is being waited for; ended when the page reaches the callback.
+	private var pageTimeout: Task<Void, Never>?
 	private var lastAttempt: Date?
 	private var isRunning = false
 
@@ -91,8 +93,15 @@ import CloudKitSync
 		let outcome = await withCheckedContinuation { (continuation: CheckedContinuation<Outcome, Never>) in
 			self.continuation = continuation
 			webView.load(URLRequest(url: url))
-			Task { @MainActor [weak self] in
-				try? await Task.sleep(for: Self.timeout)
+			self.pageTimeout = Task { @MainActor [weak self] in
+				do {
+					try await Task.sleep(for: Self.timeout)
+				} catch {
+					return
+				}
+				guard !Task.isCancelled else {
+					return
+				}
 				self?.finish(with: .needsUser, reason: "the page didn’t finish by itself")
 			}
 		}
@@ -144,9 +153,13 @@ private extension ICloudSignInRenewer {
 	}
 
 	func complete(webAuthToken: String) {
-		guard continuation != nil else {
+		// Once per attempt. Checking the sign-in with iCloud has time limits of its own, so the
+		// page’s time limit stops here rather than cutting a slow check short.
+		guard continuation != nil, let pageTimeout else {
 			return
 		}
+		pageTimeout.cancel()
+		self.pageTimeout = nil
 		webView?.stopLoading()
 		Task { @MainActor in
 			do {
@@ -166,6 +179,8 @@ private extension ICloudSignInRenewer {
 			return
 		}
 		self.continuation = nil
+		pageTimeout?.cancel()
+		pageTimeout = nil
 		if let reason {
 			Self.logger.notice("ICloudSignInRenewer: the sign-in needs the user: \(reason, privacy: .public)")
 		}

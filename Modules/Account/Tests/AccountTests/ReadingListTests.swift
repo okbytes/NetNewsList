@@ -87,6 +87,22 @@ import Articles
 		#expect(await account.pendingExtractionArticleIDs().isEmpty)
 	}
 
+	@Test func failedExtractionsTitleKeepsTheBody() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		// A Shortcut saved the page with a body and no title; a Retry then found only a bot
+		// check, whose title is all a failed extraction keeps.
+		let saved = try await account.saveArticle(url: "https://example.com/post", title: nil, content: ReadingListContent(contentHTML: "<p>Body</p>"))
+		try await account.updateArticleContent(articleID: saved.articleID, content: ReadingListContent(title: "Just a moment"))
+
+		let article = try #require(await account.fetchArticlesAsync(.articleIDs([saved.articleID])).first)
+		#expect(article.contentHTML == "<p>Body</p>")
+		#expect(article.title == nil)
+	}
+
 	@Test func extractedContentKeepsAnImportedSaveDate() async throws {
 		let account = accountManager.createAccount(type: .cloudKit)
 		defer {
@@ -168,6 +184,12 @@ import Articles
 		#expect(await account.fetchArticlesAsync(.articleIDs([saved.articleID])).isEmpty)
 		// Timelines remove deleted articles when told; their merge would otherwise keep them.
 		#expect(deletion.articleIDs == [saved.articleID])
+
+		// A read status of the page arrives from iCloud without the page (another device archived it
+		// before it saw the delete). Saving the page again still puts it in the Queue.
+		await account.markAsReadAsync(articleIDs: [saved.articleID])
+		let savedAgain = try await account.saveArticle(url: "https://example.com/post", title: nil, content: nil)
+		#expect(!savedAgain.status.read)
 	}
 
 	@Test func invalidURLIsRejected() async {
