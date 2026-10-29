@@ -444,6 +444,8 @@ private extension MainWindowController {
 			window.setFrame(savedFrame, display: false)
 		}
 		window.toolbar = makeToolbar()
+		// The shorter bar's buttons are smaller; the regular one's were 36 points across.
+		window.toolbarStyle = .unifiedCompact
 		// The list title stands in for the window's title, which stays set for the Window menu.
 		window.titleVisibility = .hidden
 

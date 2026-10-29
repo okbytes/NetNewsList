@@ -23,12 +23,18 @@ final class ListTitleView: UIView {
 		didSet {
 			countChip.text = count.formatted()
 			countChip.isHidden = count == 0
+			titleEndsView.isActive = countChip.isHidden
+			chipEndsView.isActive = !countChip.isHidden
 			updateAccessibility()
 		}
 	}
 
 	private let titleLabel = UILabel()
 	private let countChip = CountChipView()
+	private lazy var titleEndsView = titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor)
+	private lazy var chipEndsView = countChip.trailingAnchor.constraint(equalTo: trailingAnchor)
+	/// Centers the chip on the title's lowercase letters; set from the title's font in `updateConstraints`.
+	private lazy var chipOnXHeight = countChip.centerYAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor)
 
 	/// Title 3's 20 points plus 4, scaling with Dynamic Type up to Title 3's size at xxxLarge,
 	/// so at accessibility sizes it doesn't crowd the "…" button. The Large Content Viewer shows it larger.
@@ -39,21 +45,27 @@ final class ListTitleView: UIView {
 
 		titleLabel.font = Self.titleFont
 		titleLabel.adjustsFontForContentSizeCategory = true
-		titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+		titleLabel.translatesAutoresizingMaskIntoConstraints = false
+		addSubview(titleLabel)
 		countChip.isHidden = true
-
-		let stackView = UIStackView(arrangedSubviews: [titleLabel, countChip])
-		stackView.axis = .horizontal
-		stackView.alignment = .center
-		stackView.spacing = 7
-		stackView.translatesAutoresizingMaskIntoConstraints = false
-		addSubview(stackView)
+		countChip.translatesAutoresizingMaskIntoConstraints = false
+		addSubview(countChip)
+		// The bar makes this view taller than the title. Stretched with it, the label would center its
+		// text in the extra height while its baseline anchor stayed put, and the chip would sit high.
+		let fitsTitle = heightAnchor.constraint(equalTo: titleLabel.heightAnchor)
+		fitsTitle.priority = .fittingSizeLevel
 		NSLayoutConstraint.activate([
-			stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
-			stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
-			stackView.topAnchor.constraint(equalTo: topAnchor),
-			stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
+			titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+			titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+			titleLabel.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+			fitsTitle,
+			countChip.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
+			chipOnXHeight,
+			titleEndsView
 		])
+		registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (self: Self, _) in
+			self.setNeedsUpdateConstraints()
+		}
 
 		isAccessibilityElement = true
 		accessibilityTraits = .header
@@ -65,6 +77,11 @@ final class ListTitleView: UIView {
 		fatalError("init(coder:) has not been implemented")
 	}
 
+	override func updateConstraints() {
+		chipOnXHeight.constant = -titleLabel.font.xHeight / 2
+		super.updateConstraints()
+	}
+
 	private func updateAccessibility() {
 		accessibilityLabel = title
 		accessibilityValue = count > 0 ? String(AttributedString(localized: "^[\(count) article](inflect: true)").characters) : nil
@@ -72,7 +89,8 @@ final class ListTitleView: UIView {
 	}
 }
 
-/// A knocked-out chip: the text is cut out of a gray rounded rectangle, so whatever is behind the bar shows through it.
+/// A knocked-out chip: the count is cut out of a rounded rectangle in the title's color, so whatever is behind the bar
+/// shows through it.
 private final class CountChipView: UIView {
 
 	var text = "" {
@@ -82,15 +100,16 @@ private final class CountChipView: UIView {
 		}
 	}
 
+	/// 11 points at the default text size, scaling like Title 3.
 	private var font: UIFont {
-		let font = UIFont.systemFont(ofSize: 13, weight: .heavy)
-		let rounded = font.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: 13) } ?? font
-		return UIFontMetrics(forTextStyle: .title3).scaledFont(for: rounded, maximumPointSize: 17, compatibleWith: traitCollection)
+		let bold = UIFont.systemFont(ofSize: 11, weight: .bold)
+		let rounded = bold.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: 11) } ?? bold
+		return UIFontMetrics(forTextStyle: .title3).scaledFont(for: rounded, maximumPointSize: 15, compatibleWith: traitCollection)
 	}
 
-	/// The chip's measurements grow with its font.
+	/// The chip's padding and corners grow with its font.
 	private var scale: CGFloat {
-		font.pointSize / 13
+		font.pointSize / 11
 	}
 
 	override init(frame: CGRect) {
@@ -109,23 +128,28 @@ private final class CountChipView: UIView {
 		fatalError("init(coder:) has not been implemented")
 	}
 
+	/// 4 points around the digits (which are cap height), and at least as wide as it is tall.
 	override var intrinsicContentSize: CGSize {
-		let height = (20 * scale).rounded()
+		let font = font
+		let height = (font.capHeight + 2 * 4 * scale).rounded()
 		let textWidth = (text as NSString).size(withAttributes: [.font: font]).width
-		return CGSize(width: max(height, ceil(textWidth + 2 * 5 * scale)), height: height)
+		return CGSize(width: max(height, ceil(textWidth + 2 * 4 * scale)), height: height)
 	}
 
 	override func draw(_ rect: CGRect) {
 		guard let context = UIGraphicsGetCurrentContext() else {
 			return
 		}
-		UIColor.secondaryLabel.setFill()
-		UIBezierPath(roundedRect: bounds, cornerRadius: 5 * scale).fill()
+		// The title's color.
+		UIColor.label.setFill()
+		UIBezierPath(roundedRect: bounds, cornerRadius: 4 * scale).fill()
 
 		context.setBlendMode(.destinationOut)
+		let font = font
 		let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.black]
-		let textSize = (text as NSString).size(withAttributes: attributes)
-		let origin = CGPoint(x: (bounds.width - textSize.width) / 2, y: (bounds.height - textSize.height) / 2)
-		(text as NSString).draw(at: origin, withAttributes: attributes)
+		let textWidth = (text as NSString).size(withAttributes: attributes).width
+		// The digits centered top to bottom: their baseline is half a cap height below the middle.
+		let baseline = (bounds.height + font.capHeight) / 2
+		(text as NSString).draw(at: CGPoint(x: (bounds.width - textWidth) / 2, y: baseline - font.ascender), withAttributes: attributes)
 	}
 }
