@@ -26,6 +26,7 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	private var timelineContainerViewController: TimelineContainerViewController?
 	private var detailViewController: DetailViewController?
 	private var restoreArticleWindowScrollY: CGFloat?
+	private let listTitleView = ListTitleView()
 
 	// MARK: - NSWindowController
 
@@ -258,6 +259,15 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 		currentTimelineViewController?.focus()
 	}
 
+	/// The list title's click: the Archive from the Queue, the Queue from the Archive.
+	@objc func switchList(_ sender: Any?) {
+		if currentList === SmartFeedsController.shared.archiveFeed {
+			gotoQueue(sender)
+		} else {
+			gotoArchive(sender)
+		}
+	}
+
 	/// Deletes the selected articles here and on every other device, after asking.
 	@IBAction func deleteArticles(_ sender: Any?) {
 		guard let articles = selectedArticles, let window else {
@@ -348,7 +358,7 @@ extension MainWindowController: TimelineContainerViewControllerDelegate {
 // MARK: - NSToolbarDelegate
 
 extension NSToolbarItem.Identifier {
-	static let listMenu = NSToolbarItem.Identifier("listMenu")
+	static let listTitle = NSToolbarItem.Identifier("listTitle")
 	static let addArticle = NSToolbarItem.Identifier("addArticle")
 	static let markRead = NSToolbarItem.Identifier("markRead")
 	static let openInBrowser = NSToolbarItem.Identifier("openInBrowser")
@@ -361,14 +371,16 @@ extension MainWindowController: NSToolbarDelegate {
 
 		switch itemIdentifier {
 
-		case .listMenu:
-			let toolbarItem = NSMenuToolbarItem(itemIdentifier: .listMenu)
-			toolbarItem.image = Assets.Images.listMenu
-			toolbarItem.showsIndicator = false
-			let description = NSLocalizedString("Lists", comment: "Toolbar menu that switches between the Queue and the Archive")
-			toolbarItem.toolTip = description
-			toolbarItem.label = description
-			toolbarItem.menu = makeListMenu()
+		case .listTitle:
+			let toolbarItem = NSToolbarItem(itemIdentifier: .listTitle)
+			listTitleView.action = { [weak self] in
+				self?.switchList(nil)
+			}
+			toolbarItem.view = listTitleView
+			toolbarItem.isBordered = false
+			toolbarItem.label = NSLocalizedString("List", comment: "Toolbar item: the list's name, which switches between the Queue and the Archive")
+			toolbarItem.visibilityPriority = .high
+			toolbarItem.menuFormRepresentation = NSMenuItem(title: NSLocalizedString("Switch List", comment: "The list title's form in the toolbar's overflow menu"), action: #selector(switchList(_:)), keyEquivalent: "")
 			return toolbarItem
 
 		case .addArticle:
@@ -401,8 +413,9 @@ extension MainWindowController: NSToolbarDelegate {
 
 	func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		[
+			.listTitle,
+			.flexibleSpace,
 			.addArticle,
-			.listMenu,
 			.listTrackingSeparator,
 			.flexibleSpace,
 			.markRead,
@@ -431,6 +444,8 @@ private extension MainWindowController {
 			window.setFrame(savedFrame, display: false)
 		}
 		window.toolbar = makeToolbar()
+		// The list title stands in for the window's title, which stays set for the Window menu.
+		window.titleVisibility = .hidden
 
 		currentTimelineViewController?.focus()
 		window.recalculateKeyViewLoop()
@@ -647,19 +662,20 @@ private extension MainWindowController {
 	func updateWindowTitle() {
 		guard let list = currentList else {
 			window?.title = appName
-			window?.subtitle = ""
+			listTitleView.title = appName
+			listTitleView.count = 0
 			return
 		}
 		window?.title = list.nameForDisplay
+		listTitleView.title = list.nameForDisplay
 
 		// Only the Queue has a count. Archive is everything already read, so it has none.
-		let queue = SmartFeedsController.shared.unreadFeed
-		guard list === queue else {
-			window?.subtitle = ""
-			return
-		}
-		let localizedLabel = NSLocalizedString("%d in Queue", comment: "Window subtitle: the number of articles in the Queue")
-		window?.subtitle = NSString.localizedStringWithFormat(localizedLabel as NSString, queue.unreadCount) as String
+		let smartFeeds = SmartFeedsController.shared
+		listTitleView.count = list === smartFeeds.unreadFeed ? smartFeeds.unreadFeed.unreadCount : 0
+		let otherList: PseudoFeed = list === smartFeeds.archiveFeed ? smartFeeds.unreadFeed : smartFeeds.archiveFeed
+		let localizedHelp = NSLocalizedString("Show %@", comment: "Tooltip of the list title, which switches lists: Show Archive, Show Queue")
+		listTitleView.toolTip = String.localizedStringWithFormat(localizedHelp, otherList.nameForDisplay)
+		listTitleView.setAccessibilityHelp(listTitleView.toolTip)
 	}
 
 	func buildToolbarButton(_ itemIdentifier: NSToolbarItem.Identifier, _ title: String, _ image: NSImage, _ selector: String) -> NSToolbarItem {
@@ -678,18 +694,5 @@ private extension MainWindowController {
 		// A menu form representation keeps view-based items working in the toolbar's overflow menu.
 		toolbarItem.menuFormRepresentation = NSMenuItem(title: title, action: Selector((selector)), keyEquivalent: "")
 		return toolbarItem
-	}
-
-	/// Queue and Archive, checked by validateList like the Go menu’s items.
-	func makeListMenu() -> NSMenu {
-		let smartFeeds = SmartFeedsController.shared
-		let menu = NSMenu()
-		let queueItem = NSMenuItem(title: smartFeeds.unreadFeed.nameForDisplay, action: #selector(gotoQueue(_:)), keyEquivalent: "1")
-		queueItem.target = self
-		menu.addItem(queueItem)
-		let archiveItem = NSMenuItem(title: smartFeeds.archiveFeed.nameForDisplay, action: #selector(gotoArchive(_:)), keyEquivalent: "2")
-		archiveItem.target = self
-		menu.addItem(archiveItem)
-		return menu
 	}
 }

@@ -33,8 +33,6 @@ struct Assets {
 		static let archive = RSImage(symbol: "archivebox")!
 		/// Move an archived article back to the Queue.
 		static let moveToQueue = RSImage(symbol: "tray.and.arrow.up")!
-		/// The "…" menu with the Archive (and Settings on iOS).
-		static let listMenu = RSImage(symbol: "ellipsis")!
 
 #if os(macOS)
 		static let addNewSidebarItem = RSImage(symbol: "plus")!
@@ -44,6 +42,8 @@ struct Assets {
 
 #else // iOS
 
+		/// The Queue's "…" menu: Add Article, the Archive and Settings.
+		static let listMenu = RSImage(symbol: "ellipsis")!
 		static let more = RSImage(symbol: "ellipsis.circle")!
 		static let safari = RSImage(symbol: "safari")!
 		static let trash = RSImage(symbol: "trash")!

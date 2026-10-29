@@ -84,18 +84,6 @@ import ActivityLog
 		sortByName(activeAccounts)
 	}
 
-	public var lastRefreshCompletedDate: Date? {
-		var lastRefreshCompletedDate: Date?
-		for account in activeAccounts {
-			if let accountLastArticleFetchEndTime = account.lastRefreshCompletedDate {
-				if lastRefreshCompletedDate == nil || lastRefreshCompletedDate! < accountLastArticleFetchEndTime {
-					lastRefreshCompletedDate = accountLastArticleFetchEndTime
-				}
-			}
-		}
-		return lastRefreshCompletedDate
-	}
-
 	public func existingActiveAccount(forDisplayName displayName: String) -> Account? {
 		AccountManager.shared.activeAccounts.first(where: { $0.nameForDisplay == displayName })
 	}
@@ -220,11 +208,6 @@ import ActivityLog
 		guard NetworkMonitor.shared.isConnected else {
 			Self.logger.info("AccountManager: skipping refreshAll — not connected to internet.")
 			return false
-		}
-
-		CombinedRefreshProgress.shared.start()
-		defer {
-			CombinedRefreshProgress.shared.stop()
 		}
 
 		await withTaskGroup(of: Void.self, isolation: MainActor.shared) { group in

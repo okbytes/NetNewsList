@@ -63,9 +63,6 @@ enum ShowFeedName {
 
 	var isArticleViewControllerPending = false
 
-	/// `Bool` to track whether a refresh is scheduled.
-	private var isNavigationBarSubtitleRefreshScheduled: Bool = false
-
 	private(set) var sortDirection = AppDefaults.shared.timelineSortDirection {
 		didSet {
 			if sortDirection != oldValue {
@@ -90,7 +87,7 @@ enum ShowFeedName {
 	private var exceptionArticleFetcher: ArticleFetcher?
 	private(set) var timelineFeed: SidebarItem? {
 		didSet {
-			updateNavigationBarSubtitles(nil)
+			updateQueueCount()
 		}
 	}
 
@@ -128,7 +125,7 @@ enum ShowFeedName {
 
 	var timelineUnreadCount: Int = 0 {
 		didSet {
-			updateNavigationBarSubtitles(nil)
+			updateQueueCount()
 		}
 	}
 
@@ -138,15 +135,6 @@ enum ShowFeedName {
 
 	private var archive: PseudoFeed {
 		SmartFeedsController.shared.archiveFeed
-	}
-
-	/// "12 in Queue" while the Queue is showing and has articles. Archive shows no count.
-	private var queueCountSubtitle: String? {
-		guard timelineFeed as AnyObject? === queue, timelineUnreadCount > 0 else {
-			return nil
-		}
-		let format = NSLocalizedString("%d in Queue", comment: "Timeline subtitle: the number of articles in the Queue")
-		return String.localizedStringWithFormat(format, timelineUnreadCount)
 	}
 
 	private static let minimumListWidth: CGFloat = 280
@@ -185,7 +173,6 @@ enum ShowFeedName {
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDeleteArticles(_:)), name: .AccountDidDeleteArticles, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
-		NotificationCenter.default.addObserver(self, selector: #selector(updateNavigationBarSubtitles(_:)), name: .progressInfoDidChange, object: CombinedRefreshProgress.shared)
 
 		NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
 			Task { @MainActor in
@@ -324,42 +311,13 @@ enum ShowFeedName {
 		AccountManager.shared.repairStatusesIfNeeded()
 	}
 
-	/// Updates the list's navigation bar subtitle in response to list changes, Queue count changes,
-	/// `progressInfoDidChange` notifications, and a timed refresh every 60s.
-	///
-	/// While the Queue has articles, its count ("12 in Queue") is the subtitle. Otherwise (an empty
-	/// Queue, or the Archive) it's the sync status: "Syncing…", then "Synced <#relative_time#>".
-	///
-	/// - Parameter note: Optional `Notification`
-	@objc func updateNavigationBarSubtitles(_ note: Notification?) {
-		mainTimelineViewController?.updateNavigationBarSubtitle(queueCountSubtitle ?? syncStatusSubtitle)
-		scheduleNavigationBarSubtitleUpdate()
-	}
-
-	private var syncStatusSubtitle: String {
-		guard CombinedRefreshProgress.shared.progressInfo.isComplete else {
-			return NSLocalizedString("Syncing…", comment: "Syncing…")
-		}
-		// "Synced Just Now" until a minute has passed since the sync.
-		guard let lastRefreshDate = AccountManager.shared.lastRefreshCompletedDate, Date.now > lastRefreshDate.addingTimeInterval(60) else {
-			return NSLocalizedString("Synced Just Now", comment: "Synced Just Now")
-		}
-		let relativeDateTimeFormatter = RelativeDateTimeFormatter()
-		relativeDateTimeFormatter.dateTimeStyle = .named
-		let refreshed = relativeDateTimeFormatter.localizedString(for: lastRefreshDate, relativeTo: Date())
-		let localizedRefreshText = NSLocalizedString("Synced %@", comment: "Synced")
-		return NSString.localizedStringWithFormat(localizedRefreshText as NSString, refreshed) as String
-	}
-
-	func scheduleNavigationBarSubtitleUpdate() {
-		if isNavigationBarSubtitleRefreshScheduled {
+	/// The Queue's count, in the chip beside its title. The Archive has no count; while it's open,
+	/// the Queue's chip keeps its count, so the Queue looks the same as the Archive slides away.
+	private func updateQueueCount() {
+		guard timelineFeed as AnyObject? === queue else {
 			return
 		}
-		isNavigationBarSubtitleRefreshScheduled = true
-		DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
-			self?.isNavigationBarSubtitleRefreshScheduled = false
-			self?.updateNavigationBarSubtitles(nil)
-		}
+		queueViewController?.updateCount(timelineUnreadCount)
 	}
 
 	// MARK: API
@@ -519,6 +477,8 @@ enum ShowFeedName {
 		let settingsNavController = UIStoryboard.settings.instantiateInitialViewController() as! UINavigationController
 		let settingsViewController = settingsNavController.topViewController as! SettingsViewController
 		settingsNavController.modalPresentationStyle = .formSheet
+		// No Done button: the grabber says it's dismissed by pulling it down.
+		settingsNavController.sheetPresentationController?.prefersGrabberVisible = true
 		settingsViewController.presentingParentController = rootSplitViewController
 		rootSplitViewController.present(settingsNavController, animated: true)
 	}
@@ -686,6 +646,10 @@ private extension SceneCoordinator {
 		archiveViewController.coordinator = self
 		archiveViewController.list = archive
 		self.archiveViewController = archiveViewController
+
+		// The Archive's title sits beside its back button, so the button is just the chevron.
+		// The Queue puts its name back once it's on screen again (`MainTimelineViewController.viewDidAppear`).
+		queueViewController.navigationItem.backButtonDisplayMode = .minimal
 
 		// Any article open on iPhone closes as the Archive takes its place.
 		navigationController.setViewControllers([queueViewController, archiveViewController], animated: true)

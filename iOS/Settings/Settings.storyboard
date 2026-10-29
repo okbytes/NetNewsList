@@ -116,13 +116,7 @@
                             <outlet property="delegate" destination="a0p-rk-skQ" id="upy-MC-Wpn"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Settings" id="uf8-rU-NlH">
-                        <barButtonItem key="rightBarButtonItem" systemItem="done" id="HlH-s0-OwW">
-                            <connections>
-                                <action selector="done:" destination="a0p-rk-skQ" id="Mzh-25-h49"/>
-                            </connections>
-                        </barButtonItem>
-                    </navigationItem>
+                    <navigationItem key="navigationItem" title="Settings" id="uf8-rU-NlH"/>
                     <connections>
                         <outlet property="timelineSortOrderSwitch" destination="Keq-Np-l9O" id="Zm7-HG-r5h"/>
                     </connections>

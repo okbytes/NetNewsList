@@ -64,44 +64,35 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		return coordinator?.articles
 	}
 
-	private lazy var navigationBarTitleLabel: UILabel = {
-		let label = UILabel()
-		label.font = UIFont.preferredFont(forTextStyle: .subheadline).bold()
-		label.numberOfLines = 1
-		label.textAlignment = .center
-		label.adjustsFontForContentSizeCategory = false
-		label.text = " " // Placeholder avoids iOS 26 UINavigationBar crash.
-		label.sizeToFit()
-		return label
+	private let listTitleView = ListTitleView()
+
+	/// The list's name, left-aligned in the bar. It stands for the bar's title, which is left empty.
+	private lazy var listTitleBarButtonItem: UIBarButtonItem = {
+		let item = UIBarButtonItem(customView: listTitleView)
+		if #available(iOS 26, *) {
+			item.hidesSharedBackground = true
+		}
+		return item
 	}()
 
-	private lazy var navigationBarSubtitleTitleLabel: UILabel = {
-		let label = UILabel()
-		label.font = .systemFont(ofSize: 12)
-		label.textColor = .systemGray
-		label.textAlignment = .center
-		label.adjustsFontForContentSizeCategory = false
-		label.text = " " // Placeholder avoids iOS 26 UINavigationBar crash.
-		label.sizeToFit()
-		return label
-	}()
-
-	/// The Queue's "…" menu: the Archive and Settings.
+	/// The Queue's "…" menu: Add Article, then the Archive and Settings.
 	private lazy var listMenuBarButtonItem: UIBarButtonItem = {
+		let addArticleAction = UIAction(title: NSLocalizedString("Add Article", comment: "Add Article"), image: UIImage(systemName: "plus")) { [weak self] _ in
+			self?.coordinator?.showAddArticle()
+		}
 		let archiveAction = UIAction(title: SmartFeedsController.shared.archiveFeed.nameForDisplay, image: Assets.Images.archive) { [weak self] _ in
 			self?.coordinator?.selectArchive()
 		}
 		let settingsAction = UIAction(title: NSLocalizedString("Settings", comment: "Settings"), image: UIImage(systemName: "gearshape")) { [weak self] _ in
 			self?.coordinator?.showSettings()
 		}
-		let item = UIBarButtonItem(image: Assets.Images.listMenu, menu: UIMenu(children: [archiveAction, settingsAction]))
+		let menu = UIMenu(children: [
+			UIMenu(options: .displayInline, children: [addArticleAction]),
+			archiveAction,
+			settingsAction
+		])
+		let item = UIBarButtonItem(image: Assets.Images.listMenu, menu: menu)
 		item.accessibilityLabel = NSLocalizedString("More", comment: "More")
-		return item
-	}()
-
-	private lazy var addArticleBarButtonItem: UIBarButtonItem = {
-		let item = UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: self, action: #selector(addNewArticle(_:)))
-		item.accessibilityLabel = NSLocalizedString("Add Article", comment: "Add Article")
 		return item
 	}()
 
@@ -197,7 +188,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		navigationItem.largeTitleDisplayMode = .never
 
 		updateNavigationBarTitle(list?.nameForDisplay ?? "")
-		coordinator?.updateNavigationBarSubtitles(nil)
 
 		// Articles can change while this view is off screen, so always show what the model holds.
 		applyChanges(animated: false)
@@ -207,6 +197,12 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewDidAppear")
 
 		super.viewDidAppear(animated)
+		// The coordinator shortens the back button to a chevron while the Archive is open over the
+		// Queue; an article opened from the Queue goes back to it by name. Reset only once the Queue
+		// is on screen, so the Archive's button doesn't change as it slides away.
+		if isQueue {
+			navigationItem.backButtonDisplayMode = .default
+		}
 		// Deselect only when returning from article navigation, and not while
 		// another article push is in flight.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5417>
@@ -255,18 +251,14 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 	}
 
 	func updateNavigationBarTitle(_ text: String) {
-		navigationItem.title = text
-		if let label = navigationItem.titleView as? UILabel {
-			label.text = text
-			label.sizeToFit()
-		}
+		listTitleView.title = text
+		// The screen pushed over this one goes back to it by name.
+		navigationItem.backButtonTitle = text
 	}
 
-	func updateNavigationBarSubtitle(_ text: String) {
-		if #available(iOS 26, *), let label = navigationItem.subtitleView as? UILabel {
-			label.text = text
-			label.sizeToFit()
-		}
+	/// The number in the title's chip. Zero hides the chip.
+	func updateCount(_ count: Int) {
+		listTitleView.count = count
 	}
 
 	func reinitializeArticles(resetScroll: Bool) {
@@ -515,23 +507,16 @@ extension MainTimelineViewController {
 // MARK: Private API
 private extension MainTimelineViewController {
 
-	/// The list's name and, on the Queue, the "…" menu on the left and Add Article on the right.
-	/// The Archive gets the back button.
+	/// The list's name on the left (after the back button on the Archive) and, on the Queue,
+	/// the "…" menu on the right.
 	func configureNavigationItem() {
 		navigationItem.largeTitleDisplayMode = .never
-		navigationItem.titleView = navigationBarTitleLabel
-		if #available(iOS 26, *) {
-			navigationItem.subtitleView = navigationBarSubtitleTitleLabel
-		}
+		// The title item stands in for the bar's centered title (the storyboard's "Timeline").
+		navigationItem.title = nil
+		navigationItem.leftItemsSupplementBackButton = true
+		navigationItem.leftBarButtonItem = listTitleBarButtonItem
+		navigationItem.rightBarButtonItem = isQueue ? listMenuBarButtonItem : nil
 		updateNavigationBarTitle(list?.nameForDisplay ?? "")
-
-		if isQueue {
-			navigationItem.leftBarButtonItem = listMenuBarButtonItem
-			navigationItem.rightBarButtonItem = addArticleBarButtonItem
-		} else {
-			navigationItem.leftBarButtonItem = nil
-			navigationItem.rightBarButtonItem = nil
-		}
 	}
 
 	func updateVisibleCellConfigurations() {

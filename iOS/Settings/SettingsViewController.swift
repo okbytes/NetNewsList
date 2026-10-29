@@ -115,10 +115,6 @@ final class SettingsViewController: UITableViewController {
 
 	// MARK: Actions
 
-	@IBAction func done(_ sender: Any) {
-		dismiss(animated: true)
-	}
-
 	@IBAction func switchTimelineOrder(_ sender: Any) {
 		if timelineSortOrderSwitch.isOn {
 			AppDefaults.shared.timelineSortDirection = .orderedAscending
