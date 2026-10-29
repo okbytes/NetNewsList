@@ -647,10 +647,6 @@ private extension SceneCoordinator {
 		archiveViewController.list = archive
 		self.archiveViewController = archiveViewController
 
-		// The Archive's title sits beside its back button, so the button is just the chevron.
-		// The Queue puts its name back once it's on screen again (`MainTimelineViewController.viewDidAppear`).
-		queueViewController.navigationItem.backButtonDisplayMode = .minimal
-
 		// Any article open on iPhone closes as the Archive takes its place.
 		navigationController.setViewControllers([queueViewController, archiveViewController], animated: true)
 		showListColumnIfExpanded()

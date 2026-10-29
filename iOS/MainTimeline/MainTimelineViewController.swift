@@ -197,12 +197,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		Self.logger.debug("MainTimelineViewController: viewDidAppear")
 
 		super.viewDidAppear(animated)
-		// The coordinator shortens the back button to a chevron while the Archive is open over the
-		// Queue; an article opened from the Queue goes back to it by name. Reset only once the Queue
-		// is on screen, so the Archive's button doesn't change as it slides away.
-		if isQueue {
-			navigationItem.backButtonDisplayMode = .default
-		}
 		// Deselect only when returning from article navigation, and not while
 		// another article push is in flight.
 		// <https://github.com/Ranchero-Software/NetNewsWire/issues/5417>
@@ -252,8 +246,6 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 
 	func updateNavigationBarTitle(_ text: String) {
 		listTitleView.title = text
-		// The screen pushed over this one goes back to it by name.
-		navigationItem.backButtonTitle = text
 	}
 
 	/// The number in the title's chip. Zero hides the chip.
@@ -516,6 +508,8 @@ private extension MainTimelineViewController {
 		navigationItem.leftItemsSupplementBackButton = true
 		navigationItem.leftBarButtonItem = listTitleBarButtonItem
 		navigationItem.rightBarButtonItem = isQueue ? listMenuBarButtonItem : nil
+		// The screen pushed over this one, the Archive or an article, goes back to it with just the chevron.
+		navigationItem.backButtonDisplayMode = .minimal
 		updateNavigationBarTitle(list?.nameForDisplay ?? "")
 	}
 

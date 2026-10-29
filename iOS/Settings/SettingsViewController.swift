@@ -38,6 +38,9 @@ final class SettingsViewController: UITableViewController {
 
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
+
+		// Like every back button in the app, the logs' is just the chevron.
+		navigationItem.backButtonDisplayMode = .minimal
 	}
 
 	override func viewWillAppear(_ animated: Bool) {

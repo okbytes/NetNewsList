@@ -26,9 +26,9 @@ final class ArticleViewController: UIViewController {
 		return pageViewController?.viewControllers?.first as? WebViewController
 	}
 
-	// The article's actions are all in the navigation bar: Archive or Move to Queue, Open in Browser and Share.
+	// The article's actions are all in the navigation bar: Archive or Move to Queue, and Share
+	// (whose sheet has Open in Browser and Find in Article).
 	private lazy var archiveBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Archive", comment: "Command"), image: Assets.Images.archive, target: self, action: #selector(toggleRead(_:)))
-	private lazy var openInBrowserBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Open in Browser", comment: "Command"), image: Assets.Images.safari, target: self, action: #selector(openInBrowser(_:)))
 	private lazy var shareBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Share", comment: "Share button"), image: Assets.Images.share, target: self, action: #selector(showActivityDialog(_:)))
 
 	weak var coordinator: SceneCoordinator!
@@ -86,8 +86,8 @@ final class ArticleViewController: UIViewController {
 		navigationItem.scrollEdgeAppearance = appearance
 		navigationItem.compactAppearance = appearance
 
-		// Right to left: Share at the trailing edge, Archive leftmost.
-		navigationItem.rightBarButtonItems = [shareBarButtonItem, openInBrowserBarButtonItem, archiveBarButtonItem]
+		// Right to left: Share at the trailing edge, Archive beside it.
+		navigationItem.rightBarButtonItems = [shareBarButtonItem, archiveBarButtonItem]
 
 		pageViewController = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: [:])
 
@@ -154,14 +154,11 @@ final class ArticleViewController: UIViewController {
 
 		guard let article = article else {
 			archiveBarButtonItem.isEnabled = false
-			openInBrowserBarButtonItem.isEnabled = false
 			shareBarButtonItem.isEnabled = false
 			return
 		}
 
-		let permalinkPresent = article.preferredLink != nil
-		openInBrowserBarButtonItem.isEnabled = permalinkPresent
-		shareBarButtonItem.isEnabled = permalinkPresent
+		shareBarButtonItem.isEnabled = article.preferredLink != nil
 
 		let title: String
 		if article.status.read {
