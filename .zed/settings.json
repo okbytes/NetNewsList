@@ -1,0 +1,7 @@
+{
+  "languages": {
+    "Swift": {
+      "enable_language_server": false,
+    },
+  },
+}

@@ -17,9 +17,11 @@ Tests (no signing needed):
 
 ```bash
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
-  -xcconfig .github/macos-ci-no-signing.xcconfig -destination "platform=macOS,arch=arm64"
+  -destination "platform=macOS,arch=arm64" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= 'EXCLUDED_SOURCE_FILE_NAMES=$(inherited) *.applescript'
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
-  -xcconfig .github/ios-ci-no-signing.xcconfig -destination "platform=iOS Simulator,name=iPhone Air"
+  -destination "platform=iOS Simulator,name=iPhone Air" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
 ```
 
 ## Documentation

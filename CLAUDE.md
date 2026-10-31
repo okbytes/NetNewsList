@@ -15,20 +15,24 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 
 ## Build and test
 
-Unsigned builds and tests use the no-signing xcconfigs in `.github/`. Every build is warnings-as-errors, so a clean build means zero warnings. There is no CI: the GitHub Actions workflow was removed on 2026-10-11 to save compute, so build, test and lint locally before pushing. Merging upstream NetNewsWire brings `.github/workflows/` back; delete it again.
+Unsigned builds and tests pass signing overrides on the command line. Every build is warnings-as-errors, so a clean build means zero warnings. There is no CI: the GitHub Actions workflow was removed on 2026-10-11 to save compute, so build, test and lint locally before pushing. Merging upstream NetNewsWire brings `.github/workflows/` back; delete it again.
 
 ```bash
 # Mac app and Mac test plan (includes module tests: Account, ArticlesDatabase, Extraction, …)
 xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire -destination "platform=macOS,arch=arm64" \
-  -xcconfig .github/macos-ci-no-signing.xcconfig build
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= \
+  PROVISIONING_PROFILE_SPECIFIER= 'EXCLUDED_SOURCE_FILE_NAMES=$(inherited) *.applescript' build
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire -testPlan NetNewsWire-CI \
-  -destination "platform=macOS,arch=arm64" -xcconfig .github/macos-ci-no-signing.xcconfig
+  -destination "platform=macOS,arch=arm64" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= 'EXCLUDED_SOURCE_FILE_NAMES=$(inherited) *.applescript'
 
 # iOS app and iOS test plan (use a simulator that isn't the user's booted one; the "NetNewsList" simulator, an iPhone Air on iOS 27, is this project's)
 xcodebuild -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -destination "platform=iOS Simulator,name=NetNewsList" \
-  -xcconfig .github/ios-ci-no-signing.xcconfig build
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= \
+  PROVISIONING_PROFILE_SPECIFIER= build
 xcodebuild test -project NetNewsWire.xcodeproj -scheme NetNewsWire-iOS -testPlan NetNewsWire-iOS \
-  -destination "platform=iOS Simulator,name=NetNewsList" -xcconfig .github/ios-ci-no-signing.xcconfig
+  -destination "platform=iOS Simulator,name=NetNewsList" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
 
 # Extraction module alone (fast), lint
 (cd Modules/Extraction && xcodebuild test -scheme Extraction -destination "platform=macOS,arch=arm64")

@@ -503,6 +503,10 @@ Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_a
 
 **Timeline.** Phase A: 2 days. Phase B: 1 day plus portal. Phase C: 4.5 days. Phase D: 5-8 days, plus 2-3 for PR8b. Phase E: 5-7 days. Phase F: 3-4 days. Roughly 23-30 working days; first two-device title-only sync at the end of day 8 or so; first usable text build around day 13; images around day 23.
 
+### Progress: editor and repository cleanup
+
+Disabled Swift's language server in Zed and removed unused editor, contribution, App Store and setup files. Unsigned build instructions now pass the deleted CI configs' settings on the command line. Repository reference and settings checks pass; full build verification is blocked by the local Xcode installation's missing CoreSimulator framework.
+
 ## 6. Deletion inventory
 
 Approximate lines removed, by area. Counts are order-of-magnitude: some folder totals below are Swift-only and some include xibs, storyboards and catalogs (e.g. Mac/Preferences/Accounts is 2,633 all files, 1,467 Swift).
