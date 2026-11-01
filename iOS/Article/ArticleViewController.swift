@@ -26,9 +26,8 @@ final class ArticleViewController: UIViewController {
 		return pageViewController?.viewControllers?.first as? WebViewController
 	}
 
-	// The article's actions are all in the navigation bar: Archive or Move to Queue, and Share
-	// (whose sheet has Open in Browser and Find in Article).
-	private lazy var archiveBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Archive", comment: "Command"), image: Assets.Images.archive, target: self, action: #selector(toggleRead(_:)))
+	// Share sits to the left of the article actions menu.
+	private lazy var actionsBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "ellipsis"), menu: nil)
 	private lazy var shareBarButtonItem = Self.barButtonItem(title: NSLocalizedString("Share", comment: "Share button"), image: Assets.Images.share, target: self, action: #selector(showActivityDialog(_:)))
 
 	weak var coordinator: SceneCoordinator!
@@ -86,8 +85,9 @@ final class ArticleViewController: UIViewController {
 		navigationItem.scrollEdgeAppearance = appearance
 		navigationItem.compactAppearance = appearance
 
-		// Right to left: Share at the trailing edge, Archive beside it.
-		navigationItem.rightBarButtonItems = [shareBarButtonItem, archiveBarButtonItem]
+		actionsBarButtonItem.accessibilityLabel = NSLocalizedString("Article Actions", comment: "Accessibility label")
+		// UIKit orders these from right to left.
+		navigationItem.rightBarButtonItems = [actionsBarButtonItem, shareBarButtonItem]
 
 		pageViewController = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: [:])
 
@@ -153,25 +153,25 @@ final class ArticleViewController: UIViewController {
 	func updateUI() {
 
 		guard let article = article else {
-			archiveBarButtonItem.isEnabled = false
+			actionsBarButtonItem.isEnabled = false
 			shareBarButtonItem.isEnabled = false
 			return
 		}
 
 		shareBarButtonItem.isEnabled = article.preferredLink != nil
 
-		let title: String
-		if article.status.read {
-			title = NSLocalizedString("Move to Queue", comment: "Command")
-			archiveBarButtonItem.image = Assets.Images.moveToQueue
-			archiveBarButtonItem.isEnabled = article.isAvailableToMarkUnread
-		} else {
-			title = NSLocalizedString("Archive", comment: "Command")
-			archiveBarButtonItem.image = Assets.Images.archive
-			archiveBarButtonItem.isEnabled = true
+		actionsBarButtonItem.isEnabled = true
+		let archive = UIAction(
+			title: article.status.read ? NSLocalizedString("Move to Queue", comment: "Command") : NSLocalizedString("Archive", comment: "Command"),
+			image: article.status.read ? Assets.Images.moveToQueue : Assets.Images.archive,
+			attributes: article.status.read && !article.isAvailableToMarkUnread ? [.disabled] : []
+		) { [weak self] _ in
+			self?.toggleRead(nil)
 		}
-		archiveBarButtonItem.title = title
-		archiveBarButtonItem.accessibilityLabel = title
+		let backToTop = UIAction(title: NSLocalizedString("Back to Top", comment: "Command"), image: UIImage(systemName: "arrow.up.to.line")) { [weak self] _ in
+			self?.currentWebViewController?.backToTop()
+		}
+		actionsBarButtonItem.menu = UIMenu(children: [archive, backToTop])
 	}
 
 	// MARK: Notifications

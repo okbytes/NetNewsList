@@ -507,6 +507,12 @@ Ground rules for every PR: both app schemes build (`./buildscripts/quiet_build_a
 
 Disabled Swift's language server in Zed and removed unused editor, contribution, App Store and setup files. Unsigned build instructions now pass the deleted CI configs' settings on the command line. Repository reference and settings checks pass; full build verification is blocked by the local Xcode installation's missing CoreSimulator framework.
 
+### Progress: local iOS reading positions (2026-11-01)
+
+Added device-local, per-article reading bookmarks on iOS. Bookmarks anchor to a text block and fractional offset, with text-prefix matching if blocks move; restoration follows font/image layout changes until interaction. Progress is sampled during scrolling and on departure/backgrounding. Article IDs and revision checks keep delayed captures from saving to another article or undoing deletion/Back to Top. Archive preserves progress; deletion clears it, including background sync deletions. No schema, CloudKit, or Mac behavior changes.
+
+The article toolbar now has Share on the left and an ellipsis menu on the right, containing Archive / Move to Queue and Back to Top. Back to Top remembers the beginning without changing list membership. Verification: unsigned iOS simulator build and test plan, strict SwiftLint, and temporary JavaScript checks for capture, changed layouts, moved/missing text, delayed resizing, interaction, empty content, and reset. At Brett's request, `scripts/mine.sh` then built, installed in place and launched the signed Debug app on his paired iPhone successfully. Reading-position UI checks remain in TODO-Brett.md. Cross-device sync remains out of scope.
+
 ## 6. Deletion inventory
 
 Approximate lines removed, by area. Counts are order-of-magnitude: some folder totals below are Swift-only and some include xibs, storyboards and catalogs (e.g. Mac/Preferences/Accounts is 2,633 all files, 1,467 Swift).

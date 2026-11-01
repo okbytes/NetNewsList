@@ -16,6 +16,8 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 
 ## 2. When you get to it
 
+- [ ] Check the local iOS reading-position change (installed on your iPhone 2026-11-01): read partway through two long articles, switch between them, background/relaunch, and reopen them in Airplane Mode. Each should resume near the same passage. Try rotation/Dynamic Type and an image-heavy page; restoring should not fight your scrolling. Check Share is left of ⋯; its menu offers Archive / Move to Queue, then Back to Top. Back to Top should remain at the beginning after reopening; Archive should preserve your place; deleting and re-saving should start fresh. Mac positions should be unchanged.
+
 - [ ] Install the 2026-10-24 stability pass: `scripts/install-mac.sh`, `scripts/mine.sh`, and the next work-Mac release (above). Then:
   - Save a page on the Mac and it shows up on the iPhone; archive it on the iPhone and it leaves the Mac's Queue (the 2026-10-22 cleanups stopped using the `Account` zone).
   - iPhone, app closed: share a link from an app other than Safari, leave the phone a few hours, then open the app. The page saves rather than showing "Couldn't save the page".

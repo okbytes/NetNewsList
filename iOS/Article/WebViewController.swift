@@ -29,6 +29,8 @@ final class WebViewController: UIViewController {
 	}
 
 	private var webViewProcessDidTerminate = false
+	private var readingPositionGeneration = UUID()
+	private var readingPositionReady = false
 
 	private lazy var articleIconSchemeHandler = ArticleIconSchemeHandler(coordinator: coordinator)
 	private lazy var transition = ImageTransition(controller: self)
@@ -59,7 +61,15 @@ final class WebViewController: UIViewController {
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .ExtractionStateDidChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(articleContentMayHaveChanged(_:)), name: .AccountDidDownloadArticles, object: nil)
 
+		NotificationCenter.default.addObserver(self, selector: #selector(articlesWereDeleted(_:)), name: .AccountDidDeleteArticles, object: nil)
 		loadWebView()
+	}
+
+	@objc private func articlesWereDeleted(_ note: Notification) {
+		if let article, note.affectedArticleIDs.contains(article.articleID) {
+			readingPositionGeneration = UUID()
+			readingPositionReady = false
+		}
 	}
 
 	override func viewWillDisappear(_ animated: Bool) {
@@ -67,12 +77,14 @@ final class WebViewController: UIViewController {
 		// Pause in-flight media before the view goes away. Leaving a video playing during
 		// dismissal lets WebKit's full-screen entry continuation fire on a stale view
 		// hierarchy and trip a RELEASE_ASSERT in WebFullScreenManagerProxy on iOS 26.
+		scrollPositionDidChange()
 		stopWebViewActivity()
 	}
 
 	// MARK: Notifications
 
 	@objc func handleSceneDidEnterBackground(_ notification: Notification) {
+		scrollPositionDidChange()
 		// The share sheet is a popover on iPad. Opening the article in another browser
 		// from it backgrounds NetNewsWire mid-presentation, orphaning the popover so it
 		// can't be dismissed by tapping outside on return. Dismiss it on backgrounding. (#4269)
@@ -115,6 +127,7 @@ final class WebViewController: UIViewController {
 
 	func setArticle(_ article: Article?, updateView: Bool = true) {
 		if article != self.article {
+			scrollPositionDidChange()
 			self.article = article
 			if updateView {
 				windowScrollY = 0
@@ -126,6 +139,17 @@ final class WebViewController: UIViewController {
 	func setScrollPosition(articleWindowScrollY: Int) {
 		windowScrollY = articleWindowScrollY
 		loadWebView()
+	}
+
+	func backToTop() {
+		guard let article else {
+			return
+		}
+		ArticleReadingPosition.remove(articleID: article.articleID)
+		ArticleReadingPosition.save(["index": 0, "top": true], articleID: article.articleID)
+		windowScrollY = 0
+		let revision = ArticleReadingPosition.revision(articleID: article.articleID)
+		webView?.evaluateJavaScript("window.nnlBackToTop?.(\(revision)); window.scrollTo(0, 0);")
 	}
 
 	func focus() {
@@ -147,6 +171,7 @@ final class WebViewController: UIViewController {
 			return
 		}
 
+		webView.evaluateJavaScript("window.nnlBeginReading?.()")
 		let overlap = 2 * UIFont.systemFont(ofSize: UIFont.systemFontSize).lineHeight * windowScene.screen.scale
 		let scrollToY: CGFloat = {
 			let scrollDistance = webView.scrollView.layoutMarginsGuide.layoutFrame.height - overlap
@@ -217,6 +242,15 @@ final class WebViewController: UIViewController {
 extension WebViewController: WKNavigationDelegate {
 
 	func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+		if webView === self.webView, let article {
+			let generation = readingPositionGeneration
+			webView.evaluateJavaScript(ArticleReadingPosition.script(articleID: article.articleID)) { [weak self] _, error in
+				guard let self, generation == self.readingPositionGeneration, error == nil else {
+					return
+				}
+				self.readingPositionReady = true
+			}
+		}
 		for (index, view) in view.subviews.enumerated() {
 			if index != 0, let oldWebView = view as? PreloadedWebView {
 				oldWebView.removeFromSuperview()
@@ -333,12 +367,29 @@ extension WebViewController: UIScrollViewDelegate {
 	}
 
 	@objc func scrollPositionDidChange() {
+		guard isViewLoaded else {
+			return
+		}
+		if readingPositionReady, let articleID = article?.articleID {
+			webView?.evaluateJavaScript("window.nnlReadingPosition?.()") { value, error in
+				guard error == nil, let position = value as? [String: Any],
+					  position["articleID"] as? String == articleID,
+					  position["revision"] as? Int == ArticleReadingPosition.revision(articleID: articleID) else {
+					return
+				}
+				ArticleReadingPosition.save(position, articleID: articleID)
+			}
+		}
 		let articleIDWhenAsked = article?.articleID
+		let generationWhenAsked = readingPositionGeneration
+		let revisionWhenAsked = articleIDWhenAsked.map { ArticleReadingPosition.revision(articleID: $0) }
 		webView?.evaluateJavaScript("window.scrollY") { (scrollY, error) in
 			guard error == nil else { return }
 			// A late callback must not record the previous article’s offset.
 			// <https://github.com/Ranchero-Software/NetNewsWire/issues/5243>
-			guard articleIDWhenAsked == self.article?.articleID else {
+			guard articleIDWhenAsked == self.article?.articleID,
+				  generationWhenAsked == self.readingPositionGeneration,
+				  revisionWhenAsked == articleIDWhenAsked.map({ ArticleReadingPosition.revision(articleID: $0) }) else {
 				return
 			}
 			let javascriptScrollY = scrollY as? Int ?? 0
@@ -461,6 +512,8 @@ private extension WebViewController {
 //		try? html.write(to: fileURL, atomically: true, encoding: .utf8)
 //		print("article.html written to \(fileURL.path)")
 
+		readingPositionGeneration = UUID()
+		readingPositionReady = false
 		WebViewConfiguration.addContentBlockingRules(to: webView)
 		webView.loadHTMLString(html, baseURL: URL(string: rendering.baseURL))
 	}

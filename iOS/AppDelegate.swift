@@ -49,6 +49,7 @@ import Images
 		super.init()
 		appDelegate = self
 
+		NotificationCenter.default.addObserver(self, selector: #selector(articlesWereDeleted(_:)), name: .AccountDidDeleteArticles, object: nil)
 		AccountManager.shared.start()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(unreadCountDidChange(_:)), name: .UnreadCountDidChange, object: nil)
@@ -118,6 +119,12 @@ import Images
 	}
 
 	// MARK: Notifications
+
+	@objc private func articlesWereDeleted(_ note: Notification) {
+		for articleID in note.affectedArticleIDs {
+			ArticleReadingPosition.remove(articleID: articleID)
+		}
+	}
 
 	@objc func unreadCountDidChange(_ note: Notification) {
 		if note.object is AccountManager {
