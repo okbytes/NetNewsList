@@ -27,7 +27,13 @@ enum ArticleTextSize: Int, CaseIterable, Identifiable {
 		webView?.evaluateJavaScript("document.getElementById('bodyContainer')?.setAttribute('class', 'articleBody \(current.cssClass)')", completionHandler: nil)
 	}
 
-	var id: String { description() }
+	var id: Int { rawValue }
+
+	// The stylesheet uses two-point steps around the medium body size.
+	func label(relativeTo medium: CGFloat) -> String {
+		let points = medium + CGFloat(2 * (rawValue - Self.medium.rawValue))
+		return "\(points.formatted()) pt"
+	}
 
 	var cssClass: String {
 		switch self {
@@ -43,31 +49,22 @@ enum ArticleTextSize: Int, CaseIterable, Identifiable {
 			return "xxlargeText"
 		}
 	}
-
-	func description() -> String {
-		switch self {
-		case .small:
-			return NSLocalizedString("Small", comment: "Small")
-		case .medium:
-			return NSLocalizedString("Medium", comment: "Medium")
-		case .large:
-			return NSLocalizedString("Large", comment: "Large")
-		case .xlarge:
-			return NSLocalizedString("Extra Large", comment: "X-Large")
-		case .xxlarge:
-			return NSLocalizedString("Extra Extra Large", comment: "XX-Large")
-		}
-	}
-
 }
 
+#if os(iOS)
 struct ArticleTextSizePicker: View {
+	@Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+	private var medium: CGFloat {
+		let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+		return UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits).pointSize
+	}
 	@AppStorage(ArticleTextSize.key) private var size = ArticleTextSize.large.rawValue
 
 	var body: some View {
 		Picker("Article text size", selection: $size) {
 			ForEach(ArticleTextSize.allCases) { size in
-				Text(size.description()).tag(size.rawValue)
+				Text(size.label(relativeTo: medium)).tag(size.rawValue)
 			}
 		}
 		.onChange(of: size) {
@@ -75,3 +72,4 @@ struct ArticleTextSizePicker: View {
 		}
 	}
 }
+#endif

@@ -14,6 +14,7 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="NetNewsWire" customModuleProvider="target">
             <connections>
+                <outlet property="articleTextSizeMenu" destination="siz-sm-001" id="siz-ot-001"/>
                 <outlet property="debugMenuItem" destination="UqE-mp-gtV" id="OnR-lr-Zlt"/>
             </connections>
         </customObject>
@@ -30,11 +31,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
-                            <menuItem title="Settings…" keyEquivalent="," id="set-mn-01a">
-                                <connections>
-                                    <action selector="showReadingSettings:" target="Voe-Tx-rLC" id="set-ac-01b"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Sign In to iCloud…" id="iCS-mn-01a">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -344,6 +340,10 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="View" id="HyV-fh-RgO">
                         <items>
+                            <menuItem title="Article Text Size" id="siz-mi-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Article Text Size" id="siz-sm-001"/>
+                            </menuItem>
                             <menuItem title="Sort Articles By" id="nLP-fa-KUi">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Sort Articles By" id="OlJ-93-6OP">

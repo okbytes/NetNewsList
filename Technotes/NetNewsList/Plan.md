@@ -515,7 +515,7 @@ The article toolbar now has Share on the left and an ellipsis menu on the right,
 
 **Progress — repository separation:** GitHub reports no fork parent. Removed this checkout’s `upstream` remote and set its GitHub CLI default to `okbytes/NetNewsList`. The user confirmed T3 no longer shows upstream items. Repository instructions now live in `AGENTS.md`; the Xcode project points to the renamed file.
 
-**Progress — article text size.** Both apps have a local five-size picker in Settings. Large preserves the previous body size, and iOS still scales with Dynamic Type. Changing size restyles the open article without reloading it. Device checks are in `TODO-Brett.md`.
+**Progress — article text size.** The Mac now offers five sizes in View → Article Text Size instead of the Command-comma settings window. The menu checks the current size and keeps the existing preference. The iPhone picker remains in Settings. Both controls show point sizes: 14–22 pt on Mac and offsets from the current Dynamic Type body size on iPhone. The middle choice preserves the previous body size, and iOS still scales with Dynamic Type. Changing size restyles the open article without reloading it. Device checks are in `TODO-Brett.md`.
 
 ## 6. Deletion inventory
 

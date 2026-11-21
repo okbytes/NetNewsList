@@ -47,18 +47,14 @@ let appName = "NetNewsList"
 
 	@IBOutlet var debugMenuItem: NSMenuItem!
 
-	private lazy var settingsWindow: NSWindow = { @MainActor in
-		let controller = NSHostingController(rootView: ArticleTextSizePicker().padding(24))
-		let window = NSWindow(contentViewController: controller)
-		window.title = "Settings"
-		window.styleMask = [.titled, .closable]
-		window.isReleasedWhenClosed = false
-		window.center()
-		return window
-	}()
+	@IBOutlet private var articleTextSizeMenu: NSMenu!
 
-	@IBAction func showReadingSettings(_ sender: Any?) {
-		settingsWindow.makeKeyAndOrderFront(sender)
+	@objc private func selectArticleTextSize(_ sender: NSMenuItem) {
+		guard let size = ArticleTextSize(rawValue: sender.tag), size != .current else {
+			return
+		}
+		UserDefaults.standard.set(size.rawValue, forKey: ArticleTextSize.key)
+		NotificationCenter.default.post(name: ArticleTextSize.didChange, object: nil)
 	}
 
 	var unreadCount = 0 {
@@ -147,6 +143,11 @@ let appName = "NetNewsList"
 	}
 
 	func applicationDidFinishLaunching(_ note: Notification) {
+		for size in ArticleTextSize.allCases {
+			let item = articleTextSizeMenu.addItem(withTitle: size.label(relativeTo: 16), action: #selector(selectArticleTextSize(_:)), keyEquivalent: "")
+			item.target = self
+			item.tag = size.rawValue
+		}
 
 		WebViewConfiguration.resolveBrowserUserAgent()
 		Task {
@@ -402,6 +403,11 @@ let appName = "NetNewsList"
 	func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		if shuttingDown {
 			return false
+		}
+
+		if item.action == #selector(selectArticleTextSize(_:)), let menuItem = item as? NSMenuItem {
+			menuItem.state = menuItem.tag == ArticleTextSize.current.rawValue ? .on : .off
+			return true
 		}
 
 		let isDisplayingSheet = mainWindowController?.isDisplayingSheet ?? false
