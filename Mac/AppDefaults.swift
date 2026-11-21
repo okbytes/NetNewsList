@@ -173,11 +173,6 @@ final class AppDefaults: Sendable {
 		return AppDefaults.bool(for: Key.timelineShowsSeparators)
 	}
 
-	/// There’s no setting for it: articles are always shown at this size.
-	var articleTextSize: ArticleTextSize {
-		.large
-	}
-
 	@MainActor func registerDefaults() {
 		#if DEBUG
  		let showDebugMenu = true

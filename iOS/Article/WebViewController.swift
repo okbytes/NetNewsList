@@ -53,6 +53,7 @@ final class WebViewController: UIViewController {
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
+		NotificationCenter.default.addObserver(self, selector: #selector(applyTextSize), name: ArticleTextSize.didChange, object: nil)
 
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(avatarDidBecomeAvailable(_:)), name: .AvatarDidBecomeAvailable, object: nil)
@@ -241,7 +242,12 @@ final class WebViewController: UIViewController {
 
 extension WebViewController: WKNavigationDelegate {
 
+	@objc private func applyTextSize() {
+		ArticleTextSize.apply(to: webView)
+	}
+
 	func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+		ArticleTextSize.apply(to: webView)
 		if webView === self.webView, let article {
 			let generation = readingPositionGeneration
 			webView.evaluateJavaScript(ArticleReadingPosition.script(articleID: article.articleID)) { [weak self] _, error in

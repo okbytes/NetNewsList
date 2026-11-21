@@ -39,6 +39,16 @@ final class SettingsViewController: UITableViewController {
 		tableView.rowHeight = UITableView.automaticDimension
 		tableView.estimatedRowHeight = 44
 
+		let picker = UIHostingConfiguration {
+			HStack {
+				Text("Article text size")
+				Spacer()
+				ArticleTextSizePicker().pickerStyle(.menu).labelsHidden()
+			}
+		}.makeContentView()
+		picker.frame.size = picker.systemLayoutSizeFitting(CGSize(width: tableView.bounds.width, height: 0), withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
+		tableView.tableHeaderView = picker
+
 		// Like every back button in the app, the logs' is just the chevron.
 		navigationItem.backButtonDisplayMode = .minimal
 	}

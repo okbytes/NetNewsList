@@ -47,6 +47,20 @@ let appName = "NetNewsList"
 
 	@IBOutlet var debugMenuItem: NSMenuItem!
 
+	private lazy var settingsWindow: NSWindow = { @MainActor in
+		let controller = NSHostingController(rootView: ArticleTextSizePicker().padding(24))
+		let window = NSWindow(contentViewController: controller)
+		window.title = "Settings"
+		window.styleMask = [.titled, .closable]
+		window.isReleasedWhenClosed = false
+		window.center()
+		return window
+	}()
+
+	@IBAction func showReadingSettings(_ sender: Any?) {
+		settingsWindow.makeKeyAndOrderFront(sender)
+	}
+
 	var unreadCount = 0 {
 		didSet {
 			if unreadCount != oldValue {

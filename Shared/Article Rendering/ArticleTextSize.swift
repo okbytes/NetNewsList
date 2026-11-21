@@ -6,7 +6,8 @@
 //  Copyright © 2020 Ranchero Software. All rights reserved.
 //
 
-import Foundation
+import SwiftUI
+import WebKit
 
 enum ArticleTextSize: Int, CaseIterable, Identifiable {
 	case small = 1
@@ -14,6 +15,17 @@ enum ArticleTextSize: Int, CaseIterable, Identifiable {
 	case large = 3
 	case xlarge = 4
 	case xxlarge = 5
+
+	static let key = "articleReadingTextSize"
+	static let didChange = Notification.Name("ArticleReadingTextSizeDidChange")
+
+	static var current: Self {
+		Self(rawValue: UserDefaults.standard.integer(forKey: key)) ?? .large
+	}
+
+	@MainActor static func apply(to webView: WKWebView?) {
+		webView?.evaluateJavaScript("document.getElementById('bodyContainer')?.setAttribute('class', 'articleBody \(current.cssClass)')", completionHandler: nil)
+	}
 
 	var id: String { description() }
 
@@ -26,9 +38,9 @@ enum ArticleTextSize: Int, CaseIterable, Identifiable {
 		case .large:
 			return "largeText"
 		case .xlarge:
-			return "xLargeText"
+			return "xlargeText"
 		case .xxlarge:
-			return "xxLargeText"
+			return "xxlargeText"
 		}
 	}
 
@@ -47,4 +59,19 @@ enum ArticleTextSize: Int, CaseIterable, Identifiable {
 		}
 	}
 
+}
+
+struct ArticleTextSizePicker: View {
+	@AppStorage(ArticleTextSize.key) private var size = ArticleTextSize.large.rawValue
+
+	var body: some View {
+		Picker("Article text size", selection: $size) {
+			ForEach(ArticleTextSize.allCases) { size in
+				Text(size.description()).tag(size.rawValue)
+			}
+		}
+		.onChange(of: size) {
+			NotificationCenter.default.post(name: ArticleTextSize.didChange, object: nil)
+		}
+	}
 }

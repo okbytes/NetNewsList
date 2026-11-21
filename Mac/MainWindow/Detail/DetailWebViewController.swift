@@ -103,6 +103,7 @@ final class DetailWebViewController: NSViewController {
 
 		NotificationCenter.default.addObserver(self, selector: #selector(webInspectorEnabledDidChange(_:)), name: .WebInspectorEnabledDidChange, object: nil)
 
+		NotificationCenter.default.addObserver(self, selector: #selector(applyTextSize), name: ArticleTextSize.didChange, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(feedIconDidBecomeAvailable(_:)), name: .feedIconDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(avatarDidBecomeAvailable(_:)), name: .AvatarDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(faviconDidBecomeAvailable(_:)), name: .FaviconDidBecomeAvailable, object: nil)
@@ -235,7 +236,12 @@ extension DetailWebViewController: WKNavigationDelegate, WKUIDelegate {
 		}
 	}
 
+	@objc private func applyTextSize() {
+		ArticleTextSize.apply(to: webView)
+	}
+
 	public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+		ArticleTextSize.apply(to: webView)
 		guard webView === self.webView else {
 			return
 		}

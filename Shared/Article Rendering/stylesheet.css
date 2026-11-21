@@ -437,6 +437,11 @@ a.footnote:hover,
 		font-size: calc(1rem + 2px);
 	}
 
+	.smallText { font-size: calc(1rem - 2px); }
+	.mediumText { font-size: 1rem; }
+	.xlargeText { font-size: calc(1rem + 4px); }
+	.xxlargeText { font-size: calc(1rem + 6px); }
+
 	.articleTitle h1 {
 		font-size: calc(1rem + 7px);
 	}

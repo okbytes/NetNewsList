@@ -16,6 +16,8 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 
 ## 2. When you get to it
 
+- [ ] On Mac and iPhone, open an article, change Article text size in Settings, then reopen the app. Check that the article changes without a reload, the choice persists, and iPhone text still follows Dynamic Type.
+
 - [ ] Check the local iOS reading-position change (installed on your iPhone 2026-11-01): read partway through two long articles, switch between them, background/relaunch, and reopen them in Airplane Mode. Each should resume near the same passage. Try rotation/Dynamic Type and an image-heavy page; restoring should not fight your scrolling. Check Share is left of ⋯; its menu offers Archive / Move to Queue, then Back to Top. Back to Top should remain at the beginning after reopening; Archive should preserve your place; deleting and re-saving should start fresh. Mac positions should be unchanged.
 
 - [ ] Install the 2026-10-24 stability pass: `scripts/install-mac.sh`, `scripts/mine.sh`, and the next work-Mac release (above). Then:

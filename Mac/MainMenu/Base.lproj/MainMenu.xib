@@ -30,6 +30,11 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
+                            <menuItem title="Settings…" keyEquivalent="," id="set-mn-01a">
+                                <connections>
+                                    <action selector="showReadingSettings:" target="Voe-Tx-rLC" id="set-ac-01b"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Sign In to iCloud…" id="iCS-mn-01a">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
