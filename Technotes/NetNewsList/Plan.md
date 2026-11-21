@@ -513,6 +513,8 @@ Added device-local, per-article reading bookmarks on iOS. Bookmarks anchor to a 
 
 The article toolbar now has Share on the left and an ellipsis menu on the right, containing Archive / Move to Queue and Back to Top. Back to Top remembers the beginning without changing list membership. Verification: unsigned iOS simulator build and test plan, strict SwiftLint, and temporary JavaScript checks for capture, changed layouts, moved/missing text, delayed resizing, interaction, empty content, and reset. At Brett's request, `scripts/mine.sh` then built, installed in place and launched the signed Debug app on his paired iPhone successfully. Reading-position UI checks remain in TODO-Brett.md. Cross-device sync remains out of scope.
 
+**Progress — repository separation:** GitHub reports no fork parent. Removed this checkout’s `upstream` remote and set its GitHub CLI default to `okbytes/NetNewsList`. The user confirmed T3 no longer shows upstream items. Repository instructions now live in `AGENTS.md`; the Xcode project points to the renamed file.
+
 ## 6. Deletion inventory
 
 Approximate lines removed, by area. Counts are order-of-magnitude: some folder totals below are Swift-only and some include xibs, storyboards and catalogs (e.g. Mac/Preferences/Accounts is 2,633 all files, 1,467 Swift).

@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# Repository instructions
 
 ## What this is
 
@@ -11,11 +9,11 @@ NetNewsList: a personal, iCloud-only reading list for Mac and iPhone, forked fro
 2. `Technotes/NetNewsList/Plan.md`: the decisions (D1–D7), the data-loss traps (section 4) and a **Progress** note per PR at the end of section 5. The last note ("merge and wrap-up") lists what is still open.
 3. `TODO-Brett.md`: what only the user can do (updating the work Mac, CloudKit Console, open decisions).
 
-**Branch:** NetNewsList work lands on `main` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). Upstream NetNewsWire is the `upstream` remote; to sync, merge `upstream/main` into `main` (the 2026-10-07 sync's Progress note in `Plan.md` says how its conflicts were resolved). GitHub lists the repository as a fork of Ranchero-Software/NetNewsWire, so pass `--repo okbytes/NetNewsList` to `gh pr create` or the PR goes upstream.
+**Branch:** NetNewsList work lands on `main` (pushed to `origin`, github.com/okbytes/NetNewsList, which is public). NetNewsList is an independent GitHub repository. Keep `origin` as its only remote and target `okbytes/NetNewsList` for pull requests.
 
 ## Build and test
 
-Unsigned builds and tests pass signing overrides on the command line. Every build is warnings-as-errors, so a clean build means zero warnings. There is no CI: the GitHub Actions workflow was removed on 2026-10-11 to save compute, so build, test and lint locally before pushing. Merging upstream NetNewsWire brings `.github/workflows/` back; delete it again.
+Unsigned builds and tests pass signing overrides on the command line. Every build is warnings-as-errors, so a clean build means zero warnings. There is no CI: the GitHub Actions workflow was removed on 2026-10-11 to save compute, so build, test and lint locally before pushing.
 
 ```bash
 # Mac app and Mac test plan (includes module tests: Account, ArticlesDatabase, Extraction, …)

@@ -241,7 +241,7 @@
 		510C415C24E5CDE3008226FD /* NetNewsWire Share Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "NetNewsWire Share Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		513C5CE6232571C2003D4054 /* NetNewsWire iOS Share Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "NetNewsWire iOS Share Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		518B2ED22351B3DD00400001 /* NetNewsWire-iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NetNewsWire-iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		840A1F0A2E4133F400CFCCFC /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		840A1F0A2E4133F400CFCCFC /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		840D617C2029031C009BC708 /* NetNewsList.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetNewsList.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		844E47DC2E7DC72A0061A51A /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
 		845B14A51FC2299E0013CF92 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -477,7 +477,7 @@
 				845B14A51FC2299E0013CF92 /* README.md */,
 				84D2200922B0BC4B0019E085 /* CONTRIBUTING.md */,
 				844E47DC2E7DC72A0061A51A /* CODE_OF_CONDUCT.md */,
-				840A1F0A2E4133F400CFCCFC /* CLAUDE.md */,
+				840A1F0A2E4133F400CFCCFC /* AGENTS.md */,
 				848E84C92DB743FF0023F3BA /* NetNewsWire-CI.xctestplan */,
 				848E84CA2DB743FF0023F3BA /* NetNewsWire.xctestplan */,
 				848CEF1E2DB74B56002B35B5 /* NetNewsWire-iOS.xctestplan */,
