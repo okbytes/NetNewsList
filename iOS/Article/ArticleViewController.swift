@@ -158,7 +158,7 @@ final class ArticleViewController: UIViewController {
 			return
 		}
 
-		shareBarButtonItem.isEnabled = article.preferredLink != nil
+		shareBarButtonItem.isEnabled = true
 
 		actionsBarButtonItem.isEnabled = true
 		let archive = UIAction(

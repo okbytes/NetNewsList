@@ -182,7 +182,7 @@ import Account
 		let pubDate = article.logicalDatePublished.description
 
 		let latestArticle = LatestArticle(id: article.articleID,
-										  feedTitle: article.siteHost ?? "",
+										  feedTitle: article.sourceDisplayName ?? "",
 										  articleTitle: articleTitle,
 										  articleSummary: article.summary,
 										  feedIconPath: feedIconPath,

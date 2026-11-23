@@ -69,6 +69,19 @@ extension Article {
 		return datePublished ?? dateModified ?? status.dateArrived
 	}
 
+	/// True for documents imported without a source web page (notes, Markdown, PDFs).
+	var isImported: Bool {
+		uniqueID.hasPrefix(Account.importedArticleUniqueIDPrefix) || (rawLink == nil && rawExternalLink == nil)
+	}
+
+	/// True when the article has a source web page that can be opened or re-extracted.
+	var hasWebURL: Bool {
+		guard let url = preferredURL, let scheme = url.scheme?.lowercased() else {
+			return false
+		}
+		return scheme == "http" || scheme == "https"
+	}
+
 	/// The site a saved page came from: its host, without a leading “www.”.
 	/// Shown where NetNewsWire showed the feed name.
 	var siteHost: String? {
@@ -76,6 +89,17 @@ extension Article {
 			return nil
 		}
 		return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+	}
+
+	/// Label shown in the timeline, article header, and widget for the article’s source.
+	var sourceDisplayName: String? {
+		if let siteHost {
+			return siteHost
+		}
+		if isImported {
+			return NSLocalizedString("Imported", comment: "Source label for imported documents")
+		}
+		return nil
 	}
 
 	/// The site’s home page, for its favicon and the article header’s link.

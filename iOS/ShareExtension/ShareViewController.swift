@@ -9,6 +9,7 @@
 
 import UIKit
 import os
+import UniformTypeIdentifiers
 import RSCore
 
 // The share extension’s principal class (see NSExtensionPrincipalClass in Info.plist).
@@ -54,16 +55,34 @@ final class ShareViewController: UIViewController {
 private extension ShareViewController {
 
 	func save(_ inputItems: [Any]) async {
-		guard let page = await SharedPageResolver.resolve(inputItems) else {
-			finish(NSLocalizedString("There’s no web page to save.", comment: "Share extension: nothing to save"), symbolName: "exclamationmark.triangle", succeeded: false)
+		guard let item = await SharedPageResolver.resolveItem(inputItems) else {
+			finish(NSLocalizedString("There’s nothing to save to NetNewsList.", comment: "Share extension: nothing to save"), symbolName: "exclamationmark.triangle", succeeded: false)
 			return
 		}
 		do {
-			try SavedArticleInbox.add(SavedArticleRequest(url: page.url.absoluteString, title: page.title, body: page.body))
+			let request: SavedArticleRequest
+			switch item {
+			case .webPage(let page):
+				request = SavedArticleRequest(url: page.url.absoluteString, title: page.title, body: page.body)
+			case .document(let document):
+				var stagedFileName: String?
+				if let fileURL = document.fileURL {
+					stagedFileName = try SavedArticleInbox.stageImportedFile(from: fileURL)
+				} else if let data = document.data {
+					let ext = document.contentTypeIdentifier.flatMap { UTType($0)?.preferredFilenameExtension } ?? "dat"
+					stagedFileName = try SavedArticleInbox.stageImportedData(data, fileExtension: ext)
+				}
+				request = SavedArticleRequest(url: nil,
+											  title: document.title,
+											  body: document.body,
+											  importedFileName: stagedFileName,
+											  contentTypeIdentifier: document.contentTypeIdentifier)
+			}
+			try SavedArticleInbox.add(request)
 			finish(NSLocalizedString("Saved to NetNewsList", comment: "Share extension: saved"), symbolName: "checkmark.circle", succeeded: true)
 		} catch {
-			Self.logger.error("ShareViewController: couldn’t save \(page.url.absoluteString, privacy: .public): \(error.localizedDescription, privacy: .public)")
-			finish(NSLocalizedString("Couldn’t save the page. Open NetNewsList and use Add Article.", comment: "Share extension: failed"), symbolName: "exclamationmark.triangle", succeeded: false)
+			Self.logger.error("ShareViewController: couldn’t save shared item: \(error.localizedDescription, privacy: .public)")
+			finish(NSLocalizedString("Couldn’t save to NetNewsList. Open the app to add or import it.", comment: "Share extension: failed"), symbolName: "exclamationmark.triangle", succeeded: false)
 		}
 	}
 

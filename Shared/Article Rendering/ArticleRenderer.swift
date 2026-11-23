@@ -193,8 +193,9 @@ private extension ArticleRenderer {
 			return d
 		}
 
+		let preferredLink = article.preferredLink ?? ""
 		d["title"] = title
-		d["preferred_link"] = article.preferredLink ?? ""
+		d["preferred_link"] = preferredLink
 
 		if let externalLink = article.externalLink, externalLink != article.preferredLink {
 			d["external_link_label"] = NSLocalizedString("Link:", comment: "Link")
@@ -225,15 +226,23 @@ private extension ArticleRenderer {
 			d["dateline_style"] = "articleDateline"
 		}
 
-		// The theme macros keep their feed names; they show the page’s site.
-		d["feed_link_title"] = article.siteHost ?? ""
-		d["feed_link"] = article.siteHomePageURL ?? ""
+		// The theme macros keep their feed names; they show the page’s site (or "Imported").
+		let feedLinkTitle = article.sourceDisplayName ?? ""
+		let feedLink = article.siteHomePageURL ?? ""
+		d["feed_link_title"] = feedLinkTitle
+		d["feed_link"] = feedLink
+		if feedLink.isEmpty {
+			d["feed_header_html"] = "<span class=\"feedlink\">\(feedLinkTitle.escapingSpecialXMLCharacters)</span>"
+		} else {
+			d["feed_header_html"] = "<a class=\"feedlink\" href=\"\(feedLink.escapingSpecialXMLCharacters)\">\(feedLinkTitle.escapingSpecialXMLCharacters)</a>"
+		}
 
 		d["byline"] = byline()
 
 		let datePublished = article.logicalDatePublished
+		let datetimeMedium = Self.mediumDateTimeFormatter.string(from: datePublished)
 		d["datetime_long"] = Self.longDateTimeFormatter.string(from: datePublished)
-		d["datetime_medium"] = Self.mediumDateTimeFormatter.string(from: datePublished)
+		d["datetime_medium"] = datetimeMedium
 		d["datetime_short"] = Self.shortDateTimeFormatter.string(from: datePublished)
 		d["date_long"] = Self.longDateFormatter.string(from: datePublished)
 		d["date_medium"] = Self.mediumDateFormatter.string(from: datePublished)
@@ -241,6 +250,15 @@ private extension ArticleRenderer {
 		d["time_long"] = Self.longTimeFormatter.string(from: datePublished)
 		d["time_medium"] = Self.mediumTimeFormatter.string(from: datePublished)
 		d["time_short"] = Self.shortTimeFormatter.string(from: datePublished)
+
+		if preferredLink.isEmpty {
+			d["title_html"] = title
+			d["dateline_html"] = datetimeMedium.escapingSpecialXMLCharacters
+		} else {
+			let escapedLink = preferredLink.escapingSpecialXMLCharacters
+			d["title_html"] = "<a href=\"\(escapedLink)\">\(title)</a>"
+			d["dateline_html"] = "<a href=\"\(escapedLink)\">\(datetimeMedium.escapingSpecialXMLCharacters)</a>"
+		}
 
 		return d
 	}

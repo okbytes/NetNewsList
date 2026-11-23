@@ -231,8 +231,22 @@ final class WebViewController: UIViewController {
 	}
 
 	func showActivityDialog(popOverBarButtonItem: UIBarButtonItem? = nil) {
-		guard let url = article?.preferredURL else { return }
-		let activityViewController = UIActivityViewController(url: url, title: article?.title, applicationActivities: [FindInArticleActivity(), OpenInBrowserActivity()])
+		guard let article else {
+			return
+		}
+		let activityViewController: UIActivityViewController
+		if let url = article.preferredURL {
+			activityViewController = UIActivityViewController(url: url, title: article.title, applicationActivities: [FindInArticleActivity(), OpenInBrowserActivity()])
+		} else {
+			var items = [Any]()
+			let titleText = ArticleStringFormatter.shared.truncatedTitle(article)
+			let bodyText = article.body?.convertingToPlainText().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+			let combined = [titleText, bodyText].filter { !$0.isEmpty }.joined(separator: "\n\n")
+			if !combined.isEmpty {
+				items.append(combined)
+			}
+			activityViewController = UIActivityViewController(activityItems: items, applicationActivities: [FindInArticleActivity()])
+		}
 		activityViewController.popoverPresentationController?.barButtonItem = popOverBarButtonItem
 		present(activityViewController, animated: true)
 	}

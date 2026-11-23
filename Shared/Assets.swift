@@ -39,6 +39,7 @@ struct Assets {
 		static let openInBrowser = RSImage(symbol: "safari")!
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.primaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.systemBrown)
+		static let importedDocument = IconImage(RSImage(symbol: "doc.text")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: NSColor.secondaryLabelColor)
 
 #else // iOS
 
@@ -50,6 +51,7 @@ struct Assets {
 
 		static let unreadFeed = IconImage(RSImage(symbol: "tray.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: Assets.Colors.secondaryAccent)
 		static let archiveFeed = IconImage(RSImage(symbol: "archivebox.fill")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: UIColor.systemBrown)
+		static let importedDocument = IconImage(RSImage(symbol: "doc.text")!, isSymbol: true, isBackgroundSuppressed: true, preferredColor: UIColor.secondaryLabel)
 #endif
 	}
 

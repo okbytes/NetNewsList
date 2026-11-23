@@ -70,7 +70,13 @@ import Images
 		if let iconImage = imageForAuthors(article.authors) {
 			return iconImage
 		}
-		return SiteFaviconCache.shared.favicon(for: article)
+		if let favicon = SiteFaviconCache.shared.favicon(for: article) {
+			return favicon
+		}
+		if article.isImported {
+			return Assets.Images.importedDocument
+		}
+		return nil
 	}
 
 	func emptyCache() {

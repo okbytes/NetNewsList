@@ -137,10 +137,11 @@ private extension TimelineViewController {
 			}
 		}
 
-		if !articles.isEmpty {
+		let retryableArticles = articles.filter(\.hasWebURL)
+		if !retryableArticles.isEmpty {
 			menu.addSeparatorIfNeeded()
-			menu.addItem(menuItem(NSLocalizedString("Retry Saving Page", comment: "Command"), #selector(retrySavingPageFromContextualMenu(_:)), articles))
-			menu.addItem(menuItem(NSLocalizedString("Retry with Live Page", comment: "Command"), #selector(retrySavingLivePageFromContextualMenu(_:)), articles))
+			menu.addItem(menuItem(NSLocalizedString("Retry Saving Page", comment: "Command"), #selector(retrySavingPageFromContextualMenu(_:)), retryableArticles))
+			menu.addItem(menuItem(NSLocalizedString("Retry with Live Page", comment: "Command"), #selector(retrySavingLivePageFromContextualMenu(_:)), retryableArticles))
 		}
 
 		menu.addSeparatorIfNeeded()

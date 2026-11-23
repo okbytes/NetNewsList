@@ -85,4 +85,56 @@ enum SavedArticleInbox {
 			try? FileManager.default.removeItem(at: url)
 		}
 	}
+
+	/// Folder inside the inbox holding staged files (PDF, RTF, Markdown, etc.) for shared documents.
+	private static var attachmentsDirectoryURL: URL? {
+		guard let directoryURL else {
+			return nil
+		}
+		let attachmentsURL = directoryURL.appendingPathComponent("Attachments", isDirectory: true)
+		do {
+			try FileManager.default.createDirectory(at: attachmentsURL, withIntermediateDirectories: true)
+		} catch {
+			logger.error("SavedArticleInbox: couldn’t create attachments folder: \(error.localizedDescription, privacy: .public)")
+			return nil
+		}
+		return attachmentsURL
+	}
+
+	/// Copies a shared file (or RTFD bundle) into the inbox attachments folder and returns its file name.
+	static func stageImportedFile(from sourceURL: URL) throws -> String {
+		guard let attachmentsURL = attachmentsDirectoryURL else {
+			throw CocoaError(.fileNoSuchFile)
+		}
+		let ext = sourceURL.pathExtension
+		let baseName = UUID().uuidString
+		let fileName = ext.isEmpty ? baseName : "\(baseName).\(ext)"
+		let destinationURL = attachmentsURL.appendingPathComponent(fileName)
+		try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+		return fileName
+	}
+
+	/// Writes raw shared bytes (such as RTF/HTML/PDF data) into the inbox attachments folder.
+	static func stageImportedData(_ data: Data, fileExtension: String) throws -> String {
+		guard let attachmentsURL = attachmentsDirectoryURL else {
+			throw CocoaError(.fileNoSuchFile)
+		}
+		let baseName = UUID().uuidString
+		let fileName = fileExtension.isEmpty ? baseName : "\(baseName).\(fileExtension)"
+		let destinationURL = attachmentsURL.appendingPathComponent(fileName)
+		try data.write(to: destinationURL, options: .atomic)
+		return fileName
+	}
+
+	static func importedFileURL(named fileName: String) -> URL? {
+		guard let attachmentsURL = attachmentsDirectoryURL else {
+			return nil
+		}
+		// Reject path traversal; staged names are always flat file names inside Attachments/.
+		let safeName = (fileName as NSString).lastPathComponent
+		guard !safeName.isEmpty, safeName == fileName else {
+			return nil
+		}
+		return attachmentsURL.appendingPathComponent(safeName)
+	}
 }

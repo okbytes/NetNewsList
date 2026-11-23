@@ -174,7 +174,7 @@ import Images
 	#endif
 
 	func makeKeywords(_ article: Article) -> [String] {
-		let feedNameKeywords = makeKeywords(article.siteHost)
+		let feedNameKeywords = makeKeywords(article.sourceDisplayName)
 		let articleTitleKeywords = makeKeywords(ArticleStringFormatter.shared.truncatedTitle(article))
 		return feedNameKeywords + articleTitleKeywords
 	}

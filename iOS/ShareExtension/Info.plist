@@ -29,12 +29,21 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>NSExtensionActivationRule</key>
-			<dict>
-				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
-				<integer>1</integer>
-				<key>NSExtensionActivationSupportsText</key>
-				<true/>
-			</dict>
+			<string>SUBQUERY (
+				extensionItems,
+				$extensionItem,
+				SUBQUERY (
+					$extensionItem.attachments,
+					$attachment,
+					(ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url" AND NOT ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.file-url") ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.text" ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.flat-rtfd" ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.rtfd" ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf" ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.webarchive" ||
+					ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.property-list"
+				).@count &gt;= 1
+			).@count &gt;= 1</string>
 			<key>NSExtensionJavaScriptPreprocessingFile</key>
 			<string>SafariExt</string>
 		</dict>

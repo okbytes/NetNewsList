@@ -16,6 +16,11 @@ Only if you ever ship a TestFlight or App Store build (Plan.md, 2026-10-09: the 
 
 ## 2. When you get to it
 
+- [ ] Try importing Apple Notes, Markdown files, and PDFs on Mac and iPhone:
+  - Mac: copy a native Apple Note (⌘A, ⌘C) and press ⇧⌘V (File → Import from Clipboard); try File → Import… (⇧⌘I) or dragging `.md`, `.rtf`, and `.pdf` files onto the timeline; try Share → Send Copy from Apple Notes.
+  - iPhone: Share → Send Copy from Apple Notes, and use `…` → Import File… / Import from Clipboard; verify Breve typography, reading-position persistence, Find in Article (in Share sheet), and iCloud sync to the other device.
+  - Shortcuts: try "Import to NetNewsList" with Apple Notes' "Find Notes" / "Get Contents of Note" if you want to batch-import a folder of notes.
+
 - [ ] On Mac and iPhone, open an article, change the size under View → Article Text Size (Mac) or Settings (iPhone), then reopen the app. Check that the article changes without a reload, the choice persists, and iPhone text still follows Dynamic Type.
 
 - [ ] Check the local iOS reading-position change (installed on your iPhone 2026-11-01): read partway through two long articles, switch between them, background/relaunch, and reopen them in Airplane Mode. Each should resume near the same passage. Try rotation/Dynamic Type and an image-heavy page; restoring should not fight your scrolling. Check Share is left of ⋯; its menu offers Archive / Move to Queue, then Back to Top. Back to Top should remain at the beginning after reopening; Archive should preserve your place; deleting and re-saving should start fresh. Mac positions should be unchanged.

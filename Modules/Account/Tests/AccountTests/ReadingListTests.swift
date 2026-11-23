@@ -202,6 +202,88 @@ import Articles
 			try await account.saveArticle(url: "ftp://example.com/file", title: nil, content: nil)
 		}
 	}
+
+	@Test func importedArticleHasNoWebURLAndIsNotPendingExtraction() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		let dateSaved = Date(timeIntervalSince1970: 1_795_000_000)
+		let content = ReadingListContent(title: "My Note", contentHTML: "<p>Note body</p>", summary: "Note body", byline: "Brett")
+		let article = try await account.importArticle(title: "My Note", content: content, dateSaved: dateSaved)
+
+		#expect(article.feedID == Account.readingListFeedURL)
+		#expect(article.uniqueID.hasPrefix(Account.importedArticleUniqueIDPrefix))
+		#expect(article.rawLink == nil)
+		#expect(article.rawExternalLink == nil)
+		#expect(article.title == "My Note")
+		#expect(article.contentHTML == "<p>Note body</p>")
+		#expect(article.datePublished == dateSaved)
+		#expect(!article.status.read)
+		#expect(await account.pendingExtractionArticleIDs().isEmpty)
+	}
+
+	@Test func importingSameDocumentTwiceDeduplicatesAndMovesToQueue() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		let content = ReadingListContent(title: "Note", contentHTML: "<p>Same body</p>")
+		let first = try await account.importArticle(title: "Note", content: content)
+		try await account.markArticles(articleIDs: [first.articleID], statusKey: .read, flag: true)
+
+		let second = try await account.importArticle(title: "Note", content: content)
+		#expect(second.articleID == first.articleID)
+		#expect(!second.status.read)
+
+		let edited = try await account.importArticle(title: "Note", content: ReadingListContent(title: "Note", contentHTML: "<p>Updated body</p>"))
+		#expect(edited.articleID != first.articleID)
+
+		let feed = try #require(account.readingListFeed)
+		#expect(await account.fetchArticlesAsync(.feed(feed)).count == 2)
+	}
+
+	@Test func importedArticleRoundTripsThroughCloudKitRecordAndBackup() async throws {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		let feed = account.ensureReadingListFeed()
+		typealias Fields = CloudKitArticlesZone.CloudKitArticle.Fields
+		let record = CKRecord(recordType: CloudKitArticlesZone.CloudKitArticle.recordType)
+		record[Fields.feedURL] = feed.feedID
+		record[Fields.uniqueID] = Account.importedArticleUniqueIDPrefix + "abc123"
+		record[Fields.title] = "Imported Note"
+		record[Fields.contentHTML] = "<p>Synced note</p>"
+
+		let item = try #require(makeParsedItem(record))
+		#expect(item.url == nil)
+		#expect(item.uniqueID == Account.importedArticleUniqueIDPrefix + "abc123")
+		let inserted = try #require(await account.updateAsync(feedID: feed.feedID, parsedItems: [item]).new?.first)
+		#expect(inserted.rawLink == nil)
+		#expect(inserted.contentHTML == "<p>Synced note</p>")
+
+		let backupData = try await account.readingListBackupData()
+		let backup = try #require(try JSONSerialization.jsonObject(with: backupData) as? [String: Any])
+		let articles = try #require(backup["articles"] as? [[String: Any]])
+		#expect(articles.count == 1)
+		#expect(articles[0]["url"] as? String == Account.importedArticleUniqueIDPrefix + "abc123")
+		#expect(articles[0]["contentHTML"] as? String == "<p>Synced note</p>")
+	}
+
+	@Test func importingEmptyDocumentThrows() async {
+		let account = accountManager.createAccount(type: .cloudKit)
+		defer {
+			accountManager.deleteAccount(account)
+		}
+
+		await #expect(throws: ReadingListError.self) {
+			try await account.importArticle(title: "Empty", content: ReadingListContent(contentHTML: "   "))
+		}
+	}
 }
 
 private final class DeletedArticleIDs: @unchecked Sendable {

@@ -35,7 +35,7 @@ extension Article: @retroactive PasteboardWriterOwner {
 		self.renderedHTML = rendering.html
 
 		self.feedURL = article.feed?.url
-		self.feedNameForDisplay = article.siteHost
+		self.feedNameForDisplay = article.sourceDisplayName
 		self.feedHomePageURL = article.siteHomePageURL
 	}
 

@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import CryptoKit
 import os
 import RSCore
 import Articles
@@ -32,12 +33,15 @@ public struct ReadingListContent: Sendable {
 
 public enum ReadingListError: LocalizedError, Sendable {
 	case invalidURL(String)
+	case emptyContent
 	case articleNotFound
 
 	public var errorDescription: String? {
 		switch self {
 		case .invalidURL(let urlString):
 			return String(format: NSLocalizedString("“%@” isn’t a web page address that can be saved.", comment: "Reading list: invalid URL"), urlString)
+		case .emptyContent:
+			return NSLocalizedString("There’s no readable text in that document to import.", comment: "Reading list: empty imported document")
 		case .articleNotFound:
 			return NSLocalizedString("The article is no longer in the reading list.", comment: "Reading list: article not found")
 		}
@@ -49,6 +53,8 @@ public enum ReadingListError: LocalizedError, Sendable {
 @MainActor public protocol ReadingListStore: AnyObject {
 	@discardableResult
 	func saveArticle(url urlString: String, title: String?, content: ReadingListContent?, dateSaved: Date) async throws -> Article
+	@discardableResult
+	func importArticle(title: String?, content: ReadingListContent, dateSaved: Date) async throws -> Article
 	func updateArticleContent(articleID: String, content: ReadingListContent) async throws
 	func deleteArticles(articleIDs: Set<String>) async
 	func pendingExtractionArticleIDs() async -> Set<String>
@@ -57,6 +63,7 @@ public enum ReadingListError: LocalizedError, Sendable {
 extension Account: ReadingListStore {
 
 	nonisolated public static let readingListFeedURL = "netnewslist://reading-list"
+	nonisolated public static let importedArticleUniqueIDPrefix = "netnewslist:import:"
 	private static let readingListLogger = Logger(subsystem: Logger.nnwSubsystem, category: "ReadingList")
 
 	/// The feed holding every saved article.
@@ -104,7 +111,7 @@ extension Account: ReadingListStore {
 		}
 
 		let trimmedOriginal = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-		let item = parsedItem(uniqueID: canonical, feed: feed, externalURL: trimmedOriginal == canonical ? nil : trimmedOriginal, title: content?.title ?? title, content: content, datePublished: dateSaved)
+		let item = parsedItem(uniqueID: canonical, feed: feed, url: canonical, externalURL: trimmedOriginal == canonical ? nil : trimmedOriginal, title: content?.title ?? title, content: content, datePublished: dateSaved)
 		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item])
 		guard let article = changes.new?.first else {
 			throw ReadingListError.articleNotFound
@@ -112,6 +119,51 @@ extension Account: ReadingListStore {
 		Self.readingListLogger.info("ReadingList: saved \(canonical, privacy: .public)")
 		// A status that reached this device without its page (archived elsewhere before a delete
 		// was seen) is kept for the new article; saving puts it in the Queue, here and in iCloud.
+		let arrivedRead = article.status.read
+		if arrivedRead {
+			try await markArticles(articleIDs: [articleID], statusKey: .read, flag: false)
+		}
+		await cloudKitDelegate?.storeAndSendArticleChanges(new: [article], updated: nil, deleted: nil)
+		guard arrivedRead else {
+			return article
+		}
+		return await fetchArticlesAsync(.articleIDs([articleID])).first ?? article
+	}
+
+	/// Imports a document without a web source URL (such as a note, Markdown file, or PDF)
+	/// directly into the Queue. The identity is derived from the normalized title and HTML body
+	/// so importing the same unchanged document again moves it back to the Queue instead of
+	/// creating a duplicate.
+	@discardableResult
+	public func importArticle(title: String?, content: ReadingListContent, dateSaved: Date = Date()) async throws -> Article {
+		guard let html = content.contentHTML?.trimmingCharacters(in: .whitespacesAndNewlines), !html.isEmpty else {
+			throw ReadingListError.emptyContent
+		}
+		let resolvedTitle = (content.title ?? title)?.trimmingCharacters(in: .whitespacesAndNewlines)
+		let finalTitle = (resolvedTitle?.isEmpty ?? true) ? nil : resolvedTitle
+		let uniqueID = Self.importedArticleUniqueID(title: finalTitle, contentHTML: html)
+		let feed = ensureReadingListFeed()
+		let articleID = Article.calculatedArticleID(feedID: feed.feedID, uniqueID: uniqueID)
+
+		if let existing = await fetchArticlesAsync(.articleIDs([articleID])).first {
+			Self.readingListLogger.info("ReadingList: already imported \(uniqueID, privacy: .public)")
+			if existing.status.read {
+				try await markArticles(articleIDs: [articleID], statusKey: .read, flag: false)
+			}
+			return await fetchArticlesAsync(.articleIDs([articleID])).first ?? existing
+		}
+
+		let normalizedContent = ReadingListContent(title: finalTitle,
+												   contentHTML: html,
+												   summary: content.summary,
+												   imageURL: content.imageURL,
+												   byline: content.byline)
+		let item = parsedItem(uniqueID: uniqueID, feed: feed, url: nil, externalURL: nil, title: finalTitle, content: normalizedContent, datePublished: dateSaved)
+		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item])
+		guard let article = changes.new?.first else {
+			throw ReadingListError.articleNotFound
+		}
+		Self.readingListLogger.info("ReadingList: imported \(uniqueID, privacy: .public)")
 		let arrivedRead = article.status.read
 		if arrivedRead {
 			try await markArticles(articleIDs: [articleID], statusKey: .read, flag: false)
@@ -136,7 +188,7 @@ extension Account: ReadingListStore {
 		if isTitleOnly && (article.title != nil || article.contentHTML != nil) {
 			return
 		}
-		let item = parsedItem(uniqueID: article.uniqueID, feed: feed, externalURL: article.rawExternalLink, title: content.title ?? article.title, content: content, datePublished: article.datePublished)
+		let item = parsedItem(uniqueID: article.uniqueID, feed: feed, url: article.rawLink, externalURL: article.rawExternalLink, title: content.title ?? article.title, content: content, datePublished: article.datePublished)
 		// Stored only: an article deleted meanwhile stays deleted.
 		let changes = await updateAsync(feedID: feed.feedID, parsedItems: [item], keepingContentOf: isTitleOnly ? [articleID] : Set<String>(), updatingStoredOnly: true)
 		guard let updated = changes.updated, !updated.isEmpty else {
@@ -213,12 +265,19 @@ private extension Account {
 		delegate as? CloudKitAccountDelegate
 	}
 
+	nonisolated static func importedArticleUniqueID(title: String?, contentHTML: String) -> String {
+		let seed = "\(title ?? "")\u{0000}\(contentHTML)"
+		let digest = SHA256.hash(data: Data(seed.utf8))
+		let hex = digest.map { String(format: "%02x", $0) }.joined()
+		return importedArticleUniqueIDPrefix + hex
+	}
+
 	/// `datePublished` is the date the page was saved, not the date the page itself gives
 	/// (that goes in the stored HTML). Unlike `dateArrived`, which each device sets when an
 	/// article reaches it, it syncs, so every device shows the same “Date Saved” and lists the
 	/// articles in the same order. Pages saved before 2026-10-12 had none until a device
 	/// settled one (`savedDateProposals`).
-	func parsedItem(uniqueID: String, feed: Feed, externalURL: String?, title: String?, content: ReadingListContent?, datePublished: Date? = nil) -> ParsedItem {
+	func parsedItem(uniqueID: String, feed: Feed, url: String?, externalURL: String?, title: String?, content: ReadingListContent?, datePublished: Date? = nil) -> ParsedItem {
 		var authors: Set<ParsedAuthor>?
 		if let byline = content?.byline, !byline.isEmpty {
 			authors = [ParsedAuthor(name: byline, url: nil, avatarURL: nil, emailAddress: nil)]
@@ -226,7 +285,7 @@ private extension Account {
 		return ParsedItem(syncServiceID: nil,
 						  uniqueID: uniqueID,
 						  feedURL: feed.feedID,
-						  url: uniqueID,
+						  url: url,
 						  externalURL: externalURL,
 						  title: title,
 						  language: nil,

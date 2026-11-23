@@ -19,5 +19,14 @@ struct NetNewsListAppShortcuts: AppShortcutsProvider {
 			shortTitle: "Save Page",
 			systemImageName: "tray.and.arrow.down"
 		)
+		AppShortcut(
+			intent: ImportArticleIntent(),
+			phrases: [
+				"Import a document to \(.applicationName)",
+				"Import a note to \(.applicationName)"
+			],
+			shortTitle: "Import Document",
+			systemImageName: "doc.badge.plus"
+		)
 	}
 }

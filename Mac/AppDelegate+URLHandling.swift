@@ -29,15 +29,18 @@ extension AppDelegate {
 	/// (a browser, usually), so saving from the browser doesn’t pull you out of it.
 	/// When the page can’t be saved, the Add Article sheet opens with it filled in.
 	private func saveArticle(from request: SavedArticleRequest) {
+		guard let url = request.url else {
+			return
+		}
 		let requestingApp = NSWorkspace.shared.frontmostApplication
 		Task { @MainActor in
 			do {
-				try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title)
+				try await ExtractionCoordinator.shared.saveArticle(url: url, title: request.title)
 				if let requestingApp, requestingApp != NSRunningApplication.current {
 					requestingApp.activate()
 				}
 			} catch {
-				self.addArticle(request.url, title: request.title)
+				self.addArticle(url, title: request.title)
 			}
 		}
 	}

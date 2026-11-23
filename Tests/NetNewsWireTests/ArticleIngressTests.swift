@@ -8,6 +8,7 @@
 
 import Foundation
 import Testing
+import Articles
 
 @testable import NetNewsWire
 
@@ -50,6 +51,53 @@ import Testing
 		encoder.outputFormat = .binary
 		let decoded = try PropertyListDecoder().decode(SavedArticleRequest.self, from: encoder.encode(request))
 		#expect(decoded == request)
+	}
+
+	@Test func roundTripsImportedDocumentRequest() throws {
+		let request = SavedArticleRequest(url: nil,
+										  title: "Report",
+										  body: nil,
+										  importedFileName: "1234.pdf",
+										  contentTypeIdentifier: "com.adobe.pdf",
+										  dateRequested: Date(timeIntervalSince1970: 1_800_000_000))
+		let encoder = PropertyListEncoder()
+		encoder.outputFormat = .binary
+		let decoded = try PropertyListDecoder().decode(SavedArticleRequest.self, from: encoder.encode(request))
+		#expect(decoded == request)
+	}
+}
+
+@MainActor @Suite struct ImportedArticleRenderingTests {
+
+	@Test func importedArticleRendersWithoutEmptyLinks() {
+		let status = ArticleStatus(articleID: "id1", read: false, starred: false, dateArrived: Date(timeIntervalSince1970: 1_800_000_000))
+		let article = Article(accountID: "acct",
+							  articleID: "id1",
+							  feedID: "netnewslist://reading-list",
+							  uniqueID: "netnewslist:import:deadbeef",
+							  title: "My Apple Note",
+							  contentHTML: "<p>Hello world</p>",
+							  contentText: nil,
+							  markdown: nil,
+							  url: nil,
+							  externalURL: nil,
+							  summary: "Hello world",
+							  imageURL: nil,
+							  datePublished: Date(timeIntervalSince1970: 1_800_000_000),
+							  dateModified: nil,
+							  authors: nil,
+							  status: status)
+
+		#expect(article.isImported)
+		#expect(!article.hasWebURL)
+		#expect(article.siteHost == nil)
+		#expect(article.sourceDisplayName == "Imported")
+
+		let rendering = ArticleRenderer.articleHTML(article: article, theme: .defaultTheme)
+		#expect(rendering.baseURL.isEmpty)
+		#expect(rendering.html.contains("<h1>My Apple Note</h1>"))
+		#expect(rendering.html.contains("<span class=\"feedlink\">Imported</span>"))
+		#expect(!rendering.html.contains("href=\"\">My Apple Note"))
 	}
 }
 

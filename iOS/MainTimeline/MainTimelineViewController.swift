@@ -75,10 +75,16 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 		return item
 	}()
 
-	/// The Queue's "…" menu: Add Article, then the Archive and Settings.
+	/// The Queue's "…" menu: Add Article, Import, then the Archive and Settings.
 	private lazy var listMenuBarButtonItem: UIBarButtonItem = {
 		let addArticleAction = UIAction(title: NSLocalizedString("Add Article", comment: "Add Article"), image: UIImage(systemName: "plus")) { [weak self] _ in
 			self?.coordinator?.showAddArticle()
+		}
+		let importFileAction = UIAction(title: NSLocalizedString("Import File…", comment: "Import File"), image: UIImage(systemName: "doc.badge.plus")) { [weak self] _ in
+			self?.coordinator?.showImportFiles()
+		}
+		let importClipboardAction = UIAction(title: NSLocalizedString("Import from Clipboard", comment: "Import from Clipboard"), image: UIImage(systemName: "doc.on.clipboard")) { [weak self] _ in
+			self?.coordinator?.importFromClipboard()
 		}
 		let archiveAction = UIAction(title: SmartFeedsController.shared.archiveFeed.nameForDisplay, image: Assets.Images.archive) { [weak self] _ in
 			self?.coordinator?.selectArchive()
@@ -87,7 +93,7 @@ final class MainTimelineViewController: UIViewController, UndoableCommandRunner 
 			self?.coordinator?.showSettings()
 		}
 		let menu = UIMenu(children: [
-			UIMenu(options: .displayInline, children: [addArticleAction]),
+			UIMenu(options: .displayInline, children: [addArticleAction, importFileAction, importClipboardAction]),
 			archiveAction,
 			settingsAction
 		])
@@ -425,7 +431,9 @@ extension MainTimelineViewController: UICollectionViewDelegate {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
 			}
 
-			menuElements.append(UIMenu(title: "", options: .displayInline, children: self.retrySavingPageActions(article)))
+			if article.hasWebURL {
+				menuElements.append(UIMenu(title: "", options: .displayInline, children: self.retrySavingPageActions(article)))
+			}
 
 			if let action = self.shareAction(article, indexPath: firstIndex) {
 				menuElements.append(UIMenu(title: "", options: .displayInline, children: [action]))
@@ -694,7 +702,7 @@ private extension MainTimelineViewController {
 		let iconImage = iconImageFor(article)
 		let showFeedNames = coordinator?.showFeedNames ?? ShowFeedName.none
 		let showIcon = showIcons && iconImage != nil
-		let cellData = MainTimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcon)
+		let cellData = MainTimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.sourceDisplayName, byline: article.byline(), iconImage: iconImage, showIcon: showIcon)
 		return cellData
 	}
 

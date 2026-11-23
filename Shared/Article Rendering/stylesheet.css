@@ -103,6 +103,8 @@ body > .systemMessage {
 
 .articleTitle h1 {
 	font-size: 1.5rem;
+	color: var(--article-title-color);
+	margin-top: 26px;
 }
 
 .articleTitle a:link, .articleTitle a:visited {
@@ -115,6 +117,7 @@ body > .systemMessage {
 	font-weight: bold;
 	font-variant-caps: all-small-caps;
 	letter-spacing: 0.025em;
+	color: var(--article-date-color);
 }
 
 .articleDateline a:link, .articleDateline a:visited {
@@ -125,6 +128,7 @@ body > .systemMessage {
 	margin-bottom: 5px;
 	font-weight: bold;
 	font-variant-caps: all-small-caps;
+	color: var(--article-title-color);
 }
 
 .articleDatelineTitle a:link, .articleDatelineTitle a:visited {

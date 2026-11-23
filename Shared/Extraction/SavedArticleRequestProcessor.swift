@@ -9,8 +9,10 @@
 
 import Foundation
 import os
+import UniformTypeIdentifiers
 import RSCore
 import Account
+import Extraction
 
 final class SavedArticleRequestProcessor: NSObject, NSFilePresenter, Sendable {
 
@@ -131,11 +133,40 @@ private extension SavedArticleRequestProcessor {
 				SavedArticleRequestProcessor.logger.error("SavedArticleRequestProcessor: skipped an unreadable request \(fileURL.lastPathComponent, privacy: .public)")
 				return
 			}
+			let stagedFileURL = request.importedFileName.flatMap { SavedArticleInbox.importedFileURL(named: $0) }
+			defer {
+				if let stagedFileURL {
+					SavedArticleInbox.remove(stagedFileURL)
+				}
+			}
 			do {
-				try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title, body: request.body, dateSaved: request.dateRequested)
-				SavedArticleRequestProcessor.logger.info("SavedArticleRequestProcessor: saved \(request.url, privacy: .public)")
+				if let url = request.url {
+					try await ExtractionCoordinator.shared.saveArticle(url: url, title: request.title, body: request.body, dateSaved: request.dateRequested)
+					SavedArticleRequestProcessor.logger.info("SavedArticleRequestProcessor: saved \(url, privacy: .public)")
+				} else if let stagedFileURL {
+					let contentType = request.contentTypeIdentifier.flatMap { UTType($0) }
+					if contentType?.conforms(to: .rtfd) == true || stagedFileURL.pathExtension.lowercased() == "rtfd" {
+						try await ExtractionCoordinator.shared.importFile(at: stagedFileURL, title: request.title, dateSaved: request.dateRequested)
+					} else if let contentType {
+						let data = try Data(contentsOf: stagedFileURL)
+						try await ExtractionCoordinator.shared.importData(data, contentType: contentType, fileName: stagedFileURL.lastPathComponent, title: request.title, dateSaved: request.dateRequested)
+					} else {
+						try await ExtractionCoordinator.shared.importFile(at: stagedFileURL, title: request.title, dateSaved: request.dateRequested)
+					}
+					SavedArticleRequestProcessor.logger.info("SavedArticleRequestProcessor: imported staged file \(stagedFileURL.lastPathComponent, privacy: .public)")
+				} else if let body = request.body {
+					let contentType = request.contentTypeIdentifier.flatMap { UTType($0) }
+					if contentType?.conforms(to: .html) == true {
+						try await ExtractionCoordinator.shared.importHTML(body, title: request.title, dateSaved: request.dateRequested)
+					} else {
+						try await ExtractionCoordinator.shared.importText(body, title: request.title, dateSaved: request.dateRequested)
+					}
+					SavedArticleRequestProcessor.logger.info("SavedArticleRequestProcessor: imported shared text")
+				} else {
+					SavedArticleRequestProcessor.logger.error("SavedArticleRequestProcessor: request had neither URL nor content")
+				}
 			} catch {
-				SavedArticleRequestProcessor.logger.error("SavedArticleRequestProcessor: couldn’t save \(request.url, privacy: .public): \(error.localizedDescription, privacy: .public)")
+				SavedArticleRequestProcessor.logger.error("SavedArticleRequestProcessor: couldn’t process request: \(error.localizedDescription, privacy: .public)")
 			}
 		}
 	}

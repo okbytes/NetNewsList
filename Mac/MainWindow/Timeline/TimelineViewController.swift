@@ -618,9 +618,15 @@ extension TimelineViewController: NSTableViewDataSource {
 		return articles.articleAtRow(row) ?? nil
 	}
 
-	/// A web address dropped on the timeline is saved. Articles dragged within the timeline aren't.
+	/// A web address or supported document dropped on the timeline is saved or imported.
+	/// Articles dragged within the timeline aren't.
 	func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
-		guard (info.draggingSource as? NSTableView) !== tableView, !DroppedWebPages.pages(on: info.draggingPasteboard).isEmpty else {
+		guard (info.draggingSource as? NSTableView) !== tableView else {
+			return []
+		}
+		let hasFiles = !DroppedWebPages.importableFileURLs(on: info.draggingPasteboard).isEmpty
+		let hasPages = !DroppedWebPages.pages(on: info.draggingPasteboard).isEmpty
+		guard hasFiles || hasPages else {
 			return []
 		}
 		tableView.setDropRow(-1, dropOperation: .on)
@@ -628,7 +634,12 @@ extension TimelineViewController: NSTableViewDataSource {
 	}
 
 	func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
-		DroppedWebPages.save(DroppedWebPages.pages(on: info.draggingPasteboard))
+		let fileURLs = DroppedWebPages.importableFileURLs(on: info.draggingPasteboard)
+		if !fileURLs.isEmpty {
+			appDelegate.importFiles(fileURLs)
+			return true
+		}
+		return DroppedWebPages.save(DroppedWebPages.pages(on: info.draggingPasteboard))
 	}
 
 	func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> NSPasteboardWriting? {
@@ -707,7 +718,7 @@ extension TimelineViewController: NSTableViewDelegate {
 	private func configureTimelineCell(_ cell: TimelineTableCellView, article: Article) {
 		cell.objectValue = article
 		let iconImage = article.iconImage()
-		cell.cellData = TimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.siteHost, byline: article.byline(), iconImage: iconImage, showIcon: showIcons)
+		cell.cellData = TimelineCellData(article: article, showFeedName: showFeedNames, feedName: article.sourceDisplayName, byline: article.byline(), iconImage: iconImage, showIcon: showIcons)
 	}
 
 	private func makeTimelineCellEmpty(_ cell: TimelineTableCellView) {

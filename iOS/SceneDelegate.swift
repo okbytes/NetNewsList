@@ -122,12 +122,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 			}
 
 			// Save a page: netnewslist://add?url={url}&title={title}
-			if let request = AddArticleURLScheme.request(from: context.url) {
+			if let request = AddArticleURLScheme.request(from: context.url), let url = request.url {
 				Task { @MainActor in
 					do {
-						try await ExtractionCoordinator.shared.saveArticle(url: request.url, title: request.title)
+						try await ExtractionCoordinator.shared.saveArticle(url: url, title: request.title)
 					} catch {
-						self.coordinator.showAddArticle(initialURL: request.url)
+						self.coordinator.showAddArticle(initialURL: url)
 					}
 				}
 				return

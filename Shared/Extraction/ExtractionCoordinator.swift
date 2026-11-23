@@ -13,6 +13,7 @@
 import Foundation
 import os
 import Security
+import UniformTypeIdentifiers
 import WebKit
 #if os(macOS)
 import AppKit
@@ -65,6 +66,9 @@ extension Notification {
 
 	private let fetcher = PageFetcher()
 	private let extractor = ReadabilityWebExtractor()
+	/// Separate extractor for cleaning imported HTML so an import never collides with an
+	/// in-flight web extraction job.
+	private let importHTMLCleaner = ReadabilityWebExtractor()
 	private var ledger = ExtractionLedger()
 	private var ledgerFileURL: URL?
 	private var jobs = [Job]()
@@ -98,6 +102,9 @@ extension Notification {
 		extractor.webViewHost = { webView in
 			Self.host(webView)
 		}
+		importHTMLCleaner.webViewHost = { webView in
+			Self.host(webView)
+		}
 		Self.removeXSignInLeftovers()
 
 		NotificationCenter.default.addObserver(self, selector: #selector(accountDidDownloadArticles(_:)), name: .AccountDidDownloadArticles, object: nil)
@@ -129,6 +136,51 @@ extension Notification {
 			enqueue(Job(articleID: article.articleID, usesLivePage: false, isManual: false))
 		}
 		return article
+	}
+
+	/// Saves an already-converted local/shared document (note, Markdown, RTF, HTML, or PDF)
+	/// as a reading-list article without a web source URL.
+	@discardableResult
+	func importDocument(_ document: ImportedDocument, dateSaved: Date = Date()) async throws -> Article {
+		let content = ReadingListContent(title: document.title,
+										 contentHTML: document.contentHTML,
+										 summary: document.summary,
+										 imageURL: nil,
+										 byline: document.byline)
+		return try await account.importArticle(title: document.title, content: content, dateSaved: dateSaved)
+	}
+
+	@discardableResult
+	func importFile(at url: URL, title: String? = nil, dateSaved: Date = Date()) async throws -> Article {
+		let document = try await DocumentImporter.importFile(at: url, title: title, htmlCleaner: makeHTMLCleaner())
+		return try await importDocument(document, dateSaved: dateSaved)
+	}
+
+	@discardableResult
+	func importData(_ data: Data, contentType: UTType?, fileName: String? = nil, title: String? = nil, dateSaved: Date = Date()) async throws -> Article {
+		let document = try await DocumentImporter.importData(data, contentType: contentType, fileName: fileName, title: title, htmlCleaner: makeHTMLCleaner())
+		return try await importDocument(document, dateSaved: dateSaved)
+	}
+
+	@discardableResult
+	func importText(_ text: String, title: String? = nil, dateSaved: Date = Date()) async throws -> Article {
+		let document = try await DocumentImporter.importText(text, title: title, htmlCleaner: makeHTMLCleaner())
+		return try await importDocument(document, dateSaved: dateSaved)
+	}
+
+	@discardableResult
+	func importHTML(_ html: String, title: String? = nil, dateSaved: Date = Date()) async throws -> Article {
+		let document = try await DocumentImporter.importHTML(html, title: title, htmlCleaner: makeHTMLCleaner())
+		return try await importDocument(document, dateSaved: dateSaved)
+	}
+
+	private func makeHTMLCleaner() -> DocumentImporter.HTMLCleaner {
+		{ [weak self] html in
+			guard let self else {
+				throw ExtractionError.noReadableContent
+			}
+			return try await self.importHTMLCleaner.cleanImportedHTML(html)
+		}
 	}
 
 	/// Extracts these articles again now, replacing their stored body when the page yields one.
@@ -289,6 +341,9 @@ private extension ExtractionCoordinator {
 			return
 		}
 		guard job.isManual || article.contentHTML == nil else {
+			return
+		}
+		guard article.hasWebURL else {
 			return
 		}
 		guard let link = article.rawExternalLink ?? article.rawLink, let url = URL(string: link) else {

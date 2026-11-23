@@ -56,6 +56,27 @@ import RSCore
 		}
 	}
 
+	/// Normalizes and sanitizes imported HTML (from Apple Notes, rich text, or an HTML file)
+	/// in the inert DOMParser + DOMPurify environment. Scripts never run and nothing is fetched.
+	public func cleanImportedHTML(_ html: String) async throws -> CleanedImportedHTML {
+		try await exclusively {
+			try await self.withTimeout {
+				let webView = try await self.readyStaticWebView()
+				let result: Any?
+				do {
+					result = try await webView.callAsyncJavaScript("return netNewsListCleanImportedHTML(html);", arguments: ["html": html], in: nil, contentWorld: Self.contentWorld)
+				} catch {
+					Self.logger.error("ReadabilityWebExtractor: imported HTML cleanup failed: \(error.localizedDescription, privacy: .public)")
+					throw ExtractionError.webContentFailed(error.localizedDescription)
+				}
+				guard let dictionary = result as? [String: Any] else {
+					throw ExtractionError.noReadableContent
+				}
+				return Self.cleanedImportedHTML(from: dictionary)
+			}
+		}
+	}
+
 	/// Loads `url` in a web view with JavaScript on, lets it render, then extracts
 	/// from the rendered document. For pages that build their content with scripts.
 	public func extractLivePage(url: URL, userAgent: String?) async throws -> ExtractedPage {
@@ -424,6 +445,25 @@ private extension ReadabilityWebExtractor {
 							 language: string("lang"),
 							 publishedTime: string("publishedTime"),
 							 leadImageURL: string("leadImage"))
+	}
+
+	static func cleanedImportedHTML(from dictionary: [String: Any]) -> CleanedImportedHTML {
+		func string(_ key: String) -> String? {
+			guard let value = dictionary[key] as? String else {
+				return nil
+			}
+			let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+			return trimmed.isEmpty ? nil : trimmed
+		}
+		let plainText = (dictionary["plainText"] as? String) ?? ""
+		let hasFormatting = (dictionary["hasFormatting"] as? Bool) ?? false
+		let textLength = (dictionary["textLength"] as? NSNumber)?.intValue ?? 0
+		return CleanedImportedHTML(title: string("title"),
+								   contentHTML: string("content"),
+								   plainText: plainText,
+								   excerpt: string("excerpt"),
+								   hasFormatting: hasFormatting,
+								   textLength: textLength)
 	}
 
 	func discardLiveWebView() {

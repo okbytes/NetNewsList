@@ -114,6 +114,6 @@ private extension ArticleSorter {
 @MainActor extension Article {
 
 	fileprivate var sortableFeedName: String {
-		siteHost ?? ""
+		sourceDisplayName ?? ""
 	}
 }

@@ -68,10 +68,14 @@ function constrainBodyRelativeIframes() {
 // Convert all Feedbin proxy images to be used as src, otherwise change image locations to be absolute if not already
 function convertImgSrc() {
 	document.querySelectorAll("img").forEach(element => {
+		const rawSrc = element.getAttribute("src") || "";
 		if (element.hasAttribute("data-canonical-src")) {
-			element.src = element.getAttribute("data-canonical-src")
-		} else if (!/^[a-z]+\:\/\//i.test(element.src)) {
-			element.src = new URL(element.src, document.baseURI).href;
+			element.src = element.getAttribute("data-canonical-src");
+		} else if (!/^(?:[a-z]+\:\/\/|data:)/i.test(rawSrc) && document.baseURI && document.baseURI !== "about:blank") {
+			try {
+				element.src = new URL(rawSrc, document.baseURI).href;
+			} catch (e) {
+			}
 		}
 	});
 }
@@ -219,7 +223,13 @@ function hideUnpaintedSVGs() {
 // icon with words for screen readers, like "Copy link to heading"). In a saved page these
 // only look like links, so keep the heading's words and drop the marks.
 function unlinkHeadingAnchors() {
-	const page = new URL(document.baseURI);
+	let page = null;
+	try {
+		if (document.baseURI && document.baseURI !== "about:blank") {
+			page = new URL(document.baseURI);
+		}
+	} catch (e) {
+	}
 	const path = url => url.origin + url.pathname.replace(/\/$/, "");
 	document.querySelectorAll("div.articleBody :is(h1, h2, h3, h4, h5, h6) a[href*='#']").forEach(link => {
 		let target;
@@ -229,7 +239,7 @@ function unlinkHeadingAnchors() {
 			return;
 		}
 		const heading = link.closest("h1, h2, h3, h4, h5, h6");
-		if (path(target) !== path(page) && target.hash !== "#" + heading.id) {
+		if ((!page || path(target) !== path(page)) && target.hash !== "#" + heading.id) {
 			return;
 		}
 		const isMark = text => /^[\s\u200B#¶§🔗]*$/u.test(text);

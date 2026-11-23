@@ -107,7 +107,11 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 
 	public func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 
-		if item.action == #selector(retrySavingPage(_:)) || item.action == #selector(retrySavingLivePage(_:)) || item.action == #selector(deleteArticles(_:)) || item.action == #selector(delete(_:)) {
+		if item.action == #selector(retrySavingPage(_:)) || item.action == #selector(retrySavingLivePage(_:)) {
+			return selectedArticles?.contains(where: \.hasWebURL) ?? false
+		}
+
+		if item.action == #selector(deleteArticles(_:)) || item.action == #selector(delete(_:)) {
 			return !(selectedArticles?.isEmpty ?? true)
 		}
 
@@ -228,14 +232,16 @@ final class MainWindowController: NSWindowController, NSUserInterfaceValidations
 	}
 
 	@IBAction func retrySavingPage(_ sender: Any?) {
-		guard let articleIDs = selectedArticles?.map(\.articleID), !articleIDs.isEmpty else {
+		let articleIDs = (selectedArticles ?? []).filter(\.hasWebURL).map(\.articleID)
+		guard !articleIDs.isEmpty else {
 			return
 		}
 		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: false)
 	}
 
 	@IBAction func retrySavingLivePage(_ sender: Any?) {
-		guard let articleIDs = selectedArticles?.map(\.articleID), !articleIDs.isEmpty else {
+		let articleIDs = (selectedArticles ?? []).filter(\.hasWebURL).map(\.articleID)
+		guard !articleIDs.isEmpty else {
 			return
 		}
 		ExtractionCoordinator.shared.retry(articleIDs: Set(articleIDs), usesLivePage: true)

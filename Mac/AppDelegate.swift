@@ -20,6 +20,8 @@ import RSWeb
 import Images
 import HTMLMetadata
 import CloudKitSync
+import Extraction
+import UniformTypeIdentifiers
 
 let appName = "NetNewsList"
 
@@ -581,6 +583,110 @@ let appName = "NetNewsList"
 
 	@IBAction func showAddArticleWindow(_ sender: Any?) {
 		addArticle(NSPasteboard.urlString(from: NSPasteboard.general)?.normalizedURL)
+	}
+
+	@IBAction func importDocuments(_ sender: Any?) {
+		let windowController = createAndShowMainWindowIfNecessary()
+		let panel = NSOpenPanel()
+		panel.canChooseFiles = true
+		panel.canChooseDirectories = false
+		panel.allowsMultipleSelection = true
+		panel.allowedContentTypes = DocumentImporter.supportedContentTypes
+		panel.prompt = NSLocalizedString("Import", comment: "Import files open panel button")
+
+		let handler: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+			guard response == .OK, !panel.urls.isEmpty else {
+				return
+			}
+			self?.importFiles(panel.urls)
+		}
+
+		if let window = windowController.window {
+			panel.beginSheetModal(for: window, completionHandler: handler)
+		} else {
+			handler(panel.runModal())
+		}
+	}
+
+	@IBAction func importFromClipboard(_ sender: Any?) {
+		_ = createAndShowMainWindowIfNecessary()
+		let pasteboard = NSPasteboard.general
+
+		let fileURLs = DroppedWebPages.importableFileURLs(on: pasteboard)
+		if !fileURLs.isEmpty {
+			importFiles(fileURLs)
+			return
+		}
+
+		Task { @MainActor in
+			do {
+				if let html = pasteboard.string(forType: .html), !html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+					try await ExtractionCoordinator.shared.importHTML(html)
+				} else if let rtfd = pasteboard.data(forType: .rtfd), !rtfd.isEmpty {
+					try await ExtractionCoordinator.shared.importData(rtfd, contentType: .rtfd)
+				} else if let rtf = pasteboard.data(forType: .rtf), !rtf.isEmpty {
+					try await ExtractionCoordinator.shared.importData(rtf, contentType: .rtf)
+				} else if let text = pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+					if !text.contains(where: \.isWhitespace),
+					   let url = URL(string: text),
+					   let scheme = url.scheme?.lowercased(),
+					   scheme == "http" || scheme == "https" {
+						try await ExtractionCoordinator.shared.saveArticle(url: text, title: nil)
+					} else {
+						try await ExtractionCoordinator.shared.importText(text)
+					}
+				} else {
+					self.presentImportError(DocumentImportError.emptyDocument)
+				}
+			} catch {
+				self.presentImportError(error)
+			}
+		}
+	}
+
+	func importFiles(_ urls: [URL]) {
+		guard !urls.isEmpty else {
+			return
+		}
+		Task { @MainActor in
+			var failures = [String]()
+			for url in urls {
+				let accessed = url.startAccessingSecurityScopedResource()
+				defer {
+					if accessed {
+						url.stopAccessingSecurityScopedResource()
+					}
+				}
+				do {
+					try await ExtractionCoordinator.shared.importFile(at: url)
+				} catch {
+					failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
+				}
+			}
+			if !failures.isEmpty {
+				let alert = NSAlert()
+				alert.alertStyle = .warning
+				alert.messageText = NSLocalizedString("Couldn’t Import Document", comment: "Import error alert title")
+				alert.informativeText = failures.joined(separator: "\n")
+				if let window = self.mainWindowController?.window {
+					alert.beginSheetModal(for: window, completionHandler: nil)
+				} else {
+					alert.runModal()
+				}
+			}
+		}
+	}
+
+	private func presentImportError(_ error: any Error) {
+		let alert = NSAlert()
+		alert.alertStyle = .informational
+		alert.messageText = NSLocalizedString("Couldn’t Import from Clipboard", comment: "Clipboard import error title")
+		alert.informativeText = error.localizedDescription
+		if let window = mainWindowController?.window {
+			alert.beginSheetModal(for: window, completionHandler: nil)
+		} else {
+			alert.runModal()
+		}
 	}
 
 	@IBAction func showKeyboardShortcutsWindow(_ sender: Any?) {

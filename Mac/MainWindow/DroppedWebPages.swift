@@ -7,13 +7,20 @@
 //
 
 import AppKit
+import Extraction
 
 @MainActor enum DroppedWebPages {
 
-	static let pasteboardTypes: [NSPasteboard.PasteboardType] = [.URL, .string]
+	static let pasteboardTypes: [NSPasteboard.PasteboardType] = [.fileURL, .URL, .string]
 
 	/// The link title browsers attach to a dragged link.
 	private static let urlNameType = NSPasteboard.PasteboardType("public.url-name")
+
+	/// Supported local document files (Markdown, text, HTML, RTF, RTFD, WebArchive, PDF) on the pasteboard.
+	static func importableFileURLs(on pasteboard: NSPasteboard) -> [URL] {
+		let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+		return urls.filter { DocumentImporter.canImport(url: $0) }
+	}
 
 	/// Each item’s link or address, with the title a browser gives a dragged link. Text with other
 	/// words in it gives the addresses it holds when no link comes with it, or when the link is
@@ -50,10 +57,13 @@ import AppKit
 		}
 		Task { @MainActor in
 			for page in pages {
+				guard let url = page.url else {
+					continue
+				}
 				do {
-					try await ExtractionCoordinator.shared.saveArticle(url: page.url, title: page.title)
+					try await ExtractionCoordinator.shared.saveArticle(url: url, title: page.title)
 				} catch {
-					appDelegate.addArticle(page.url, title: page.title)
+					appDelegate.addArticle(url, title: page.title)
 				}
 			}
 		}

@@ -84,6 +84,16 @@
                                     <action selector="showAddArticleWindow:" target="-1" id="jOz-hB-3zH"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Import…" keyEquivalent="I" id="imp-Doc-01a">
+                                <connections>
+                                    <action selector="importDocuments:" target="-1" id="imp-Doc-01b"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Import from Clipboard" keyEquivalent="V" id="imp-Clp-02a">
+                                <connections>
+                                    <action selector="importFromClipboard:" target="-1" id="imp-Clp-02b"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="m54-Is-iLE"/>
                             <menuItem title="New Window" keyEquivalent="n" id="pGg-Gc-PU2">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>

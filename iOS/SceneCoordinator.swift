@@ -13,6 +13,8 @@ import Articles
 import RSCore
 import SwiftUI
 import Images
+import Extraction
+import UniformTypeIdentifiers
 
 enum ShowFeedName {
 	case none
@@ -498,6 +500,55 @@ enum ShowFeedName {
 		rootSplitViewController.present(hostingController, animated: true)
 	}
 
+	func showImportFiles() {
+		let picker = UIDocumentPickerViewController(forOpeningContentTypes: DocumentImporter.supportedContentTypes, asCopy: true)
+		picker.allowsMultipleSelection = true
+		picker.delegate = self
+		rootSplitViewController.present(picker, animated: true)
+	}
+
+	func importFromClipboard() {
+		let pasteboard = UIPasteboard.general
+		Task { @MainActor in
+			do {
+				if let htmlData = pasteboard.data(forPasteboardType: UTType.html.identifier),
+				   let html = String(data: htmlData, encoding: .utf8),
+				   !html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+					try await ExtractionCoordinator.shared.importHTML(html)
+				} else if let rtfdData = pasteboard.data(forPasteboardType: "com.apple.flat-rtfd"), !rtfdData.isEmpty {
+					try await ExtractionCoordinator.shared.importData(rtfdData, contentType: UTType("com.apple.flat-rtfd"))
+				} else if let rtfData = pasteboard.data(forPasteboardType: UTType.rtf.identifier), !rtfData.isEmpty {
+					try await ExtractionCoordinator.shared.importData(rtfData, contentType: .rtf)
+				} else if let pdfData = pasteboard.data(forPasteboardType: UTType.pdf.identifier), !pdfData.isEmpty {
+					try await ExtractionCoordinator.shared.importData(pdfData, contentType: .pdf)
+				} else if let url = pasteboard.url, let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
+					try await ExtractionCoordinator.shared.saveArticle(url: url.absoluteString, title: nil)
+				} else if let text = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+					if !text.contains(where: \.isWhitespace),
+					   let url = URL(string: text),
+					   let scheme = url.scheme?.lowercased(),
+					   scheme == "http" || scheme == "https" {
+						try await ExtractionCoordinator.shared.saveArticle(url: text, title: nil)
+					} else {
+						try await ExtractionCoordinator.shared.importText(text)
+					}
+				} else {
+					self.presentImportAlert(title: NSLocalizedString("Nothing to Import", comment: "Clipboard import empty title"),
+											message: NSLocalizedString("Copy a note, document, or web link to the clipboard first.", comment: "Clipboard import empty message"))
+				}
+			} catch {
+				self.presentImportAlert(title: NSLocalizedString("Couldn’t Import from Clipboard", comment: "Clipboard import error title"),
+										message: error.localizedDescription)
+			}
+		}
+	}
+
+	private func presentImportAlert(title: String, message: String) {
+		let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+		alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "OK"), style: .default))
+		rootSplitViewController.present(alert, animated: true)
+	}
+
 	func showFullScreenImage(image: UIImage, imageTitle: String?, transition: ImageTransition) {
 		let imageVC = UIStoryboard.main.instantiateController(ofType: ImageViewController.self)
 		imageVC.image = image
@@ -572,6 +623,35 @@ enum ShowFeedName {
 		settings.dismiss(animated: true, completion: nil)
 	}
 
+}
+
+extension SceneCoordinator: UIDocumentPickerDelegate {
+
+	func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+		guard !urls.isEmpty else {
+			return
+		}
+		Task { @MainActor in
+			var failures = [String]()
+			for url in urls {
+				let accessed = url.startAccessingSecurityScopedResource()
+				defer {
+					if accessed {
+						url.stopAccessingSecurityScopedResource()
+					}
+				}
+				do {
+					try await ExtractionCoordinator.shared.importFile(at: url)
+				} catch {
+					failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
+				}
+			}
+			if !failures.isEmpty {
+				self.presentImportAlert(title: NSLocalizedString("Couldn’t Import Document", comment: "Import error alert title"),
+										message: failures.joined(separator: "\n"))
+			}
+		}
+	}
 }
 
 // MARK: UISplitViewControllerDelegate
